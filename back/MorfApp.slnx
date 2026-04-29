@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="MorfApp.Api/MorfApp.Api.csproj" />
+  <Project Path="MorfApp.Application/MorfApp.Application.csproj" />
+  <Project Path="MorfApp.Domain/MorfApp.Domain.csproj" />
+  <Project Path="MorfApp.Infrastructure/MorfApp.Infrastructure.csproj" />
+</Solution>

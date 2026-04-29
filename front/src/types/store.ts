@@ -1,0 +1,95 @@
+export type TenantBranding = {
+  colorPrimary: string
+  colorAccent: string
+  logoUrl: string | null
+  bannerUrl: string | null
+  emojiIcon: string
+  tagline: string | null
+}
+
+export type TenantAdmin = {
+  id: string
+  slug: string
+  name: string
+  whatsappNumber: string
+  branding: TenantBranding
+  delivery: DeliveryConfig | null
+  hours: BusinessHour[]
+}
+
+export type DeliveryConfig = {
+  mode: 'delivery' | 'pickup' | 'both'
+  deliveryCost: number | null
+  freeDeliveryFrom: number | null
+  minOrderAmount: number | null
+  estimatedMinutes: string | null
+  pickupAddress: string | null
+}
+
+export type BusinessHour = {
+  dayOfWeek: number
+  isOpen: boolean
+  opensAt: string | null
+  closesAt: string | null
+}
+
+export type TenantPublic = {
+  id: string
+  slug: string
+  name: string
+  whatsappNumber: string
+  isOpen: boolean
+  branding: TenantBranding
+  deliveryConfig: DeliveryConfig
+  businessHours: BusinessHour[]
+}
+
+export type ModifierOption = {
+  id: string
+  name: string
+  emoji: string
+  extraPrice: number
+}
+
+export type ModifierGroup = {
+  id: string
+  name: string
+  type: 'single' | 'multiple'
+  isRequired: boolean
+  maxSelect: number | null
+  options: ModifierOption[]
+}
+
+export type Product = {
+  id: string
+  name: string
+  description: string | null
+  price: number
+  emoji: string
+  imageUrl: string | null
+  tags: string[]
+  modifierGroups: ModifierGroup[]
+}
+
+export type Category = {
+  id: string
+  name: string
+  emoji: string
+  sortOrder: number
+  products: Product[]
+}
+
+export type SelectedOption = {
+  optionId: string
+  name: string
+  extraPrice: number
+}
+
+export type CartItem = {
+  cartId: string
+  product: Product
+  qty: number
+  selections: Record<string, SelectedOption | SelectedOption[]>
+  extraPrice: number
+  observations?: string
+}

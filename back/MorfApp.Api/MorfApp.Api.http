@@ -1,0 +1,6 @@
+@MorfApp.Api_HostAddress = http://localhost:5087
+
+GET {{MorfApp.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

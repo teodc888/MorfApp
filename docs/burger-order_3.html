@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>El Rincón del Fuego</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Inter',sans-serif;background:#f5f5f5;color:#1a1a1a;min-height:100vh;overflow-x:hidden}
+
+/* ─── HEADER ─── */
+.header{background:#e8390e;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40}
+.header-left{display:flex;align-items:center;gap:10px}
+.header-logo{font-size:1.6rem}
+.header-name{font-size:1rem;font-weight:700;color:#fff}
+.header-sub{font-size:.7rem;color:rgba(255,255,255,.7);margin-top:1px}
+.cart-btn{background:rgba(255,255,255,.2);border:none;border-radius:12px;padding:8px 14px;display:flex;align-items:center;gap:8px;cursor:pointer;color:#fff;font-family:'Inter',sans-serif;font-size:.88rem;font-weight:700;transition:background .15s;position:relative}
+.cart-btn:active{background:rgba(255,255,255,.3)}
+.cart-btn.has-items{background:#fff;color:#e8390e}
+.cart-count{background:#e8390e;color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:800}
+.cart-btn.has-items .cart-count{background:#e8390e}
+
+/* ─── TABS ─── */
+.tabs{background:#fff;display:flex;overflow-x:auto;border-bottom:1px solid #eee;position:sticky;top:58px;z-index:39;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:12px 16px;font-size:.85rem;font-weight:600;color:#999;white-space:nowrap;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;flex-shrink:0}
+.tab.active{color:#e8390e;border-bottom-color:#e8390e}
+
+/* ─── MENU ─── */
+.menu{padding:16px;max-width:520px;margin:0 auto;padding-bottom:100px}
+.cat-title{font-size:.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#aaa;margin:20px 0 10px}
+.cat-title:first-child{margin-top:0}
+
+/* ─── PRODUCT CARD ─── */
+.product-card{background:#fff;border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;margin-bottom:8px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.06);transition:transform .12s,box-shadow .12s;border:1.5px solid transparent}
+.product-card:active{transform:scale(.98);box-shadow:0 1px 1px rgba(0,0,0,.04)}
+.product-thumb{width:64px;height:64px;border-radius:12px;background:#f5f5f5;display:flex;align-items:center;justify-content:center;font-size:2rem;flex-shrink:0}
+.product-info{flex:1;min-width:0}
+.product-name{font-size:.92rem;font-weight:700;line-height:1.3}
+.product-desc{font-size:.75rem;color:#999;margin-top:3px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.product-bottom{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+.product-price{font-size:.95rem;font-weight:800;color:#1a1a1a}
+.add-btn{background:#e8390e;border:none;border-radius:8px;color:#fff;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;cursor:pointer;transition:background .12s;flex-shrink:0}
+.add-btn:active{background:#c72d08}
+
+/* ─── MODAL OVERLAY ─── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:60;display:none;align-items:flex-end;justify-content:center}
+.overlay.open{display:flex;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+/* ─── PRODUCT MODAL (bottom sheet) ─── */
+.modal{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;animation:slideUp .25s ease;padding-bottom:env(safe-area-inset-bottom,0)}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-handle{width:36px;height:4px;background:#e0e0e0;border-radius:2px;margin:10px auto 0}
+.modal-header{padding:16px 16px 0}
+.modal-thumb{width:72px;height:72px;border-radius:14px;background:#f5f5f5;display:flex;align-items:center;justify-content:center;font-size:2.4rem;margin-bottom:12px}
+.modal-name{font-size:1.1rem;font-weight:800}
+.modal-desc{font-size:.8rem;color:#999;margin-top:4px;line-height:1.5}
+.modal-price{font-size:1rem;font-weight:700;color:#e8390e;margin-top:6px}
+
+/* ─── MODIFIER GROUP ─── */
+.mod-group{border-top:1px solid #f0f0f0;padding:14px 16px}
+.mod-title{font-size:.78rem;font-weight:700;color:#333;margin-bottom:4px}
+.mod-subtitle{font-size:.7rem;color:#aaa;margin-bottom:10px}
+.mod-required{display:inline-block;background:#fff3f0;color:#e8390e;font-size:.62rem;font-weight:700;padding:2px 6px;border-radius:4px;margin-left:6px;vertical-align:middle}
+
+.opt-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f8f8f8;cursor:pointer}
+.opt-row:last-child{border-bottom:none}
+.opt-left{display:flex;align-items:center;gap:10px;font-size:.88rem;font-weight:500}
+.opt-emoji{width:24px;text-align:center}
+.opt-extra{font-size:.78rem;color:#2ecc71;font-weight:600}
+.opt-control{flex-shrink:0}
+
+/* radio */
+.radio{width:20px;height:20px;border-radius:50%;border:2px solid #ddd;display:flex;align-items:center;justify-content:center;transition:all .12s}
+.opt-row.selected .radio{border-color:#e8390e;background:#e8390e}
+.opt-row.selected .radio::after{content:'';width:8px;height:8px;border-radius:50%;background:#fff}
+
+/* checkbox */
+.chk{width:20px;height:20px;border-radius:6px;border:2px solid #ddd;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:900;color:#fff;transition:all .12s}
+.opt-row.selected .chk{background:#e8390e;border-color:#e8390e}
+
+/* ─── MODAL FOOTER ─── */
+.modal-footer{padding:14px 16px;border-top:1px solid #f0f0f0;display:flex;align-items:center;gap:12px;position:sticky;bottom:0;background:#fff}
+.qty-ctrl{display:flex;align-items:center;gap:0;background:#f5f5f5;border-radius:10px;overflow:hidden}
+.qty-btn{width:38px;height:38px;background:none;border:none;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#555;transition:background .1s}
+.qty-btn:active{background:#e8e8e8}
+.qty-num{width:32px;text-align:center;font-size:.95rem;font-weight:700}
+.add-to-cart-btn{flex:1;background:#e8390e;border:none;border-radius:12px;color:#fff;font-family:'Inter',sans-serif;font-size:.95rem;font-weight:700;padding:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s}
+.add-to-cart-btn:active{background:#c72d08}
+.add-to-cart-btn:disabled{background:#ddd;color:#aaa;cursor:not-allowed}
+
+/* ─── CART MODAL ─── */
+.cart-modal{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:520px;max-height:92vh;display:flex;flex-direction:column;animation:slideUp .25s ease}
+.cart-header{padding:18px 16px 14px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between}
+.cart-title{font-size:1.1rem;font-weight:800}
+.close-btn{background:#f5f5f5;border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.1rem}
+.cart-items{flex:1;overflow-y:auto;padding:12px 16px}
+
+/* cart item */
+.cart-item{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid #f5f5f5}
+.cart-item:last-child{border-bottom:none}
+.ci-thumb{width:48px;height:48px;border-radius:10px;background:#f5f5f5;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0}
+.ci-info{flex:1;min-width:0}
+.ci-name{font-size:.88rem;font-weight:700}
+.ci-mods{font-size:.75rem;color:#999;margin-top:3px;line-height:1.5}
+.ci-bottom{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+.ci-price{font-size:.9rem;font-weight:700;color:#e8390e}
+.ci-actions{display:flex;align-items:center;gap:6px}
+.ci-qty-btn{width:26px;height:26px;border-radius:6px;background:#f5f5f5;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:700;transition:background .1s}
+.ci-qty-btn:active{background:#e8e8e8}
+.ci-qty-btn.del{color:#e8390e}
+.ci-qty-num{font-size:.85rem;font-weight:700;min-width:20px;text-align:center}
+
+/* cart customer form */
+.cart-form{padding:14px 16px;border-top:1px solid #f0f0f0}
+.form-title{font-size:.78rem;font-weight:700;color:#555;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px}
+.delivery-tabs{display:flex;gap:8px;margin-bottom:12px}
+.dtab{flex:1;padding:10px;border:1.5px solid #e0e0e0;border-radius:10px;text-align:center;cursor:pointer;font-size:.82rem;font-weight:600;color:#999;transition:all .15s}
+.dtab.active{border-color:#e8390e;color:#e8390e;background:#fff5f3}
+.form-input{width:100%;background:#f8f8f8;border:1.5px solid #eee;border-radius:10px;padding:11px 13px;font-family:'Inter',sans-serif;font-size:.88rem;color:#1a1a1a;outline:none;margin-bottom:8px;transition:border-color .15s}
+.form-input:focus{border-color:#e8390e;background:#fff}
+.form-input::placeholder{color:#bbb}
+
+/* cart footer */
+.cart-footer{padding:14px 16px;border-top:1px solid #f0f0f0}
+.cart-total-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.cart-total-label{font-size:.82rem;color:#999;font-weight:500}
+.cart-total-price{font-size:1.3rem;font-weight:800}
+.send-btn{width:100%;background:#25D366;border:none;border-radius:12px;color:#fff;font-family:'Inter',sans-serif;font-size:.95rem;font-weight:700;padding:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s}
+.send-btn:active{background:#1ebe5d;transform:scale(.98)}
+.send-btn:disabled{background:#ddd;color:#aaa;cursor:not-allowed}
+
+/* ─── EMPTY CART ─── */
+.empty-cart{text-align:center;padding:40px 20px;color:#bbb}
+.empty-cart-icon{font-size:3rem;margin-bottom:12px}
+.empty-cart p{font-size:.88rem}
+
+/* ─── BOTTOM BAR ─── */
+.bottom-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #eee;padding:12px 16px;z-index:35;display:none}
+.bottom-bar.visible{display:block}
+.bottom-bar-inner{max-width:520px;margin:0 auto;display:flex;align-items:center;gap:12px}
+.bb-info{flex:1}
+.bb-count{font-size:.75rem;color:#999;font-weight:500}
+.bb-price{font-size:1.1rem;font-weight:800}
+.bb-btn{background:#e8390e;border:none;border-radius:12px;color:#fff;font-family:'Inter',sans-serif;font-size:.9rem;font-weight:700;padding:13px 20px;cursor:pointer;white-space:nowrap;transition:background .15s}
+.bb-btn:active{background:#c72d08}
+
+/* scrollbar */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#ddd;border-radius:2px}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div class="header-logo">🔥</div>
+    <div>
+      <div class="header-name">El Rincón del Fuego</div>
+      <div class="header-sub">Pedidos online · Córdoba</div>
+    </div>
+  </div>
+  <button class="cart-btn" id="cartBtn" onclick="openCart()">
+    <span>🛒</span>
+    <span id="cartBtnLabel">Carrito</span>
+    <div class="cart-count" id="cartCount" style="display:none">0</div>
+  </button>
+</div>
+
+<!-- TABS -->
+<div class="tabs" id="tabs">
+  <div class="tab active" onclick="scrollTo('cat-combos',this)">Combos</div>
+  <div class="tab" onclick="scrollTo('cat-burgers',this)">Hamburguesas</div>
+  <div class="tab" onclick="scrollTo('cat-lomitos',this)">Lomitos</div>
+  <div class="tab" onclick="scrollTo('cat-bebidas',this)">Bebidas</div>
+</div>
+
+<!-- MENU -->
+<div class="menu">
+
+  <!-- COMBOS -->
+  <div class="cat-title" id="cat-combos">Combos</div>
+  <div class="product-card" onclick="openProduct('combo-simple')">
+    <div class="product-thumb">🍔</div>
+    <div class="product-info">
+      <div class="product-name">Combo Simple</div>
+      <div class="product-desc">Medallón + cheddar + papas fritas + gaseosa</div>
+      <div class="product-bottom">
+        <div class="product-price">$5.800</div>
+        <div class="add-btn">+</div>
+      </div>
+    </div>
+  </div>
+  <div class="product-card" onclick="openProduct('combo-doble')">
+    <div class="product-thumb">🍔</div>
+    <div class="product-info">
+      <div class="product-name">Combo Doble</div>
+      <div class="product-desc">2 medallones + doble cheddar + papas + gaseosa</div>
+      <div class="product-bottom">
+        <div class="product-price">$7.500</div>
+        <div class="add-btn">+</div>
+      </div>
+    </div>
+  </div>
+  <div class="product-card" onclick="openProduct('combo-fuego')">
+    <div class="product-thumb">🌶️</div>
+    <div class="product-info">
+      <div class="product-name">Combo Fuego ⭐</div>
+      <div class="product-desc">Doble medallón + bacon + jalapeños + papas rústicas + cerveza</div>
+      <div class="product-bottom">
+        <div class="product-price">$8.900</div>
+        <div class="add-btn">+</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HAMBURGUESAS -->
+  <div class="cat-title" id="cat-burgers">Hamburguesas</div>
+  <div class="product-card" onclick="openProduct('burger-simple')">
+    <div class="product-thumb">🍔</div>
+    <div class="product-info">
+      <div class="product-name">Hamburguesa Simple</div>
+      <div class="product-desc">1 medallón · armala a tu gusto</div>
+      <div class="product-bottom">
+        <div class="product-price">$3.500</div>
+        <div class="add-btn">+</div>
+      </div>
+    </div>
+  </div>
+  <div class="product-card" onclick="openProduct('burger-doble')">
+    <div class="product-thumb">🍔</div>
+    <div class="product-info">
+      <div class="product-name">Hamburguesa Doble</div>
+      <div class="product-desc">2 medallones · armala a tu gusto</div>
+      <div class="product-bottom">
+        <div class="product-price">$5.000</div>
+        <div class="add-btn">+</div>
+      </div>
+    </div>
+  </div>
+  <div class="product-card" onclick="openProduct('burger-veggie')">
+    <div class="product-thumb">🌿</div>
+    <div class="product-info">
+      <div class="product-name">Veggie Burger</div>
+      <div class="product-desc">Medallón de garbanzo · armala a tu gusto</div>
+      <div class="product-bottom">
+        <div class="product-price">$4.200</div>
+        <div class="add-btn">+</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOMITOS -->
+  <div class="cat-title" id="cat-lomitos">Lomitos</div>
+  <div class="product-card" onclick="openProduct('lomito-clasico')">
+    <div class="product-thumb">🥩</div>
+    <div class="product-info">
+      <div class="product-name">Lomito Clásico</div>
+      <div class="product-desc">Lomo a la plancha + lechuga + tomate + mayo</div>
+      <div class="product-bottom">
+        <div class="product-price">$6.200</div>
+        <div class="add-btn">+</div>
+      </div>
+    </div>
+  </div>
+  <div class="product-card" onclick="openProduct('lomito-completo')">
+    <div class="product-thumb">🥩</div>
+    <div class="product-info">
+      <div class="product-name">Lomito Completo</div>
+      <div class="product-desc">Lomo + jamón + huevo + queso + verduras</div>
+      <div class="product-bottom">
+        <div class="product-price">$7.800</div>
+        <div class="add-btn">+</div>
+      </div>
+    </div>
+  </div>
+  <div class="product-card" onclick="openProduct('lomito-fuego')">
+    <div class="product-thumb">🔥</div>
+    <div class="product-info">
+      <div class="product-name">Lomito Fuego ⭐</div>
+      <div class="product-desc">Lomo + bacon + palta + huevo + chimichurri + papas rústicas</div>
+      <div class="product-bottom">
+        <div class="product-price">$9.200</div>
+        <div class="add-btn">+</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BEBIDAS -->
+  <div class="cat-title" id="cat-bebidas">Bebidas</div>
+  <div class="product-card" onclick="openProduct('gaseosa')">
+    <div class="product-thumb">🥤</div>
+    <div class="product-info">
+      <div class="product-name">Gaseosa 500ml</div>
+      <div class="product-desc">Coca, Sprite, Fanta o agua</div>
+      <div class="product-bottom">
+        <div class="product-price">$1.500</div>
+        <div class="add-btn">+</div>
+      </div>
+    </div>
+  </div>
+  <div class="product-card" onclick="openProduct('cerveza')">
+    <div class="product-thumb">🍺</div>
+    <div class="product-info">
+      <div class="product-name">Cerveza 473ml</div>
+      <div class="product-desc">Quilmes, Andes o Stella</div>
+      <div class="product-bottom">
+        <div class="product-price">$2.800</div>
+        <div class="add-btn">+</div>
+      </div>
+    </div>
+  </div>
+  <div class="product-card" onclick="openProduct('papas')">
+    <div class="product-thumb">🍟</div>
+    <div class="product-info">
+      <div class="product-name">Papas fritas</div>
+      <div class="product-desc">Porción grande</div>
+      <div class="product-bottom">
+        <div class="product-price">$1.800</div>
+        <div class="add-btn">+</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /menu -->
+
+<!-- BOTTOM BAR -->
+<div class="bottom-bar" id="bottomBar">
+  <div class="bottom-bar-inner">
+    <div class="bb-info">
+      <div class="bb-count" id="bbCount">0 productos</div>
+      <div class="bb-price" id="bbPrice">$0</div>
+    </div>
+    <button class="bb-btn" onclick="openCart()">Ver carrito →</button>
+  </div>
+</div>
+
+<!-- ══════════ PRODUCT MODAL ══════════ -->
+<div class="overlay" id="productOverlay" onclick="closeProduct(event)">
+  <div class="modal" id="productModal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-thumb" id="m-thumb">🍔</div>
+      <div class="modal-name" id="m-name"></div>
+      <div class="modal-desc" id="m-desc"></div>
+      <div class="modal-price" id="m-price"></div>
+    </div>
+    <div id="m-modifiers"></div>
+    <div class="modal-footer">
+      <div class="qty-ctrl">
+        <button class="qty-btn" onclick="modalQty(-1)">−</button>
+        <div class="qty-num" id="m-qty">1</div>
+        <button class="qty-btn" onclick="modalQty(1)">+</button>
+      </div>
+      <button class="add-to-cart-btn" id="m-addBtn" onclick="addToCart()">
+        Agregar · <span id="m-subtotal">$0</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ CART MODAL ══════════ -->
+<div class="overlay" id="cartOverlay" onclick="closeCart(event)">
+  <div class="cart-modal">
+    <div class="cart-header">
+      <div class="cart-title">Tu pedido</div>
+      <button class="close-btn" onclick="closeCartModal()">✕</button>
+    </div>
+
+    <div class="cart-items" id="cartItems"></div>
+
+    <div class="cart-form" id="cartForm" style="display:none">
+      <div class="form-title">¿Cómo lo recibís?</div>
+      <div class="delivery-tabs">
+        <div class="dtab active" id="dtab-delivery" onclick="setDelivery('delivery')">🛵 Delivery</div>
+        <div class="dtab" id="dtab-pickup" onclick="setDelivery('pickup')">🏠 Retiro en local</div>
+      </div>
+      <input class="form-input" id="f-name" placeholder="Tu nombre" type="text"/>
+      <input class="form-input" id="f-phone" placeholder="Teléfono (opcional)" type="tel"/>
+      <input class="form-input" id="f-address" placeholder="Dirección de entrega" type="text" id="f-address"/>
+      <input class="form-input" id="f-notes" placeholder="Aclaraciones del pedido (opcional)" type="text"/>
+    </div>
+
+    <div class="cart-footer" id="cartFooter" style="display:none">
+      <div class="cart-total-row">
+        <span class="cart-total-label">Total</span>
+        <span class="cart-total-price" id="cartTotal">$0</span>
+      </div>
+      <button class="send-btn" id="sendBtn" onclick="sendWA()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        Confirmar pedido por WhatsApp
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+const WA = '543512550311'; // ← tu número
+
+// ─── CATÁLOGO ───
+const CATALOG = {
+  'combo-simple':   { name:'Combo Simple',       emoji:'🍔', desc:'Medallón + cheddar + papas fritas + gaseosa', price:5800, type:'simple' },
+  'combo-doble':    { name:'Combo Doble',         emoji:'🍔', desc:'2 medallones + doble cheddar + papas + gaseosa', price:7500, type:'simple' },
+  'combo-fuego':    { name:'Combo Fuego ⭐',       emoji:'🌶️', desc:'Doble medallón + bacon + jalapeños + papas rústicas + cerveza', price:8900, type:'simple' },
+  'burger-simple':  { name:'Hamburguesa Simple',  emoji:'🍔', desc:'1 medallón de carne', price:3500, type:'burger' },
+  'burger-doble':   { name:'Hamburguesa Doble',   emoji:'🍔', desc:'2 medallones de carne', price:5000, type:'burger' },
+  'burger-veggie':  { name:'Veggie Burger',        emoji:'🌿', desc:'Medallón de garbanzo', price:4200, type:'burger' },
+  'lomito-clasico': { name:'Lomito Clásico',       emoji:'🥩', desc:'Lomo a la plancha + lechuga + tomate + mayo', price:6200, type:'lomito' },
+  'lomito-completo':{ name:'Lomito Completo',      emoji:'🥩', desc:'Lomo + jamón + huevo + queso + verduras', price:7800, type:'lomito' },
+  'lomito-fuego':   { name:'Lomito Fuego ⭐',       emoji:'🔥', desc:'Lomo + bacon + palta + huevo + chimichurri + papas rústicas', price:9200, type:'lomito' },
+  'gaseosa':        { name:'Gaseosa 500ml',        emoji:'🥤', desc:'Coca, Sprite, Fanta o agua', price:1500, type:'beverage',
+    mods:[{ id:'sabor', title:'¿Qué sabor?', required:true, multi:false,
+      opts:[{v:'Coca Cola',e:'🥤'},{v:'Sprite',e:'🥤'},{v:'Fanta',e:'🥤'},{v:'Agua mineral',e:'💧'}] }] },
+  'cerveza':        { name:'Cerveza 473ml',        emoji:'🍺', desc:'Quilmes, Andes o Stella', price:2800, type:'beverage',
+    mods:[{ id:'marca', title:'¿Qué marca?', required:true, multi:false,
+      opts:[{v:'Quilmes',e:'🍺'},{v:'Andes',e:'🍺'},{v:'Stella Artois',e:'🍺'}] }] },
+  'papas':          { name:'Papas fritas',          emoji:'🍟', desc:'Porción grande', price:1800, type:'simple' },
+};
+
+// MODIFICADORES BURGER
+const BURGER_MODS = [
+  { id:'pan', title:'Pan', required:true, multi:false,
+    opts:[{v:'Brioche',e:'🍞'},{v:'Integral',e:'🌾'},{v:'Clásico',e:'⬜'},{v:'Pan cheddar',e:'🧀'},{v:'Sin pan',e:'🚫'}] },
+  { id:'queso', title:'Queso', required:false, multi:false,
+    opts:[{v:'Sin queso',e:'❌'},{v:'Cheddar',e:'🧡'},{v:'Muzarella',e:'⬜'},{v:'Provolone',e:'🟡'},{v:'Doble cheddar',e:'🧡',extra:500}] },
+  { id:'coccion', title:'Punto de cocción', required:false, multi:false,
+    opts:[{v:'Jugoso',e:'🩸'},{v:'A punto',e:'✅'},{v:'Bien cocido',e:'🔥'}] },
+  { id:'cond', title:'Condimentos', required:false, multi:true,
+    opts:[{v:'Lechuga',e:'🥬'},{v:'Tomate',e:'🍅'},{v:'Cebolla',e:'🧅'},{v:'Cebolla caramelizada',e:'🟤'},{v:'Jalapeños',e:'🌶️'},{v:'Huevo frito',e:'🍳',extra:400},{v:'Bacon',e:'🥓',extra:600},{v:'Palta',e:'🥑',extra:500},{v:'Rúcula',e:'🌿'}] },
+  { id:'salsa', title:'Salsas', required:false, multi:true,
+    opts:[{v:'Ketchup',e:'🍅'},{v:'Mayonesa',e:'💛'},{v:'Mostaza',e:'🟡'},{v:'BBQ',e:'🔴'},{v:'Chimichurri',e:'🌿'},{v:'Aioli',e:'🧄'},{v:'Picante',e:'🌶️'},{v:'Criolla',e:'🫙'}] },
+];
+
+// MODIFICADORES LOMITO
+const LOMITO_MODS = [
+  { id:'salsa', title:'Salsa', required:false, multi:true,
+    opts:[{v:'Mayonesa',e:'💛'},{v:'Ketchup',e:'🍅'},{v:'Mostaza',e:'🟡'},{v:'Chimichurri',e:'🌿'},{v:'Criolla',e:'🫙'},{v:'Aioli',e:'🧄'}] },
+  { id:'extras', title:'Agregar', required:false, multi:true,
+    opts:[{v:'Huevo frito',e:'🍳',extra:400},{v:'Bacon',e:'🥓',extra:600},{v:'Palta',e:'🥑',extra:500}] },
+];
+
+// ─── STATE ───
+let cart = [];
+let currentProduct = null;  // { id, qty, selections:{modId: val|val[] } }
+let deliveryMode = 'delivery';
+
+// ─── TABS ───
+function scrollTo(id, tabEl) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  tabEl.classList.add('active');
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+// ─── OPEN PRODUCT MODAL ───
+function openProduct(id) {
+  const p = CATALOG[id];
+  if (!p) return;
+
+  // init current product
+  currentProduct = { id, qty:1, selections:{}, extraPrice:0 };
+
+  // fill modal header
+  document.getElementById('m-thumb').textContent = p.emoji;
+  document.getElementById('m-name').textContent  = p.name;
+  document.getElementById('m-desc').textContent  = p.desc;
+  document.getElementById('m-price').textContent = '$' + p.price.toLocaleString('es-AR');
+  document.getElementById('m-qty').textContent   = 1;
+
+  // build modifiers
+  let mods = p.mods || [];
+  if (p.type === 'burger')  mods = BURGER_MODS;
+  if (p.type === 'lomito')  mods = LOMITO_MODS;
+
+  const container = document.getElementById('m-modifiers');
+  container.innerHTML = '';
+  mods.forEach(mod => {
+    currentProduct.selections[mod.id] = mod.multi ? [] : null;
+    container.innerHTML += buildMod(mod);
+  });
+
+  updateModalSubtotal();
+  updateAddBtn();
+
+  document.getElementById('productOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function buildMod(mod) {
+  const reqBadge = mod.required ? `<span class="mod-required">Obligatorio</span>` : '';
+  const subtitle = mod.multi ? 'Podés elegir varios' : 'Elegí uno';
+  let rows = mod.opts.map(o => {
+    const extra = o.extra ? `<span class="opt-extra">+ $${o.extra.toLocaleString('es-AR')}</span>` : '';
+    const ctrl  = mod.multi
+      ? `<div class="chk" data-mod="${mod.id}" data-val="${o.v}"></div>`
+      : `<div class="radio" data-mod="${mod.id}" data-val="${o.v}"></div>`;
+    return `<div class="opt-row" data-mod="${mod.id}" data-val="${o.v}" data-extra="${o.extra||0}" data-multi="${mod.multi}" onclick="selectMod(this)">
+      <div class="opt-left"><span class="opt-emoji">${o.e}</span>${o.v}${extra}</div>
+      <div class="opt-control">${ctrl}</div>
+    </div>`;
+  }).join('');
+  return `<div class="mod-group">
+    <div class="mod-title">${mod.title}${reqBadge}</div>
+    <div class="mod-subtitle">${subtitle}</div>
+    ${rows}
+  </div>`;
+}
+
+function selectMod(el) {
+  const modId  = el.dataset.mod;
+  const val    = el.dataset.val;
+  const extra  = parseInt(el.dataset.extra) || 0;
+  const isMulti = el.dataset.multi === 'true';
+
+  if (isMulti) {
+    el.classList.toggle('selected');
+    const chk = el.querySelector('.chk');
+    const arr = currentProduct.selections[modId];
+    if (el.classList.contains('selected')) {
+      chk.textContent = '✓';
+      arr.push({ v:val, extra });
+    } else {
+      chk.textContent = '';
+      const i = arr.findIndex(x => x.v === val);
+      if (i > -1) arr.splice(i, 1);
+    }
+  } else {
+    // deselect siblings
+    document.querySelectorAll(`.opt-row[data-mod="${modId}"]`).forEach(r => {
+      r.classList.remove('selected');
+      const radio = r.querySelector('.radio');
+      if (radio) radio.innerHTML = '';
+    });
+    el.classList.add('selected');
+    el.querySelector('.radio').innerHTML = '';
+    currentProduct.selections[modId] = { v:val, extra };
+  }
+
+  updateModalSubtotal();
+  updateAddBtn();
+}
+
+function modalQty(d) {
+  currentProduct.qty = Math.max(1, Math.min(20, currentProduct.qty + d));
+  document.getElementById('m-qty').textContent = currentProduct.qty;
+  updateModalSubtotal();
+}
+
+function updateModalSubtotal() {
+  if (!currentProduct) return;
+  const p = CATALOG[currentProduct.id];
+  let extra = 0;
+  Object.values(currentProduct.selections).forEach(sel => {
+    if (!sel) return;
+    if (Array.isArray(sel)) sel.forEach(s => extra += (s.extra||0));
+    else extra += (sel.extra||0);
+  });
+  currentProduct.extraPrice = extra;
+  const sub = (p.price + extra) * currentProduct.qty;
+  document.getElementById('m-subtotal').textContent = '$' + sub.toLocaleString('es-AR');
+}
+
+function updateAddBtn() {
+  if (!currentProduct) return;
+  const p = CATALOG[currentProduct.id];
+  let mods = p.mods || [];
+  if (p.type === 'burger') mods = BURGER_MODS;
+  if (p.type === 'lomito') mods = LOMITO_MODS;
+  const required = mods.filter(m => m.required);
+  const ok = required.every(m => {
+    const sel = currentProduct.selections[m.id];
+    return Array.isArray(sel) ? sel.length > 0 : sel !== null;
+  });
+  document.getElementById('m-addBtn').disabled = !ok;
+}
+
+function closeProduct(e) {
+  if (e.target === document.getElementById('productOverlay')) closeProductModal();
+}
+function closeProductModal() {
+  document.getElementById('productOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// ─── ADD TO CART ───
+function addToCart() {
+  const p = CATALOG[currentProduct.id];
+  const extra = currentProduct.extraPrice;
+  const item = {
+    id: Date.now(),
+    productId: currentProduct.id,
+    name: p.name,
+    emoji: p.emoji,
+    basePrice: p.price,
+    extraPrice: extra,
+    qty: currentProduct.qty,
+    selections: JSON.parse(JSON.stringify(currentProduct.selections)),
+  };
+  cart.push(item);
+  closeProductModal();
+  updateCartUI();
+}
+
+// ─── CART UI ───
+function updateCartUI() {
+  const total = cartTotal();
+  const count = cart.reduce((s, i) => s + i.qty, 0);
+
+  // header button
+  const btn = document.getElementById('cartBtn');
+  const countEl = document.getElementById('cartCount');
+  if (count > 0) {
+    btn.classList.add('has-items');
+    countEl.style.display = 'flex';
+    countEl.textContent = count;
+    document.getElementById('cartBtnLabel').textContent = 'Carrito';
+  } else {
+    btn.classList.remove('has-items');
+    countEl.style.display = 'none';
+    document.getElementById('cartBtnLabel').textContent = 'Carrito';
+  }
+
+  // bottom bar
+  const bar = document.getElementById('bottomBar');
+  if (count > 0) {
+    bar.classList.add('visible');
+    document.getElementById('bbCount').textContent = count + (count === 1 ? ' producto' : ' productos');
+    document.getElementById('bbPrice').textContent = '$' + total.toLocaleString('es-AR');
+  } else {
+    bar.classList.remove('visible');
+  }
+}
+
+function cartTotal() {
+  return cart.reduce((s, i) => s + (i.basePrice + i.extraPrice) * i.qty, 0);
+}
+
+function buildCartSummary(item) {
+  const p = CATALOG[item.productId];
+  let mods = p.mods || [];
+  if (p.type === 'burger') mods = BURGER_MODS;
+  if (p.type === 'lomito') mods = LOMITO_MODS;
+
+  let parts = [];
+  mods.forEach(mod => {
+    const sel = item.selections[mod.id];
+    if (!sel) return;
+    if (Array.isArray(sel) && sel.length) parts.push(sel.map(s=>s.v).join(', '));
+    else if (!Array.isArray(sel)) parts.push(sel.v);
+  });
+  return parts.join(' · ');
+}
+
+// ─── OPEN CART ───
+function openCart() {
+  renderCartItems();
+  document.getElementById('cartOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function renderCartItems() {
+  const container = document.getElementById('cartItems');
+  const form  = document.getElementById('cartForm');
+  const footer = document.getElementById('cartFooter');
+
+  if (cart.length === 0) {
+    container.innerHTML = `<div class="empty-cart">
+      <div class="empty-cart-icon">🛒</div>
+      <p>Tu carrito está vacío</p>
+    </div>`;
+    form.style.display = 'none';
+    footer.style.display = 'none';
+    return;
+  }
+
+  container.innerHTML = cart.map(item => {
+    const sub = (item.basePrice + item.extraPrice) * item.qty;
+    const mods = buildCartSummary(item);
+    return `<div class="cart-item" data-cid="${item.id}">
+      <div class="ci-thumb">${item.emoji}</div>
+      <div class="ci-info">
+        <div class="ci-name">${item.name}</div>
+        ${mods ? `<div class="ci-mods">${mods}</div>` : ''}
+        <div class="ci-bottom">
+          <div class="ci-price">$${sub.toLocaleString('es-AR')}</div>
+          <div class="ci-actions">
+            <button class="ci-qty-btn del" onclick="removeItem(${item.id})">🗑</button>
+            <button class="ci-qty-btn" onclick="changeItemQty(${item.id},-1)">−</button>
+            <div class="ci-qty-num">${item.qty}</div>
+            <button class="ci-qty-btn" onclick="changeItemQty(${item.id},1)">+</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('cartTotal').textContent = '$' + cartTotal().toLocaleString('es-AR');
+  form.style.display = 'block';
+  footer.style.display = 'block';
+}
+
+function removeItem(id) {
+  cart = cart.filter(i => i.id !== id);
+  renderCartItems();
+  updateCartUI();
+}
+
+function changeItemQty(id, d) {
+  const item = cart.find(i => i.id === id);
+  if (!item) return;
+  item.qty = Math.max(1, item.qty + d);
+  renderCartItems();
+  updateCartUI();
+}
+
+function setDelivery(mode) {
+  deliveryMode = mode;
+  document.getElementById('dtab-delivery').classList.toggle('active', mode === 'delivery');
+  document.getElementById('dtab-pickup').classList.toggle('active', mode === 'pickup');
+  document.getElementById('f-address').style.display = mode === 'delivery' ? '' : 'none';
+}
+
+function closeCart(e) {
+  if (e.target === document.getElementById('cartOverlay')) closeCartModal();
+}
+function closeCartModal() {
+  document.getElementById('cartOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// ─── SEND WHATSAPP ───
+function sendWA() {
+  const name    = document.getElementById('f-name').value.trim();
+  const phone   = document.getElementById('f-phone').value.trim();
+  const address = document.getElementById('f-address').value.trim();
+  const notes   = document.getElementById('f-notes').value.trim();
+
+  if (!name) { document.getElementById('f-name').focus(); return; }
+  if (deliveryMode === 'delivery' && !address) { document.getElementById('f-address').focus(); return; }
+
+  let msg = `🔥 *Pedido — El Rincón del Fuego*\n━━━━━━━━━━━━━━━━\n`;
+
+  cart.forEach((item, i) => {
+    const p = CATALOG[item.productId];
+    let mods = p.mods || [];
+    if (p.type === 'burger') mods = BURGER_MODS;
+    if (p.type === 'lomito') mods = LOMITO_MODS;
+
+    msg += `\n*${i+1}. ${item.name}* x${item.qty}\n`;
+    mods.forEach(mod => {
+      const sel = item.selections[mod.id];
+      if (!sel) return;
+      if (Array.isArray(sel) && sel.length) msg += `   · ${mod.title}: ${sel.map(s=>s.v).join(', ')}\n`;
+      else if (!Array.isArray(sel)) msg += `   · ${mod.title}: ${sel.v}\n`;
+    });
+    const sub = (item.basePrice + item.extraPrice) * item.qty;
+    msg += `   _Subtotal: $${sub.toLocaleString('es-AR')}_\n`;
+  });
+
+  msg += `\n━━━━━━━━━━━━━━━━\n`;
+  msg += `💰 *Total: $${cartTotal().toLocaleString('es-AR')}*\n`;
+  msg += `\n👤 *${name}*`;
+  if (phone) msg += ` · 📞 ${phone}`;
+  msg += `\n${deliveryMode === 'delivery' ? `🛵 Delivery a: ${address}` : '🏠 Retira en local'}`;
+  if (notes) msg += `\n📝 ${notes}`;
+
+  window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+// init
+setDelivery('delivery');
+</script>
+</body>
+</html>

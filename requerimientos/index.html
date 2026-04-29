@@ -1,0 +1,1630 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MorfApp — Requerimientos del Sistema</title>
+<style>
+  :root {
+    --primary: #e8390e;
+    --primary-light: #fff3f0;
+    --secondary: #1a1a2e;
+    --accent: #25D366;
+    --text: #1a1a1a;
+    --text-muted: #666;
+    --border: #e8e8e8;
+    --bg: #f7f7f8;
+    --white: #ffffff;
+    --badge-func: #e8f4fd;
+    --badge-func-text: #1a6fb4;
+    --badge-nonfunc: #f0fdf4;
+    --badge-nonfunc-text: #166534;
+    --badge-priority-high: #fef2f2;
+    --badge-priority-high-text: #991b1b;
+    --badge-priority-med: #fffbeb;
+    --badge-priority-med-text: #92400e;
+    --badge-priority-low: #f0fdf4;
+    --badge-priority-low-text: #166534;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+  /* NAV */
+  .nav { background: var(--secondary); color: #fff; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,.3); }
+  .nav-brand { display: flex; align-items: center; gap: 10px; font-size: 1.2rem; font-weight: 800; }
+  .nav-brand span { color: var(--primary); }
+  .nav-meta { font-size: .78rem; color: rgba(255,255,255,.55); }
+
+  /* SIDEBAR + LAYOUT */
+  .layout { display: flex; min-height: 100vh; }
+  .sidebar { width: 260px; flex-shrink: 0; background: var(--white); border-right: 1px solid var(--border); position: sticky; top: 52px; height: calc(100vh - 52px); overflow-y: auto; padding: 20px 0; }
+  .main { flex: 1; padding: 40px 48px; max-width: 960px; }
+
+  .sidebar-section { padding: 8px 20px 4px; font-size: .68rem; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #aaa; margin-top: 10px; }
+  .sidebar-link { display: block; padding: 8px 20px; font-size: .84rem; color: var(--text-muted); text-decoration: none; border-left: 3px solid transparent; transition: all .15s; cursor: pointer; }
+  .sidebar-link:hover { color: var(--primary); background: var(--primary-light); border-left-color: var(--primary); }
+  .sidebar-link.active { color: var(--primary); background: var(--primary-light); border-left-color: var(--primary); font-weight: 600; }
+
+  /* HERO */
+  .hero { background: linear-gradient(135deg, var(--secondary) 0%, #2d2d44 100%); border-radius: 16px; padding: 40px; color: #fff; margin-bottom: 40px; }
+  .hero h1 { font-size: 2rem; font-weight: 800; margin-bottom: 8px; }
+  .hero h1 span { color: var(--primary); }
+  .hero p { color: rgba(255,255,255,.7); font-size: .95rem; max-width: 600px; margin-bottom: 20px; }
+  .hero-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+  .hero-tag { background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.2); border-radius: 20px; padding: 4px 12px; font-size: .78rem; color: rgba(255,255,255,.85); }
+
+  /* SECTION */
+  .section { margin-bottom: 56px; }
+  .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; padding-bottom: 12px; border-bottom: 2px solid var(--border); }
+  .section-icon { width: 36px; height: 36px; border-radius: 10px; background: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; }
+  .section-title { font-size: 1.3rem; font-weight: 800; }
+  .section-subtitle { font-size: .8rem; color: var(--text-muted); margin-top: 2px; }
+
+  /* SUBSECTION */
+  .subsection { margin-bottom: 32px; }
+  .subsection-title { font-size: 1rem; font-weight: 700; color: var(--secondary); margin-bottom: 16px; padding-left: 12px; border-left: 4px solid var(--primary); }
+
+  /* REQ CARD */
+  .req-card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 10px; transition: box-shadow .15s; }
+  .req-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+  .req-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+  .req-id { font-size: .7rem; font-weight: 700; color: #aaa; font-family: monospace; flex-shrink: 0; margin-top: 2px; }
+  .req-title { font-size: .92rem; font-weight: 700; flex: 1; }
+  .req-badges { display: flex; gap: 6px; flex-shrink: 0; flex-wrap: wrap; }
+  .badge { padding: 2px 8px; border-radius: 20px; font-size: .68rem; font-weight: 700; }
+  .badge-func { background: var(--badge-func); color: var(--badge-func-text); }
+  .badge-nonfunc { background: var(--badge-nonfunc); color: var(--badge-nonfunc-text); }
+  .badge-high { background: var(--badge-priority-high); color: var(--badge-priority-high-text); }
+  .badge-med { background: var(--badge-priority-med); color: var(--badge-priority-med-text); }
+  .badge-low { background: var(--badge-priority-low); color: var(--badge-priority-low-text); }
+  .req-desc { font-size: .83rem; color: var(--text-muted); line-height: 1.6; }
+  .req-list { margin-top: 8px; padding-left: 18px; }
+  .req-list li { font-size: .82rem; color: var(--text-muted); margin-bottom: 4px; }
+  .req-list li::marker { color: var(--primary); }
+
+  /* OVERVIEW TABLE */
+  .overview-table { width: 100%; border-collapse: collapse; background: var(--white); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+  .overview-table th { background: var(--secondary); color: #fff; padding: 12px 16px; font-size: .8rem; text-align: left; font-weight: 700; }
+  .overview-table td { padding: 11px 16px; font-size: .83rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .overview-table tr:last-child td { border-bottom: none; }
+  .overview-table tr:hover td { background: #fafafa; }
+
+  /* ARCHITECTURE DIAGRAM */
+  .arch-box { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 16px; }
+  .arch-layer { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+  .arch-label { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #aaa; margin-bottom: 10px; }
+  .arch-node { background: var(--primary-light); border: 1.5px solid var(--primary); border-radius: 10px; padding: 10px 16px; font-size: .82rem; font-weight: 600; color: var(--primary); }
+  .arch-node.green { background: #f0fdf4; border-color: #22c55e; color: #166534; }
+  .arch-node.blue { background: #eff6ff; border-color: #3b82f6; color: #1d4ed8; }
+  .arch-node.purple { background: #faf5ff; border-color: #a855f7; color: #7e22ce; }
+  .arch-node.gray { background: #f9fafb; border-color: #9ca3af; color: #374151; }
+  .arch-arrow { text-align: center; color: #aaa; font-size: 1.2rem; margin-bottom: 6px; }
+
+  /* FLOW */
+  .flow { display: flex; gap: 0; align-items: stretch; flex-wrap: wrap; margin-bottom: 20px; }
+  .flow-step { flex: 1; min-width: 120px; background: var(--white); border: 1px solid var(--border); border-radius: 0; padding: 14px; text-align: center; position: relative; }
+  .flow-step:first-child { border-radius: 12px 0 0 12px; }
+  .flow-step:last-child { border-radius: 0 12px 12px 0; }
+  .flow-step-num { width: 24px; height: 24px; background: var(--primary); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .7rem; font-weight: 800; margin: 0 auto 8px; }
+  .flow-step-label { font-size: .75rem; font-weight: 600; }
+  .flow-arrow { display: flex; align-items: center; color: var(--primary); font-size: 1rem; padding: 0 4px; }
+
+  /* CALLOUT */
+  .callout { border-radius: 10px; padding: 14px 18px; margin-bottom: 20px; display: flex; gap: 12px; align-items: flex-start; }
+  .callout-info { background: #eff6ff; border: 1px solid #bfdbfe; }
+  .callout-warn { background: #fffbeb; border: 1px solid #fde68a; }
+  .callout-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+  .callout-text { font-size: .83rem; color: var(--text-muted); }
+  .callout-text strong { color: var(--text); }
+
+  /* METRICS TABLE */
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .metric { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .metric-value { font-size: 1.6rem; font-weight: 800; color: var(--primary); }
+  .metric-label { font-size: .75rem; color: var(--text-muted); margin-top: 4px; }
+
+  /* ROLES TABLE */
+  .roles-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .role-card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+  .role-icon { font-size: 1.6rem; margin-bottom: 8px; }
+  .role-name { font-size: .9rem; font-weight: 700; margin-bottom: 6px; }
+  .role-desc { font-size: .78rem; color: var(--text-muted); line-height: 1.5; }
+
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .main { padding: 20px 16px; }
+    .nav { padding: 12px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-brand">🍔 <span>Morf</span>App</div>
+  <div class="nav-meta">Documento de Requerimientos · v1.0 · Abril 2026</div>
+</nav>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-section">Introducción</div>
+    <a class="sidebar-link active" href="#vision">Visión del producto</a>
+    <a class="sidebar-link" href="#actores">Actores del sistema</a>
+    <a class="sidebar-link" href="#arquitectura">Arquitectura general</a>
+
+    <div class="sidebar-section">Funcionales</div>
+    <a class="sidebar-link" href="#rf-multitenancy">Multi-tenancy / Subdominios</a>
+    <a class="sidebar-link" href="#rf-branding">Branding configurable</a>
+    <a class="sidebar-link" href="#rf-menu">Gestión de carta</a>
+    <a class="sidebar-link" href="#rf-builder">Constructor de producto</a>
+    <a class="sidebar-link" href="#rf-cart">Carrito y pedido</a>
+    <a class="sidebar-link" href="#rf-delivery">Delivery y retiro</a>
+    <a class="sidebar-link" href="#rf-offers">Ofertas y promociones</a>
+    <a class="sidebar-link" href="#rf-whatsapp">Integración WhatsApp</a>
+    <a class="sidebar-link" href="#rf-admin">Panel del local (simple)</a>
+    <a class="sidebar-link" href="#rf-superadmin">Panel superadmin (solo vos)</a>
+    <a class="sidebar-link" href="#rf-horarios">Horarios y disponibilidad</a>
+
+    <div class="sidebar-section">No Funcionales</div>
+    <a class="sidebar-link" href="#rnf-performance">Rendimiento</a>
+    <a class="sidebar-link" href="#rnf-responsive">Responsive / Mobile</a>
+    <a class="sidebar-link" href="#rnf-security">Seguridad</a>
+    <a class="sidebar-link" href="#rnf-scalability">Escalabilidad</a>
+    <a class="sidebar-link" href="#rnf-availability">Disponibilidad</a>
+    <a class="sidebar-link" href="#rnf-ux">UX / Accesibilidad</a>
+    <a class="sidebar-link" href="#rnf-seo">SEO y compartición</a>
+    <a class="sidebar-link" href="#rnf-i18n">Internacionalización</a>
+
+    <div class="sidebar-section">Extras</div>
+    <a class="sidebar-link" href="#mvp">Alcance MVP</a>
+    <a class="sidebar-link" href="#roadmap">Roadmap futuro</a>
+    <a class="sidebar-link" href="#glosario">Glosario</a>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- HERO -->
+    <div class="hero">
+      <h1>Requerimientos <span>MorfApp</span></h1>
+      <p>Plataforma SaaS multi-tenant de pedidos online para locales gastronómicos. Cada local tiene su propia carta, branding y configuración. El cliente final arma su pedido y lo envía por WhatsApp.</p>
+      <div class="hero-tags">
+        <span class="hero-tag">SaaS Multi-tenant</span>
+        <span class="hero-tag">Subdominio por local</span>
+        <span class="hero-tag">Mobile-first</span>
+        <span class="hero-tag">WhatsApp Orders</span>
+        <span class="hero-tag">Branding por local</span>
+        <span class="hero-tag">Constructor de producto</span>
+        <span class="hero-tag">Promociones 2x1</span>
+        <span class="hero-tag">Similar a Pedix.app</span>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- VISIÓN -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <section class="section" id="vision">
+      <div class="section-header">
+        <div class="section-icon">🎯</div>
+        <div>
+          <div class="section-title">Visión del producto</div>
+          <div class="section-subtitle">Propósito, objetivos y modelo de negocio</div>
+        </div>
+      </div>
+
+      <div class="callout callout-info">
+        <span class="callout-icon">💡</span>
+        <div class="callout-text"><strong>MorfApp</strong> es una plataforma SaaS que permite a locales gastronómicos (hamburgueserías, lomiterías, pizzerías, etc.) tener su propio menú digital con pedidos por WhatsApp. Cada local accede a través de una URL única con su propio branding, carta y configuraciones. El dueño de la plataforma es quien vende el acceso al servicio.</div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Objetivos del negocio</div>
+        <div class="req-card">
+          <div class="req-title">OBJ-01 · Modelo SaaS por suscripción</div>
+          <div class="req-desc">Los locales pagan una suscripción mensual/anual para acceder a la plataforma. Diferentes planes pueden ofrecer distintas funcionalidades (ej: cantidad de productos, promociones activas, estadísticas avanzadas).</div>
+        </div>
+        <div class="req-card">
+          <div class="req-title">OBJ-02 · Time-to-live bajo para nuevos clientes</div>
+          <div class="req-desc">Un nuevo local debe poder estar operativo (con su menú en línea) en menos de 30 minutos desde el onboarding.</div>
+        </div>
+        <div class="req-card">
+          <div class="req-title">OBJ-03 · Cero fricciones para el cliente final</div>
+          <div class="req-desc">El consumidor no necesita crear cuenta. Navega el menú, arma su pedido y lo envía por WhatsApp en menos de 2 minutos.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- ACTORES -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <section class="section" id="actores">
+      <div class="section-header">
+        <div class="section-icon">👥</div>
+        <div>
+          <div class="section-title">Actores del sistema</div>
+          <div class="section-subtitle">Usuarios y roles que interactúan con MorfApp</div>
+        </div>
+      </div>
+
+      <div class="roles-grid">
+        <div class="role-card">
+          <div class="role-icon">🛒</div>
+          <div class="role-name">Cliente final (Consumer)</div>
+          <div class="role-desc">Persona que visita el menú del local, arma su pedido y lo envía por WhatsApp. No se registra ni crea cuenta.</div>
+        </div>
+        <div class="role-card">
+          <div class="role-icon">🏪</div>
+          <div class="role-name">Dueño / Admin del local (Tenant Admin)</div>
+          <div class="role-desc">Gestiona la carta, branding, promociones, horarios y configuraciones de su local. Accede al panel de administración.</div>
+        </div>
+        <div class="role-card">
+          <div class="role-icon">👨‍💼</div>
+          <div class="role-name">Empleado del local (Opcional)</div>
+          <div class="role-desc">Puede ver pedidos entrantes, marcar items no disponibles. Acceso limitado al panel del local.</div>
+        </div>
+        <div class="role-card">
+          <div class="role-icon">⚙️</div>
+          <div class="role-name">Superadmin (MorfApp)</div>
+          <div class="role-desc">Propietario de la plataforma. Gestiona todos los tenants, planes, suscripciones y configuración global.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- ARQUITECTURA -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <section class="section" id="arquitectura">
+      <div class="section-header">
+        <div class="section-icon">🏗️</div>
+        <div>
+          <div class="section-title">Arquitectura general</div>
+          <div class="section-subtitle">Capas del sistema y componentes principales</div>
+        </div>
+      </div>
+
+      <div class="arch-box">
+        <div class="arch-label">Capa de presentación (Frontend)</div>
+        <div class="arch-layer">
+          <div class="arch-node">🛒 App pública del local<br><small style="font-weight:400">empresa1.morfapp.com</small></div>
+          <div class="arch-node blue">📊 Panel del local (Admin)<br><small style="font-weight:400">admin.morfapp.com</small></div>
+          <div class="arch-node purple">⚙️ Panel superadmin<br><small style="font-weight:400">super.morfapp.com — solo vos</small></div>
+        </div>
+        <div class="arch-arrow">⬇</div>
+        <div class="arch-label">Capa de API</div>
+        <div class="arch-layer">
+          <div class="arch-node green">🔌 API REST / GraphQL<br><small style="font-weight:400">api.morf.app</small></div>
+          <div class="arch-node green">🔐 Servicio de Auth<br><small style="font-weight:400">JWT + roles por tenant</small></div>
+        </div>
+        <div class="arch-arrow">⬇</div>
+        <div class="arch-label">Capa de datos</div>
+        <div class="arch-layer">
+          <div class="arch-node gray">🗄️ Base de datos principal<br><small style="font-weight:400">Multi-tenant (tenant_id)</small></div>
+          <div class="arch-node gray">🗂️ Almacenamiento de archivos<br><small style="font-weight:400">Logos, imágenes de productos</small></div>
+          <div class="arch-node gray">⚡ Caché<br><small style="font-weight:400">Menús, configuraciones</small></div>
+        </div>
+      </div>
+
+      <div class="callout callout-warn">
+        <span class="callout-icon">⚠️</span>
+        <div class="callout-text"><strong>Aislamiento de datos por subdominio:</strong> La app pública resuelve el tenant desde el subdominio de la request (ej. <code>empresa1.morfapp.com</code> → tenant "empresa1"). Toda tabla de negocio incluye un campo <code>tenant_id</code> y ningún tenant puede acceder a datos de otro.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- RF: MULTI-TENANCY -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <section class="section" id="rf-multitenancy">
+      <div class="section-header">
+        <div class="section-icon">🏢</div>
+        <div>
+          <div class="section-title">RF01 · Multi-tenancy</div>
+          <div class="section-subtitle">Aislamiento y gestión de locales dentro de la plataforma</div>
+        </div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF01-01</div>
+          <div class="req-title">Subdominio único por local</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">Cada local opera bajo su propio subdominio: <code>empresa1.morfapp.com</code>, <code>rinconFuego.morfapp.com</code>, etc. El wildcard DNS <code>*.morfapp.com</code> apunta al mismo servidor; la app resuelve el tenant desde el subdominio del request (<code>Host</code> header). Opcionalmente, en planes superiores, el local puede conectar su propio dominio personalizado (ej. <code>pedidos.milocal.com</code>) con CNAME + certificado SSL automático.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF01-02</div>
+          <div class="req-title">Aislamiento total de datos por tenant</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">Cada local solo ve y gestiona sus propios datos: carta, pedidos, configuración y estadísticas. Ningún tenant puede acceder a información de otro.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF01-03</div>
+          <div class="req-title">Alta de nuevo local por superadmin</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">Desde el panel superadmin se crea un nuevo tenant ingresando: nombre del local, subdominio elegido (validado como disponible en tiempo real), email y contraseña del admin del local, plan de suscripción, número de WhatsApp, y zona geográfica. Al crear el tenant, el subdominio queda activo inmediatamente y se envía un email al admin con su acceso al panel.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF01-04</div>
+          <div class="req-title">Estado del local (activo / inactivo / suspendido)</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-med">Media</span></div>
+        </div>
+        <div class="req-desc">Un local puede estar: <strong>activo</strong> (menú público visible), <strong>inactivo</strong> (el local lo pausó manualmente) o <strong>suspendido</strong> (el superadmin lo bloqueó, por ej. falta de pago). Cada estado muestra un mensaje apropiado al cliente final.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF01-05</div>
+          <div class="req-title">Planes de suscripción</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-med">Media</span></div>
+        </div>
+        <div class="req-desc">La plataforma soporta múltiples planes con distintos límites y funcionalidades:</div>
+        <ul class="req-list">
+          <li><strong>Básico:</strong> hasta 30 productos, 3 categorías, sin promociones, sin dominio propio</li>
+          <li><strong>Pro:</strong> productos ilimitados, categorías ilimitadas, promociones, estadísticas básicas</li>
+          <li><strong>Premium:</strong> todo lo anterior + dominio propio, constructor de producto personalizado, soporte prioritario</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- RF: BRANDING -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <section class="section" id="rf-branding">
+      <div class="section-header">
+        <div class="section-icon">🎨</div>
+        <div>
+          <div class="section-title">RF02 · Branding configurable por local</div>
+          <div class="section-subtitle">Identidad visual completamente personalizable</div>
+        </div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF02-01</div>
+          <div class="req-title">Paleta de colores personalizada</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">Cada local configura al menos 2 colores: <strong>color primario</strong> (header, botones, tabs activos) y <strong>color de acento</strong>. La app pública aplica estos colores mediante CSS custom properties al cargar.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF02-02</div>
+          <div class="req-title">Logo e ícono del local</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">El local puede subir su logo (PNG/JPG/SVG, máx. 2MB) que aparece en el header. También puede configurar un emoji como alternativa rápida. El favicon de la pestaña del navegador usa el logo del local.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF02-03</div>
+          <div class="req-title">Nombre, eslogan y descripción del local</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">Configuración de: nombre del local (aparece en header y título de página), eslogan corto (subtítulo del header, ej. "Pedidos online · Córdoba"), y descripción larga (para SEO y redes sociales).</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF02-04</div>
+          <div class="req-title">Imagen de portada / banner</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-med">Media</span></div>
+        </div>
+        <div class="req-desc">Opcionalmente el local puede configurar una imagen de portada que aparece sobre el menú (tipo banner de Instagram). Soporta imagen estática o gradiente personalizado.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF02-05</div>
+          <div class="req-title">Vista previa en tiempo real (panel admin)</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-med">Media</span></div>
+        </div>
+        <div class="req-desc">El panel de configuración de branding muestra una preview en tiempo real de cómo se verá el menú público antes de guardar los cambios.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- RF: MENÚ / CARTA -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <section class="section" id="rf-menu">
+      <div class="section-header">
+        <div class="section-icon">📋</div>
+        <div>
+          <div class="section-title">RF03 · Gestión de carta y productos</div>
+          <div class="section-subtitle">Categorías, productos, precios y modificadores</div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Categorías</div>
+
+        <div class="req-card">
+          <div class="req-top">
+            <div class="req-id">RF03-01</div>
+            <div class="req-title">CRUD de categorías</div>
+            <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+          </div>
+          <div class="req-desc">El admin puede crear, editar, reordenar y eliminar categorías. Cada categoría tiene: nombre, emoji/ícono y orden de aparición. Ejemplos: Combos, Hamburguesas, Lomitos, Bebidas, Postres.</div>
+        </div>
+
+        <div class="req-card">
+          <div class="req-top">
+            <div class="req-id">RF03-02</div>
+            <div class="req-title">Tabs horizontales scrolleables</div>
+            <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+          </div>
+          <div class="req-desc">Las categorías se muestran como tabs horizontales sticky bajo el header. Al tocar una tab hace scroll suave a esa sección. Al hacer scroll manual, la tab activa se actualiza automáticamente (Intersection Observer).</div>
+        </div>
+
+        <div class="req-card">
+          <div class="req-top">
+            <div class="req-id">RF03-03</div>
+            <div class="req-title">Disponibilidad de categoría por horario</div>
+            <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-med">Media</span></div>
+          </div>
+          <div class="req-desc">Una categoría puede configurarse para aparecer solo en ciertos horarios (ej. "Desayunos" solo de 8:00 a 12:00). Fuera de ese horario la categoría se oculta automáticamente del menú público.</div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Productos</div>
+
+        <div class="req-card">
+          <div class="req-top">
+            <div class="req-id">RF03-04</div>
+            <div class="req-title">CRUD de productos</div>
+            <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+          </div>
+          <div class="req-desc">Cada producto tiene: nombre, descripción corta, precio base, emoji o imagen, categoría, estado (activo/inactivo), orden. El admin puede activar/desactivar un producto sin eliminarlo (ej. "Se agotó").</div>
+        </div>
+
+        <div class="req-card">
+          <div class="req-top">
+            <div class="req-id">RF03-05</div>
+            <div class="req-title">Imágenes de productos</div>
+            <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-med">Media</span></div>
+          </div>
+          <div class="req-desc">El admin puede subir una imagen por producto (JPG/PNG/WebP, máx. 3MB). Si no se sube imagen, se muestra el emoji configurado. Las imágenes se almacenan en CDN y se sirven optimizadas (WebP, tamaños responsivos).</div>
+        </div>
+
+        <div class="req-card">
+          <div class="req-top">
+            <div class="req-id">RF03-06</div>
+            <div class="req-title">Productos destacados / etiquetas</div>
+            <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-med">Media</span></div>
+          </div>
+          <div class="req-desc">Un producto puede marcarse como: ⭐ Destacado, 🔥 Más vendido, 🆕 Nuevo, 🌿 Vegano, 🌶️ Picante. Las etiquetas aparecen visualmente en la card del producto en el menú público.</div>
+        </div>
+
+        <div class="req-card">
+          <div class="req-top">
+            <div class="req-id">RF03-07</div>
+            <div class="req-title">Grupos de modificadores (add-ons)</div>
+            <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+          </div>
+          <div class="req-desc">Cada producto puede tener múltiples grupos de modificadores. Cada grupo tiene:</div>
+          <ul class="req-list">
+            <li><strong>Nombre del grupo</strong> (ej. "Pan", "Cocción", "Condimentos")</li>
+            <li><strong>Tipo:</strong> selección única (radio) o múltiple (checkbox)</li>
+            <li><strong>Obligatorio / Opcional</strong></li>
+            <li><strong>Opciones</strong> con nombre, emoji y precio extra (puede ser $0)</li>
+            <li><strong>Límite de selección</strong> para multi-select (ej. "máx. 3 condimentos")</li>
+          </ul>
+        </div>
+
+        <div class="req-card">
+          <div class="req-top">
+            <div class="req-id">RF03-08</div>
+            <div class="req-title">Plantillas de modificadores reutilizables</div>
+            <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-med">Media</span></div>
+          </div>
+          <div class="req-desc">El admin puede guardar un conjunto de modificadores como plantilla (ej. "Modificadores de hamburguesa") y aplicarla a múltiples productos. Si edita la plantilla, se actualiza en todos los productos que la usan.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- RF: CONSTRUCTOR DE PRODUCTO -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <section class="section" id="rf-builder">
+      <div class="section-header">
+        <div class="section-icon">🛠️</div>
+        <div>
+          <div class="section-title">RF04 · Constructor de producto personalizado</div>
+          <div class="section-subtitle">Armá tu propia hamburguesa / pizza / combo</div>
+        </div>
+      </div>
+
+      <div class="callout callout-info">
+        <span class="callout-icon">💡</span>
+        <div class="callout-text">El constructor permite al cliente armar un producto desde cero eligiendo ingredientes paso a paso. Es diferente a los modificadores simples: tiene pasos guiados, precio dinámico y validaciones por paso.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF04-01</div>
+          <div class="req-title">Producto tipo "builder" configurable por local</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">El admin puede crear productos de tipo "constructor" con pasos secuenciales. Ej: "Armá tu hamburguesa" → Paso 1: Medallón, Paso 2: Pan, Paso 3: Queso, Paso 4: Condimentos, Paso 5: Salsas.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF04-02</div>
+          <div class="req-title">Precio acumulado en tiempo real</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">A medida que el cliente selecciona ingredientes, el precio total se actualiza en tiempo real mostrando el precio base + extras. Cada ingrediente con costo adicional muestra el delta (ej. "+ $500").</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF04-03</div>
+          <div class="req-title">Validación de pasos requeridos</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">El botón "Agregar al carrito" permanece deshabilitado hasta que todos los pasos marcados como obligatorios tengan al menos una selección. Los pasos no completados se indican visualmente.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF04-04</div>
+          <div class="req-title">Resumen del producto armado en el carrito</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">En el carrito y en el mensaje de WhatsApp se lista cada ingrediente seleccionado. Ejemplo: "🍔 Hamburguesa · Pan Brioche · Cheddar · Lechuga, Tomate · BBQ, Aioli".</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- RF: CARRITO Y PEDIDO -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <section class="section" id="rf-cart">
+      <div class="section-header">
+        <div class="section-icon">🛒</div>
+        <div>
+          <div class="section-title">RF05 · Carrito y flujo de pedido</div>
+          <div class="section-subtitle">Experiencia de compra del cliente final</div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Flujo del cliente final</div>
+        <div class="flow">
+          <div class="flow-step"><div class="flow-step-num">1</div><div class="flow-step-label">Explora el menú</div></div>
+          <div class="flow-arrow">›</div>
+          <div class="flow-step"><div class="flow-step-num">2</div><div class="flow-step-label">Selecciona producto</div></div>
+          <div class="flow-arrow">›</div>
+          <div class="flow-step"><div class="flow-step-num">3</div><div class="flow-step-label">Elige modificadores</div></div>
+          <div class="flow-arrow">›</div>
+          <div class="flow-step"><div class="flow-step-num">4</div><div class="flow-step-label">Agrega al carrito</div></div>
+          <div class="flow-arrow">›</div>
+          <div class="flow-step"><div class="flow-step-num">5</div><div class="flow-step-label">Revisa pedido</div></div>
+          <div class="flow-arrow">›</div>
+          <div class="flow-step"><div class="flow-step-num">6</div><div class="flow-step-label">Completa datos</div></div>
+          <div class="flow-arrow">›</div>
+          <div class="flow-step"><div class="flow-step-num">7</div><div class="flow-step-label">Envía por WA</div></div>
+        </div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF05-01</div>
+          <div class="req-title">Bottom bar flotante con resumen del carrito</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">Cuando hay al menos un ítem en el carrito, aparece una barra fija en la parte inferior con: cantidad de productos, precio total, y botón "Ver carrito". Se anima suavemente al aparecer/desaparecer.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF05-02</div>
+          <div class="req-title">Modal del carrito (bottom sheet)</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">El carrito se muestra como bottom sheet. Incluye: lista de ítems con modificadores seleccionados, control de cantidad por ítem, subtotal por ítem, total general, y formulario de datos del cliente.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF05-03</div>
+          <div class="req-title">Edición de ítems en el carrito</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">Desde el carrito el cliente puede: aumentar/disminuir cantidad de un ítem, eliminar un ítem, y re-abrir el modal del producto para cambiar modificadores (edición in-place).</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF05-04</div>
+          <div class="req-title">Persistencia del carrito en sesión</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-med">Media</span></div>
+        </div>
+        <div class="req-desc">El carrito se persiste en localStorage. Si el cliente cierra y vuelve a abrir el navegador en el mismo dispositivo, el carrito se restaura automáticamente (con expiración de 24hs).</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF05-05</div>
+          <div class="req-title">Monto mínimo de pedido</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-med">Media</span></div>
+        </div>
+        <div class="req-desc">El admin puede configurar un monto mínimo de pedido. Si el total no lo alcanza, el botón de confirmación muestra cuánto falta y no permite enviar. Ej: "Te faltan $500 para el mínimo de $3.000".</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- RF: DELIVERY Y RETIRO -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <section class="section" id="rf-delivery">
+      <div class="section-header">
+        <div class="section-icon">🛵</div>
+        <div>
+          <div class="section-title">RF06 · Delivery y retiro en local</div>
+          <div class="section-subtitle">Modalidades de entrega configurables</div>
+        </div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF06-01</div>
+          <div class="req-title">Modo delivery y/o retiro en local</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">El admin activa/desactiva cada modalidad. Si solo hay una disponible, se preselecciona automáticamente. Si hay ambas, el cliente elige con tabs: "🛵 Delivery" / "🏠 Retiro en local".</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF06-02</div>
+          <div class="req-title">Costo de envío configurable</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-med">Media</span></div>
+        </div>
+        <div class="req-desc">El admin puede configurar: envío fijo (ej. $500), envío gratis a partir de cierto monto (ej. "Sin costo desde $5.000"), o dejar sin costo definido (el costo se acuerda por WhatsApp).</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF06-03</div>
+          <div class="req-title">Formulario adaptativo por modalidad</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">Campos del formulario: Nombre (requerido siempre), Teléfono (opcional), Dirección (requerido solo en delivery), Aclaraciones (opcional). La dirección se muestra/oculta según la modalidad seleccionada.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF06-04</div>
+          <div class="req-title">Campos de formulario personalizables</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-low">Baja</span></div>
+        </div>
+        <div class="req-desc">El admin puede agregar campos adicionales al formulario (ej. "Número de piso/depto", "¿Tenés cambio?"). Cada campo tiene: label, tipo (texto, número, select, checkbox) y si es obligatorio.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- RF: OFERTAS Y PROMOCIONES -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <section class="section" id="rf-offers">
+      <div class="section-header">
+        <div class="section-icon">🏷️</div>
+        <div>
+          <div class="section-title">RF07 · Ofertas y promociones</div>
+          <div class="section-subtitle">Sistema de descuentos y promociones especiales</div>
+        </div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF07-01</div>
+          <div class="req-title">Promoción 2x1</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">El admin configura un 2x1 sobre uno o varios productos. El sistema detecta automáticamente que se agregaron 2 unidades del producto y aplica el descuento (el segundo al 50% o gratis, configurable). Se muestra un badge "2x1" en la card del producto.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF07-02</div>
+          <div class="req-title">Descuento porcentual o monto fijo</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">El admin puede crear descuentos del tipo: "20% off en toda la carta", "20% off en la categoría Hamburguesas", "$500 de descuento en el combo fuego". Se muestra el precio tachado y el precio con descuento.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF07-03</div>
+          <div class="req-title">Combos / bundles</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">El admin puede crear combos que agrupan productos con un precio especial. Ej: "Hamburguesa Simple + Papas + Gaseosa = $5.800" (vs $6.800 por separado). El combo aparece como producto especial en la carta.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF07-04</div>
+          <div class="req-title">Happy hour (descuento por horario)</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-med">Media</span></div>
+        </div>
+        <div class="req-desc">El admin puede crear promociones activas solo en ciertos horarios (ej. "20% off en bebidas de 18:00 a 20:00"). Fuera del horario, los precios vuelven al normal automáticamente.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF07-05</div>
+          <div class="req-title">Código de descuento (cupón)</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-med">Media</span></div>
+        </div>
+        <div class="req-desc">El admin genera códigos de descuento (ej. "PROMO10") con: porcentaje o monto fijo, uso máximo (usos totales o por cliente), fecha de vencimiento. El cliente ingresa el código en el carrito y el descuento se aplica automáticamente.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF07-06</div>
+          <div class="req-title">Visualización de ofertas en el menú</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">Los productos con oferta activa muestran un badge visual (ej. "2x1", "20% OFF"). Si hay descuento de precio, se muestra el precio original tachado junto al precio con descuento. Las promociones activas se listan en un banner al inicio del menú (opcional, configurable).</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- RF: WHATSAPP -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <section class="section" id="rf-whatsapp">
+      <div class="section-header">
+        <div class="section-icon">💬</div>
+        <div>
+          <div class="section-title">RF08 · Integración WhatsApp</div>
+          <div class="section-subtitle">Confirmación de pedidos y notificaciones</div>
+        </div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF08-01</div>
+          <div class="req-title">Número de WhatsApp configurable por local</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">Cada local configura su número de WhatsApp (con código de país). El botón "Confirmar pedido" abre una conversación con ese número usando <code>wa.me/[numero]?text=...</code>.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF08-02</div>
+          <div class="req-title">Mensaje de pedido formateado automáticamente</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">El sistema genera automáticamente un mensaje estructurado para WhatsApp con: nombre del local, lista de productos con modificadores, subtotales, total, modalidad de entrega, dirección y datos del cliente. Usa formato markdown de WhatsApp (*negrita*, _cursiva_).</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF08-03</div>
+          <div class="req-title">Template de mensaje personalizable</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-med">Media</span></div>
+        </div>
+        <div class="req-desc">El admin puede personalizar el encabezado del mensaje de WhatsApp (ej. cambiar el emoji, el nombre del local en el mensaje, agregar un mensaje de bienvenida personalizado).</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF08-04</div>
+          <div class="req-title">Múltiples números de WA (por turno o sector)</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-low">Baja</span></div>
+        </div>
+        <div class="req-desc">Opción futura de configurar diferentes números según: horario (turno mañana/tarde) o tipo de pedido (delivery vs retiro). El sistema selecciona el número correcto automáticamente según contexto.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- RF: PANEL ADMIN LOCAL -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <section class="section" id="rf-admin">
+      <div class="section-header">
+        <div class="section-icon">📊</div>
+        <div>
+          <div class="section-title">RF09 · Panel de administración del local</div>
+          <div class="section-subtitle">Simple, visual e intuitivo — pensado para dueños de local sin conocimientos técnicos</div>
+        </div>
+      </div>
+
+      <div class="callout callout-info">
+        <span class="callout-icon">🎯</span>
+        <div class="callout-text"><strong>Principio de diseño:</strong> El panel admin del local debe ser tan simple que un dueño de hamburguesería pueda configurar todo su menú, branding y horarios <strong>sin necesitar ayuda</strong>. Cada sección tiene tooltips explicativos, wizards guiados y validación en tiempo real. Cero terminología técnica.</div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Pantalla principal — "Mi Local"</div>
+
+        <div class="req-card">
+          <div class="req-top">
+            <div class="req-id">RF09-01</div>
+            <div class="req-title">Dashboard visual con estado del local</div>
+            <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+          </div>
+          <div class="req-desc">La pantalla principal muestra de un vistazo: gran toggle "Abierto / Cerrado" (el elemento más prominente de la pantalla), link al menú público con botón "Ver mi menú" y botón "Copiar link", y accesos directos a las 4 secciones más usadas. Sin gráficos ni datos complejos en la home — solo lo esencial.</div>
+        </div>
+
+        <div class="req-card">
+          <div class="req-top">
+            <div class="req-id">RF09-02</div>
+            <div class="req-title">Menú de navegación simplificado</div>
+            <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+          </div>
+          <div class="req-desc">La navegación del panel admin del local tiene exactamente 5 secciones, sin sub-menús ni anidamiento: <strong>Mi Local</strong> (home), <strong>Carta</strong>, <strong>Apariencia</strong>, <strong>Promociones</strong> y <strong>Configuración</strong>. Sin más. Íconos grandes e intuitivos.</div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Sección "Carta" — gestión del menú</div>
+
+        <div class="req-card">
+          <div class="req-top">
+            <div class="req-id">RF09-03</div>
+            <div class="req-title">Editor de carta drag-and-drop</div>
+            <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+          </div>
+          <div class="req-desc">Vista de la carta con categorías y productos reordenables arrastrando. Cada producto tiene un toggle visible para marcarlo como disponible/no disponible sin entrar a editar. Botón "+" grande y visible para agregar categorías o productos. Edición inline del nombre del producto sin abrir otro formulario.</div>
+        </div>
+
+        <div class="req-card">
+          <div class="req-top">
+            <div class="req-id">RF09-04</div>
+            <div class="req-title">Formulario de producto guiado con pasos</div>
+            <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+          </div>
+          <div class="req-desc">Al crear o editar un producto, el formulario tiene pasos claros: <strong>1. Info básica</strong> (nombre, precio, descripción, emoji/foto), <strong>2. Opciones personalizables</strong> (modificadores — con botón "Usar plantilla" para aplicar un set predefinido), <strong>3. Disponibilidad</strong>. Cada paso tiene texto explicativo de para qué sirve.</div>
+        </div>
+
+        <div class="req-card">
+          <div class="req-top">
+            <div class="req-id">RF09-05</div>
+            <div class="req-title">Plantillas de modificadores con un clic</div>
+            <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-med">Media</span></div>
+          </div>
+          <div class="req-desc">Al configurar opciones de un producto, el admin puede elegir entre plantillas prediseñadas (ej. "Hamburguesa clásica", "Bebida", "Pizza") o crear la suya propia y guardarla. La idea es que con un click ya tenga los grupos de condimentos, salsas y pan configurados.</div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Sección "Apariencia" — branding</div>
+
+        <div class="req-card">
+          <div class="req-top">
+            <div class="req-id">RF09-06</div>
+            <div class="req-title">Editor de apariencia con preview en vivo</div>
+            <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+          </div>
+          <div class="req-desc">La pantalla está dividida en dos: izquierda con los controles de configuración (color picker, subir logo, nombre, eslogan), derecha con una preview exacta de cómo se ve el menú en mobile. La preview se actualiza en tiempo real mientras el admin modifica cualquier campo. Al guardar, los cambios se publican en el menú público.</div>
+        </div>
+
+        <div class="req-card">
+          <div class="req-top">
+            <div class="req-id">RF09-07</div>
+            <div class="req-title">Selector de color con paletas sugeridas</div>
+            <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+          </div>
+          <div class="req-desc">El admin puede elegir colores de dos formas: seleccionar de una galería de paletas prearmadas (8-10 opciones atractivas y probadas), o usar un color picker libre para el color primario. El sistema automáticamente deriva los colores secundarios y de texto para garantizar legibilidad y contraste.</div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Sección "Configuración" — ajustes del local</div>
+
+        <div class="req-card">
+          <div class="req-top">
+            <div class="req-id">RF09-08</div>
+            <div class="req-title">Wizard de configuración inicial</div>
+            <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+          </div>
+          <div class="req-desc">La primera vez que el admin accede al panel, se inicia un wizard de 5 pasos que lo guía para configurar lo esencial: <strong>1.</strong> Nombre y logo, <strong>2.</strong> Color principal, <strong>3.</strong> Número de WhatsApp, <strong>4.</strong> Horarios, <strong>5.</strong> Primer producto. Al terminar el wizard el local ya está listo para operar.</div>
+        </div>
+
+        <div class="req-card">
+          <div class="req-top">
+            <div class="req-id">RF09-09</div>
+            <div class="req-title">Configuración de horarios tipo calendario</div>
+            <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+          </div>
+          <div class="req-desc">Vista semanal con los 7 días. Por cada día: toggle "Abierto/Cerrado", franjas horarias con selector visual (no ingresar horas manualmente). Opción "Igual que ayer" para copiar configuración entre días. Soporte para horario partido (ej. mediodía y noche). El sistema muestra el próximo horario de apertura en el menú público.</div>
+        </div>
+
+        <div class="req-card">
+          <div class="req-top">
+            <div class="req-id">RF09-10</div>
+            <div class="req-title">Configuración de delivery en lenguaje simple</div>
+            <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+          </div>
+          <div class="req-desc">Sin formularios complejos. Preguntas directas: "¿Hacés delivery?" (sí/no), "¿Cuánto cobrás de envío?" (gratis / monto fijo / gratis a partir de $X), "¿Cuánto tarda aproximadamente?" (selector de rangos: 20-30min, 30-45min, etc.), "¿Tu dirección para retiro?" (solo si habilitó retiro). Cada respuesta actualiza el menú público en tiempo real.</div>
+        </div>
+
+        <div class="req-card">
+          <div class="req-top">
+            <div class="req-id">RF09-11</div>
+            <div class="req-title">Estadísticas básicas (solo métricas útiles)</div>
+            <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-med">Media</span></div>
+          </div>
+          <div class="req-desc">Solo 3 métricas: cuántas personas visitaron el menú hoy, cuántas tocaron "Confirmar pedido por WhatsApp" hoy, y cuál es el producto más visto. Sin gráficos complejos ni jerga analítica. Comparación con ayer en texto simple (ej. "↑ 12 visitas más que ayer").</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- RF: SUPERADMIN -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <section class="section" id="rf-superadmin">
+      <div class="section-header">
+        <div class="section-icon">⚙️</div>
+        <div>
+          <div class="section-title">RF10 · Panel superadmin (solo vos)</div>
+          <div class="section-subtitle">Control total de la plataforma MorfApp — acceso restringido al propietario</div>
+        </div>
+      </div>
+
+      <div class="callout callout-warn">
+        <span class="callout-icon">🔒</span>
+        <div class="callout-text"><strong>Acceso exclusivo:</strong> Este panel vive en <code>super.morfapp.com</code>, separado del panel admin de los locales. Tiene su propio sistema de autenticación con 2FA obligatorio. No existe forma de llegar a él desde el panel del local ni desde el menú público.</div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Gestión de locales (tenants)</div>
+
+        <div class="req-card">
+          <div class="req-top">
+            <div class="req-id">RF10-01</div>
+            <div class="req-title">Lista de todos los locales con estado</div>
+            <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+          </div>
+          <div class="req-desc">Tabla con todos los tenants: nombre del local, subdominio, plan activo, estado (activo/inactivo/suspendido), fecha de vencimiento de suscripción, última actividad. Filtros por plan, estado y fecha. Búsqueda por nombre o subdominio.</div>
+        </div>
+
+        <div class="req-card">
+          <div class="req-top">
+            <div class="req-id">RF10-02</div>
+            <div class="req-title">Crear nuevo local (onboarding de cliente)</div>
+            <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+          </div>
+          <div class="req-desc">Formulario para dar de alta un nuevo cliente: nombre del local, subdominio elegido (con verificación de disponibilidad en tiempo real), email y contraseña temporal del admin del local, plan asignado, número de WhatsApp. Al confirmar: se crea el tenant, se configura el subdominio y se envía un email al nuevo cliente con sus credenciales y link al wizard de configuración.</div>
+        </div>
+
+        <div class="req-card">
+          <div class="req-top">
+            <div class="req-id">RF10-03</div>
+            <div class="req-title">Vista detalle de un local</div>
+            <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+          </div>
+          <div class="req-desc">Al abrir un local: ver todos sus datos, historial de suscripciones y pagos, métricas de uso (visitas, conversiones), fecha de último ingreso al panel. Acciones disponibles: editar datos, cambiar plan, suspender/activar, eliminar, e <strong>impersonar</strong> (ingresar al panel del local como si fuera el admin, sin necesitar su contraseña — para dar soporte).</div>
+        </div>
+
+        <div class="req-card">
+          <div class="req-top">
+            <div class="req-id">RF10-04</div>
+            <div class="req-title">Suspensión y activación de locales</div>
+            <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+          </div>
+          <div class="req-desc">Desde el superadmin se puede suspender un local (ej. por falta de pago). Al suspenderse: el menú público muestra una pantalla genérica de "local no disponible", el admin del local ve un aviso en su panel, y los subdominios siguen respondiendo (no dan 404). La reactivación es instantánea.</div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Planes y suscripciones</div>
+
+        <div class="req-card">
+          <div class="req-top">
+            <div class="req-id">RF10-05</div>
+            <div class="req-title">Gestión de planes</div>
+            <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+          </div>
+          <div class="req-desc">CRUD de planes con sus límites: nombre, precio, cantidad máx. de productos, cantidad máx. de categorías, funcionalidades habilitadas (promociones sí/no, constructor de producto sí/no, estadísticas sí/no, dominio propio sí/no). Un cambio de plan en un tenant aplica los nuevos límites inmediatamente.</div>
+        </div>
+
+        <div class="req-card">
+          <div class="req-top">
+            <div class="req-id">RF10-06</div>
+            <div class="req-title">Registro de pagos y control de vencimientos</div>
+            <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+          </div>
+          <div class="req-desc">Para cada tenant: historial de pagos con fecha, monto y plan pagado. Registro manual de pagos (ej. transferencia bancaria). Alertas automáticas de próximos vencimientos (7 días, 3 días, vencido). Lista de locales con suscripción vencida o por vencer ordenada por urgencia.</div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Visión global de la plataforma</div>
+
+        <div class="req-card">
+          <div class="req-top">
+            <div class="req-id">RF10-07</div>
+            <div class="req-title">Dashboard global del negocio</div>
+            <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-med">Media</span></div>
+          </div>
+          <div class="req-desc">Métricas de todo MorfApp como negocio: total de locales activos, locales nuevos este mes, MRR (Monthly Recurring Revenue) estimado, locales por plan, locales con suscripción vencida, tasa de retención. Gráfico de evolución de locales activos en el tiempo.</div>
+        </div>
+
+        <div class="req-card">
+          <div class="req-top">
+            <div class="req-id">RF10-08</div>
+            <div class="req-title">Configuración global de la plataforma</div>
+            <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+          </div>
+          <div class="req-desc">Configuraciones que afectan a toda la plataforma: dominio base (<code>morfapp.com</code>), email de soporte que se muestra a los admins, plantillas globales de modificadores disponibles para todos los locales, límites globales de rate limiting, y mantenimiento programado (activa un banner global en todos los paneles admin).</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- RF: HORARIOS -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <section class="section" id="rf-horarios">
+      <div class="section-header">
+        <div class="section-icon">🕐</div>
+        <div>
+          <div class="section-title">RF11 · Horarios y disponibilidad</div>
+          <div class="section-subtitle">Control de apertura, cierre y productos no disponibles</div>
+        </div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF11-01</div>
+          <div class="req-title">Mensaje de local cerrado</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">Cuando el local está fuera de horario, el menú muestra un banner informando que está cerrado, el próximo horario de apertura, y opcionalmente permite explorar el menú pero deshabilitando el botón de envío de pedido.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF11-02</div>
+          <div class="req-title">Toggle manual "abrir/cerrar"</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">El admin puede abrir o cerrar el local manualmente con un toggle, independientemente del horario configurado. Útil para imprevistos. El cierre manual puede tener un mensaje personalizado (ej. "Hoy cerramos antes por evento").</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RF11-03</div>
+          <div class="req-title">Tiempo estimado de espera</div>
+          <div class="req-badges"><span class="badge badge-func">Funcional</span><span class="badge badge-med">Media</span></div>
+        </div>
+        <div class="req-desc">El admin puede configurar o actualizar manualmente el tiempo estimado de entrega/retiro (ej. "40-55 min"). Se muestra en el header del menú público. El admin puede marcarlo como "Alta demanda" lo que automáticamente suma tiempo al estimado.</div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <!-- NO FUNCIONALES -->
+    <!-- ══════════════════════════════════════════════════════════ -->
+
+    <!-- RNF: PERFORMANCE -->
+    <section class="section" id="rnf-performance">
+      <div class="section-header">
+        <div class="section-icon">⚡</div>
+        <div>
+          <div class="section-title">RNF01 · Rendimiento</div>
+          <div class="section-subtitle">Tiempos de carga y métricas de performance</div>
+        </div>
+      </div>
+
+      <div class="metrics">
+        <div class="metric">
+          <div class="metric-value">&lt; 2s</div>
+          <div class="metric-label">LCP (Largest Contentful Paint) del menú público</div>
+        </div>
+        <div class="metric">
+          <div class="metric-value">&lt; 100ms</div>
+          <div class="metric-label">INP (Interaction to Next Paint) para abrir modal</div>
+        </div>
+        <div class="metric">
+          <div class="metric-value">&gt; 90</div>
+          <div class="metric-label">Lighthouse Performance Score en mobile</div>
+        </div>
+        <div class="metric">
+          <div class="metric-value">&lt; 200kb</div>
+          <div class="metric-label">JS bundle inicial (gzip) del menú público</div>
+        </div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RNF01-01</div>
+          <div class="req-title">Caché de configuración de tenant</div>
+          <div class="req-badges"><span class="badge badge-nonfunc">No Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">La configuración del tenant (branding, horarios, menú) se cachea en edge/CDN con TTL configurable. El admin tiene un botón "Publicar cambios" que invalida el caché. Los menús no cambian en tiempo real para el cliente final.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RNF01-02</div>
+          <div class="req-title">Imágenes optimizadas automáticamente</div>
+          <div class="req-badges"><span class="badge badge-nonfunc">No Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">Todas las imágenes subidas se convierten a WebP y se generan múltiples tamaños (thumbnail 128px, card 256px, modal 512px). Se sirven desde CDN con headers de caché adecuados. Se usa lazy loading nativo para imágenes fuera del viewport.</div>
+      </div>
+    </section>
+
+    <!-- RNF: RESPONSIVE -->
+    <section class="section" id="rnf-responsive">
+      <div class="section-header">
+        <div class="section-icon">📱</div>
+        <div>
+          <div class="section-title">RNF02 · Responsive y Mobile-first</div>
+          <div class="section-subtitle">Diseño adaptativo para todos los dispositivos</div>
+        </div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RNF02-01</div>
+          <div class="req-title">Diseño mobile-first con breakpoints definidos</div>
+          <div class="req-badges"><span class="badge badge-nonfunc">No Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">El diseño se construye primero para mobile (360px-430px). Breakpoints: <strong>sm</strong> ≥ 480px, <strong>md</strong> ≥ 768px, <strong>lg</strong> ≥ 1024px. En desktop el menú público se muestra centrado con max-width: 520px como en la referencia.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RNF02-02</div>
+          <div class="req-title">Touch targets mínimos</div>
+          <div class="req-badges"><span class="badge badge-nonfunc">No Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">Todos los elementos interactivos tienen un área táctil mínima de 44×44px según WCAG 2.5.5. Los botones de cantidad, íconos de eliminar y opciones de modificadores respetan este mínimo.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RNF02-03</div>
+          <div class="req-title">Bottom sheets y modales nativos</div>
+          <div class="req-badges"><span class="badge badge-nonfunc">No Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">Los modales de producto y carrito se presentan como bottom sheets en mobile (se deslizan desde abajo). En desktop pueden mostrarse como modales centrados. Soporte para cierre con swipe hacia abajo en mobile.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RNF02-04</div>
+          <div class="req-title">PWA (Progressive Web App)</div>
+          <div class="req-badges"><span class="badge badge-nonfunc">No Funcional</span><span class="badge badge-med">Media</span></div>
+        </div>
+        <div class="req-desc">El menú público es instalable como PWA. Incluye manifest.json por tenant (nombre e íconos del local), service worker para caché offline básica (menú visible sin conexión si ya fue visitado), y meta tags para iOS/Android.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RNF02-05</div>
+          <div class="req-title">Safe area insets (notch de iPhone)</div>
+          <div class="req-badges"><span class="badge badge-nonfunc">No Funcional</span><span class="badge badge-med">Media</span></div>
+        </div>
+        <div class="req-desc">Los elementos fixed (header, bottom bar, modal footer) respetan las safe areas de iOS con <code>env(safe-area-inset-*)</code> para evitar superposición con el notch y la barra home.</div>
+      </div>
+    </section>
+
+    <!-- RNF: SEGURIDAD -->
+    <section class="section" id="rnf-security">
+      <div class="section-header">
+        <div class="section-icon">🔐</div>
+        <div>
+          <div class="section-title">RNF03 · Seguridad</div>
+          <div class="section-subtitle">Protección de datos y autenticación</div>
+        </div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RNF03-01</div>
+          <div class="req-title">HTTPS obligatorio</div>
+          <div class="req-badges"><span class="badge badge-nonfunc">No Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">Toda comunicación entre clientes y servidores va por HTTPS. Las conexiones HTTP se redirigen automáticamente a HTTPS. Certificados TLS con renovación automática (Let's Encrypt o equivalente).</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RNF03-02</div>
+          <div class="req-title">Autenticación JWT con refresh tokens</div>
+          <div class="req-badges"><span class="badge badge-nonfunc">No Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">El panel admin usa JWT de corta duración (15 min) + refresh token (7 días). Los refresh tokens se rotan en cada uso. El superadmin tiene JWT con claims separados y mayor nivel de privilegio.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RNF03-03</div>
+          <div class="req-title">Aislamiento estricto de datos por tenant</div>
+          <div class="req-badges"><span class="badge badge-nonfunc">No Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">Toda query a la base de datos que acceda a datos de negocio incluye obligatoriamente el <code>tenant_id</code> extraído del JWT. No existe forma de listar o acceder a datos de otro tenant desde la API del admin.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RNF03-04</div>
+          <div class="req-title">Rate limiting en API pública</div>
+          <div class="req-badges"><span class="badge badge-nonfunc">No Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">El endpoint público del menú tiene rate limiting por IP: máx. 100 requests/minuto. Los endpoints de lectura del catálogo son más permisivos; los de escritura (ej. envío de métricas) son más restrictivos. Respuesta 429 con header Retry-After.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RNF03-05</div>
+          <div class="req-title">Protección XSS y CSRF</div>
+          <div class="req-badges"><span class="badge badge-nonfunc">No Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">Toda salida de datos del usuario se escapa correctamente. Content Security Policy (CSP) configurado. El panel admin usa CSRF tokens para mutaciones. Headers de seguridad: X-Frame-Options, X-Content-Type-Options, Referrer-Policy.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RNF03-06</div>
+          <div class="req-title">Validación y sanitización de inputs</div>
+          <div class="req-badges"><span class="badge badge-nonfunc">No Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">Todos los inputs del panel admin se validan en frontend y backend. Los archivos subidos se validan por tipo MIME real (no solo extensión), tamaño y se almacenan en bucket separado sin ejecución de código.</div>
+      </div>
+    </section>
+
+    <!-- RNF: ESCALABILIDAD -->
+    <section class="section" id="rnf-scalability">
+      <div class="section-header">
+        <div class="section-icon">📈</div>
+        <div>
+          <div class="section-title">RNF04 · Escalabilidad</div>
+          <div class="section-subtitle">Capacidad de crecer con la demanda</div>
+        </div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RNF04-01</div>
+          <div class="req-title">Arquitectura stateless en API</div>
+          <div class="req-badges"><span class="badge badge-nonfunc">No Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">Los servidores de API no mantienen estado de sesión en memoria. El estado se almacena en JWT o base de datos. Esto permite escalar horizontalmente agregando instancias sin configuración adicional.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RNF04-02</div>
+          <div class="req-title">Menú público servido desde CDN/edge</div>
+          <div class="req-badges"><span class="badge badge-nonfunc">No Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">El menú público se genera como HTML estático (SSG) o se cachea en edge. Un local con miles de visitas simultáneas no impacta los servidores de aplicación. El CDN absorbe el tráfico de lectura.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RNF04-03</div>
+          <div class="req-title">Diseño para soportar hasta 1000 tenants en MVP</div>
+          <div class="req-badges"><span class="badge badge-nonfunc">No Funcional</span><span class="badge badge-med">Media</span></div>
+        </div>
+        <div class="req-desc">El esquema de base de datos y la arquitectura deben soportar al menos 1000 tenants activos sin degradación de performance, con capacidad de crecimiento a 10.000 sin cambios de arquitectura.</div>
+      </div>
+    </section>
+
+    <!-- RNF: DISPONIBILIDAD -->
+    <section class="section" id="rnf-availability">
+      <div class="section-header">
+        <div class="section-icon">🟢</div>
+        <div>
+          <div class="section-title">RNF05 · Disponibilidad y resiliencia</div>
+          <div class="section-subtitle">Uptime, recuperación ante fallos y mantenimiento</div>
+        </div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RNF05-01</div>
+          <div class="req-title">SLA de disponibilidad 99.9%</div>
+          <div class="req-badges"><span class="badge badge-nonfunc">No Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">El menú público debe estar disponible el 99.9% del tiempo (≈ 8.7 horas de downtime/año). El panel admin puede tener un SLA levemente menor (99.5%). Los menús en CDN siguen funcionando aunque el backend esté caído.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RNF05-02</div>
+          <div class="req-title">Backups automáticos de base de datos</div>
+          <div class="req-badges"><span class="badge badge-nonfunc">No Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">Backups diarios automáticos con retención de 30 días. Backups semanales con retención de 6 meses. Procedimiento de restore documentado y probado mensualmente. RTO (Recovery Time Objective) &lt; 2 horas.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RNF05-03</div>
+          <div class="req-title">Graceful degradation</div>
+          <div class="req-badges"><span class="badge badge-nonfunc">No Funcional</span><span class="badge badge-med">Media</span></div>
+        </div>
+        <div class="req-desc">Si la API de estadísticas falla, el menú público sigue funcionando. Si el módulo de cupones falla, el resto del carrito sigue operativo. Los fallos parciales se logean y alertan sin interrumpir la experiencia core.</div>
+      </div>
+    </section>
+
+    <!-- RNF: UX -->
+    <section class="section" id="rnf-ux">
+      <div class="section-header">
+        <div class="section-icon">✨</div>
+        <div>
+          <div class="section-title">RNF06 · UX y Accesibilidad</div>
+          <div class="section-subtitle">Experiencia de usuario e inclusión</div>
+        </div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RNF06-01</div>
+          <div class="req-title">Animaciones fluidas (60fps)</div>
+          <div class="req-badges"><span class="badge badge-nonfunc">No Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">Las animaciones de apertura de modales (slide-up), fade del overlay y transiciones de tabs corren a 60fps. Se usan transformaciones CSS (transform/opacity) en lugar de propiedades que causan reflow. Se respeta <code>prefers-reduced-motion</code>.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RNF06-02</div>
+          <div class="req-title">Feedback visual inmediato</div>
+          <div class="req-badges"><span class="badge badge-nonfunc">No Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">Toda acción del usuario tiene feedback en ≤ 100ms: botones cambian de estado en :active, items agregados al carrito muestran animación de confirmación, el contador del carrito se actualiza con micro-animación.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RNF06-03</div>
+          <div class="req-title">Contraste de colores (WCAG AA)</div>
+          <div class="req-badges"><span class="badge badge-nonfunc">No Funcional</span><span class="badge badge-med">Media</span></div>
+        </div>
+        <div class="req-desc">El sistema verifica que el color primario configurado por el tenant tenga suficiente contraste con el texto blanco/negro sobre él. Si no cumple WCAG AA (ratio 4.5:1 para texto), se advierte al admin y se sugiere ajuste automático.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RNF06-04</div>
+          <div class="req-title">Accesibilidad con teclado y lectores de pantalla</div>
+          <div class="req-badges"><span class="badge badge-nonfunc">No Funcional</span><span class="badge badge-med">Media</span></div>
+        </div>
+        <div class="req-desc">El menú público es navegable con teclado (Tab, Enter, Escape). Los modales manejan correctamente el foco (focus trap). Los elementos interactivos tienen roles ARIA adecuados. Las imágenes tienen alt text.</div>
+      </div>
+    </section>
+
+    <!-- RNF: SEO -->
+    <section class="section" id="rnf-seo">
+      <div class="section-header">
+        <div class="section-icon">🔍</div>
+        <div>
+          <div class="section-title">RNF07 · SEO y compartición social</div>
+          <div class="section-subtitle">Visibilidad en buscadores y redes sociales</div>
+        </div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RNF07-01</div>
+          <div class="req-title">Meta tags por tenant</div>
+          <div class="req-badges"><span class="badge badge-nonfunc">No Funcional</span><span class="badge badge-high">Alta</span></div>
+        </div>
+        <div class="req-desc">Cada menú público incluye: &lt;title&gt; con nombre del local, meta description con la descripción del local, Open Graph tags (og:title, og:description, og:image con logo del local), Twitter Card. El &lt;html lang&gt; es configurable por tenant.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RNF07-02</div>
+          <div class="req-title">Renderizado server-side del menú</div>
+          <div class="req-badges"><span class="badge badge-nonfunc">No Funcional</span><span class="badge badge-med">Media</span></div>
+        </div>
+        <div class="req-desc">El menú público se renderiza en el servidor (SSR/SSG) para que los crawlers de buscadores y redes sociales puedan leer el contenido sin ejecutar JavaScript. Esto garantiza indexación correcta del menú en Google.</div>
+      </div>
+    </section>
+
+    <!-- RNF: I18N -->
+    <section class="section" id="rnf-i18n">
+      <div class="section-header">
+        <div class="section-icon">🌎</div>
+        <div>
+          <div class="section-title">RNF08 · Internacionalización</div>
+          <div class="section-subtitle">Soporte para múltiples idiomas y regiones</div>
+        </div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RNF08-01</div>
+          <div class="req-title">Idioma configurable por tenant</div>
+          <div class="req-badges"><span class="badge badge-nonfunc">No Funcional</span><span class="badge badge-med">Media</span></div>
+        </div>
+        <div class="req-desc">El admin selecciona el idioma de la interfaz pública (Español AR, Español ES, Portugués BR, Inglés). Los textos fijos del sistema (ej. "Agregar al carrito", "Tu pedido") se muestran en el idioma configurado.</div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <div class="req-id">RNF08-02</div>
+          <div class="req-title">Formato de moneda y fechas por región</div>
+          <div class="req-badges"><span class="badge badge-nonfunc">No Funcional</span><span class="badge badge-med">Media</span></div>
+        </div>
+        <div class="req-desc">El formato de precios usa el locale del tenant (ej. $5.800 para AR, R$5.800 para BR). Los horarios se muestran en el timezone del local. Las fechas de vencimiento de promociones se muestran en formato local.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- MVP SCOPE -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <section class="section" id="mvp">
+      <div class="section-header">
+        <div class="section-icon">🚀</div>
+        <div>
+          <div class="section-title">Alcance MVP (Versión 1.0)</div>
+          <div class="section-subtitle">Lo esencial para lanzar y validar con los primeros clientes</div>
+        </div>
+      </div>
+
+      <div class="callout callout-warn">
+        <span class="callout-icon">⚠️</span>
+        <div class="callout-text"><strong>Criterio de corte:</strong> El MVP debe permitir que un local real pueda usar la plataforma en producción. Todo lo que no impida esto puede ir a versiones posteriores.</div>
+      </div>
+
+      <table class="overview-table">
+        <thead>
+          <tr>
+            <th>Funcionalidad</th>
+            <th>MVP v1.0</th>
+            <th>v1.x</th>
+            <th>Futuro</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Menú público con categorías y productos</td><td>✅</td><td></td><td></td></tr>
+          <tr><td>Branding configurable (colores, logo, nombre)</td><td>✅</td><td></td><td></td></tr>
+          <tr><td>Modificadores de producto (radio + checkbox)</td><td>✅</td><td></td><td></td></tr>
+          <tr><td>Carrito con bottom sheet y bottom bar</td><td>✅</td><td></td><td></td></tr>
+          <tr><td>Delivery / retiro en local</td><td>✅</td><td></td><td></td></tr>
+          <tr><td>Confirmación de pedido por WhatsApp</td><td>✅</td><td></td><td></td></tr>
+          <tr><td>Panel admin: gestión de carta</td><td>✅</td><td></td><td></td></tr>
+          <tr><td>Panel admin: branding y configuración</td><td>✅</td><td></td><td></td></tr>
+          <tr><td>Panel admin: horarios de atención</td><td>✅</td><td></td><td></td></tr>
+          <tr><td>Panel superadmin: CRUD de tenants</td><td>✅</td><td></td><td></td></tr>
+          <tr><td>Multi-tenancy por slug de URL</td><td>✅</td><td></td><td></td></tr>
+          <tr><td>Constructor de producto personalizado</td><td></td><td>✅</td><td></td></tr>
+          <tr><td>Promociones 2x1 y descuentos</td><td></td><td>✅</td><td></td></tr>
+          <tr><td>Códigos de cupón</td><td></td><td>✅</td><td></td></tr>
+          <tr><td>Happy hour</td><td></td><td>✅</td><td></td></tr>
+          <tr><td>Estadísticas y analytics</td><td></td><td>✅</td><td></td></tr>
+          <tr><td>Imágenes de productos</td><td></td><td>✅</td><td></td></tr>
+          <tr><td>PWA instalable</td><td></td><td>✅</td><td></td></tr>
+          <tr><td>Dominio personalizado por local</td><td></td><td></td><td>✅</td></tr>
+          <tr><td>Múltiples números de WhatsApp</td><td></td><td></td><td>✅</td></tr>
+          <tr><td>Integración con sistemas de pago online</td><td></td><td></td><td>✅</td></tr>
+          <tr><td>App nativa iOS/Android</td><td></td><td></td><td>✅</td></tr>
+          <tr><td>Gestión de stock / inventario</td><td></td><td></td><td>✅</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- ROADMAP -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <section class="section" id="roadmap">
+      <div class="section-header">
+        <div class="section-icon">🗺️</div>
+        <div>
+          <div class="section-title">Roadmap futuro</div>
+          <div class="section-subtitle">Funcionalidades planificadas para versiones posteriores</div>
+        </div>
+      </div>
+
+      <div class="req-card">
+        <div class="req-title">💳 Pagos online integrados</div>
+        <div class="req-desc">Integración con Mercado Pago, PayPal o Stripe para que el cliente pague online antes de confirmar el pedido por WhatsApp. El pedido llega con el comprobante de pago adjunto.</div>
+      </div>
+      <div class="req-card">
+        <div class="req-title">📊 Analytics avanzados</div>
+        <div class="req-desc">Funnel de conversión detallado, productos más populares por horario, análisis de modificadores más elegidos, métricas de retención de clientes.</div>
+      </div>
+      <div class="req-card">
+        <div class="req-title">🔔 Notificaciones push</div>
+        <div class="req-desc">El local puede enviar notificaciones push a clientes que instalaron la PWA: "¡Hoy 2x1 en hamburguesas!", "Nuevo ítem en el menú".</div>
+      </div>
+      <div class="req-card">
+        <div class="req-title">📦 Gestión de stock</div>
+        <div class="req-desc">Control de stock por producto. Cuando un producto llega a 0, se marca automáticamente como no disponible en el menú.</div>
+      </div>
+      <div class="req-card">
+        <div class="req-title">🤖 Integración con WhatsApp Business API</div>
+        <div class="req-desc">Recibir y responder pedidos directamente desde la API oficial de WhatsApp Business. El local recibe el pedido como mensaje estructurado y puede confirmar/rechazar desde el panel.</div>
+      </div>
+      <div class="req-card">
+        <div class="req-title">🌐 Dominio personalizado por local</div>
+        <div class="req-desc">El local puede conectar su propio dominio (ej. <code>pedidos.milocal.com</code>) apuntando al menú en MorfApp, con certificado SSL automático.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- GLOSARIO -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <section class="section" id="glosario">
+      <div class="section-header">
+        <div class="section-icon">📖</div>
+        <div>
+          <div class="section-title">Glosario</div>
+          <div class="section-subtitle">Términos usados en este documento</div>
+        </div>
+      </div>
+
+      <table class="overview-table">
+        <thead>
+          <tr><th>Término</th><th>Definición</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Tenant</strong></td><td>Un local gastronómico cliente de MorfApp. Cada tenant tiene sus propios datos aislados.</td></tr>
+          <tr><td><strong>Tenant Admin</strong></td><td>El dueño o encargado del local que gestiona su panel de administración.</td></tr>
+          <tr><td><strong>Superadmin</strong></td><td>El equipo de MorfApp que gestiona todos los tenants y la plataforma.</td></tr>
+          <tr><td><strong>Consumer / Cliente final</strong></td><td>La persona que visita el menú público y hace un pedido.</td></tr>
+          <tr><td><strong>Subdominio</strong></td><td>La parte del dominio que identifica al local: <code>empresa1</code> en <code>empresa1.morfapp.com</code>. Se resuelve con wildcard DNS <code>*.morfapp.com</code>.</td></tr>
+          <tr><td><strong>Slug</strong></td><td>Identificador único del local usado como subdominio (ej. <code>rincon-del-fuego</code> → <code>rincon-del-fuego.morfapp.com</code>).</td></tr>
+          <tr><td><strong>Impersonación</strong></td><td>Funcionalidad del superadmin que permite ingresar al panel de un local sin conocer su contraseña, para dar soporte.</td></tr>
+          <tr><td><strong>MRR</strong></td><td>Monthly Recurring Revenue: ingreso mensual recurrente total de todos los tenants activos.</td></tr>
+          <tr><td><strong>Wizard</strong></td><td>Asistente paso a paso que guía al admin en la configuración inicial del local.</td></tr>
+          <tr><td><strong>Modificador</strong></td><td>Grupo de opciones configurables para un producto (pan, queso, condimentos, etc.).</td></tr>
+          <tr><td><strong>Builder</strong></td><td>Producto de tipo constructor: el cliente lo arma desde cero eligiendo ingredientes.</td></tr>
+          <tr><td><strong>Bottom sheet</strong></td><td>Panel que se desliza desde la parte inferior de la pantalla (modal en mobile).</td></tr>
+          <tr><td><strong>Bottom bar</strong></td><td>Barra fija en la parte inferior que muestra el resumen del carrito.</td></tr>
+          <tr><td><strong>LCP</strong></td><td>Largest Contentful Paint: métrica de cuándo el contenido principal es visible.</td></tr>
+          <tr><td><strong>PWA</strong></td><td>Progressive Web App: app web instalable en el dispositivo sin app store.</td></tr>
+          <tr><td><strong>SLA</strong></td><td>Service Level Agreement: acuerdo de nivel de servicio (ej. uptime garantizado).</td></tr>
+          <tr><td><strong>CDN</strong></td><td>Content Delivery Network: red de servidores para servir contenido estático rápidamente.</td></tr>
+          <tr><td><strong>SSG</strong></td><td>Static Site Generation: generación del HTML en tiempo de build, no en cada request.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <div style="text-align:center;padding:40px 0;color:#aaa;font-size:.78rem;">
+      MorfApp · Documento de Requerimientos v1.0 · Generado Abril 2026
+    </div>
+
+  </main>
+</div>
+
+<script>
+  // Active sidebar link on scroll
+  const sections = document.querySelectorAll('section[id]');
+  const links = document.querySelectorAll('.sidebar-link');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const active = document.querySelector(`.sidebar-link[href="#${entry.target.id}"]`);
+        if (active) {
+          active.classList.add('active');
+          active.scrollIntoView({ block: 'nearest' });
+        }
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+
+  sections.forEach(s => observer.observe(s));
+
+  // Smooth scroll
+  document.querySelectorAll('.sidebar-link').forEach(link => {
+    link.addEventListener('click', e => {
+      e.preventDefault();
+      const id = link.getAttribute('href').slice(1);
+      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+</script>
+
+</body>
+</html>

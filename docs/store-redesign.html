@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MorfApp — Store Redesign Mock</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #ea580c;
+      --primary-dark: #c2410c;
+      --primary-light: #fff7ed;
+      --text: #18181b;
+      --text-muted: #71717a;
+      --border: #e4e4e7;
+      --bg: #f8f8f8;
+      --white: #ffffff;
+      --radius: 14px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    /* ── HEADER ── */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 1px 6px rgba(0,0,0,.06);
+    }
+    .header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .brand-logo {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      flex-shrink: 0;
+    }
+    .brand-name {
+      font-size: 1.1rem;
+      font-weight: 700;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+    .brand-tagline {
+      font-size: .75rem;
+      color: var(--text-muted);
+    }
+
+    /* pill badge: abierto/cerrado */
+    .status-badge {
+      flex-shrink: 0;
+      font-size: .72rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #dcfce7;
+      color: #16a34a;
+    }
+    .status-badge.closed {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+
+    /* search */
+    .header-search {
+      flex: 1;
+      max-width: 340px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0 14px;
+      height: 38px;
+    }
+    .header-search input {
+      border: none;
+      outline: none;
+      background: transparent;
+      font-size: .875rem;
+      color: var(--text);
+      width: 100%;
+    }
+    .header-search input::placeholder { color: var(--text-muted); }
+
+    .btn-cart {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 999px;
+      padding: 0 18px;
+      height: 40px;
+      font-size: .875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .2s;
+      flex-shrink: 0;
+    }
+    .btn-cart:hover { background: var(--primary-dark); }
+    .cart-badge {
+      background: #fff;
+      color: var(--primary);
+      border-radius: 999px;
+      font-size: .7rem;
+      font-weight: 700;
+      padding: 1px 6px;
+      min-width: 20px;
+      text-align: center;
+    }
+
+    /* ── LAYOUT ── */
+    .layout {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 28px 24px;
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 28px;
+      align-items: start;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      position: sticky;
+      top: 80px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: .9rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all .15s;
+      text-decoration: none;
+      border: none;
+      background: none;
+      text-align: left;
+      width: 100%;
+    }
+    .sidebar-item:hover {
+      background: var(--bg);
+      color: var(--text);
+    }
+    .sidebar-item.active {
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 600;
+    }
+    .sidebar-item .cat-emoji {
+      font-size: 1.2rem;
+      width: 28px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .sidebar-item .cat-count {
+      margin-left: auto;
+      font-size: .72rem;
+      background: var(--bg);
+      color: var(--text-muted);
+      border-radius: 999px;
+      padding: 1px 7px;
+    }
+    .sidebar-item.active .cat-count {
+      background: #fdba74;
+      color: #7c2d12;
+    }
+
+    /* ── MAIN CONTENT ── */
+    .main {}
+
+    .category-section {
+      margin-bottom: 40px;
+    }
+    .category-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--border);
+    }
+    .category-title .emoji { font-size: 1.4rem; }
+
+    /* ── PRODUCT GRID ── */
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px;
+    }
+
+    .product-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      cursor: pointer;
+      transition: box-shadow .2s, transform .15s;
+      display: flex;
+      flex-direction: column;
+    }
+    .product-card:hover {
+      box-shadow: 0 6px 24px rgba(0,0,0,.1);
+      transform: translateY(-2px);
+    }
+
+    .product-img {
+      width: 100%;
+      aspect-ratio: 4/3;
+      object-fit: cover;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3.5rem;
+    }
+    .product-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .product-body {
+      padding: 12px 14px 14px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .product-name {
+      font-size: .95rem;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+    .product-desc {
+      font-size: .8rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .product-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 10px;
+    }
+    .product-price {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    .btn-add {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      font-size: 1.25rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .2s, transform .1s;
+      line-height: 1;
+    }
+    .btn-add:hover { background: var(--primary-dark); }
+    .btn-add:active { transform: scale(.92); }
+
+    /* tags */
+    .tag {
+      display: inline-block;
+      font-size: .68rem;
+      font-weight: 600;
+      background: #f1f5f9;
+      color: #64748b;
+      border-radius: 999px;
+      padding: 2px 8px;
+      margin-top: 4px;
+    }
+
+    /* ── DELIVERY BANNER ── */
+    .delivery-banner {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+    .delivery-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: .82rem;
+      color: var(--text-muted);
+    }
+    .delivery-chip strong { color: var(--text); }
+
+    /* ── MOBILE ── */
+    @media (max-width: 768px) {
+      .layout {
+        grid-template-columns: 1fr;
+        padding: 0 0 80px;
+        gap: 0;
+      }
+      .sidebar { display: none; }
+      .mobile-tabs {
+        display: flex !important;
+      }
+      .main { padding: 16px; }
+      .header-search { display: none; }
+      .product-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .product-img { aspect-ratio: 1; }
+    }
+
+    /* mobile category pills */
+    .mobile-tabs {
+      display: none;
+      position: sticky;
+      top: 64px;
+      z-index: 30;
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      gap: 8px;
+      padding: 10px 16px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .mobile-tabs::-webkit-scrollbar { display: none; }
+    .mobile-tab {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: .82rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .mobile-tab.active {
+      background: var(--primary);
+      color: #fff;
+    }
+    .mobile-tab:not(.active) {
+      background: #f4f4f5;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-logo">🍔</div>
+        <div>
+          <div class="brand-name">La Burguesía</div>
+          <div class="brand-tagline">Las mejores burgers de la ciudad</div>
+        </div>
+      </div>
+
+      <span class="status-badge">● Abierto ahora</span>
+
+      <div class="header-search">
+        <svg width="14" height="14" fill="none" stroke="#a1a1aa" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input type="text" placeholder="Buscar en el menú..." />
+      </div>
+
+      <button class="btn-cart">
+        🛒 Ver carrito
+        <span class="cart-badge">3</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MOBILE CATEGORY TABS -->
+  <div class="mobile-tabs">
+    <button class="mobile-tab active">🍔 Hamburguesas</button>
+    <button class="mobile-tab">🍟 Papas</button>
+    <button class="mobile-tab">🥤 Bebidas</button>
+    <button class="mobile-tab">🌮 Extras</button>
+    <button class="mobile-tab">🍰 Postres</button>
+  </div>
+
+  <!-- LAYOUT -->
+  <div class="layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <button class="sidebar-item active">
+        <span class="cat-emoji">🍔</span>
+        Hamburguesas
+        <span class="cat-count">8</span>
+      </button>
+      <button class="sidebar-item">
+        <span class="cat-emoji">🍟</span>
+        Papas
+        <span class="cat-count">4</span>
+      </button>
+      <button class="sidebar-item">
+        <span class="cat-emoji">🥤</span>
+        Bebidas
+        <span class="cat-count">6</span>
+      </button>
+      <button class="sidebar-item">
+        <span class="cat-emoji">🌮</span>
+        Extras
+        <span class="cat-count">3</span>
+      </button>
+      <button class="sidebar-item">
+        <span class="cat-emoji">🍰</span>
+        Postres
+        <span class="cat-count">5</span>
+      </button>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+
+      <!-- Info chips -->
+      <div class="delivery-banner">
+        <div class="delivery-chip">🏍️ Delivery — <strong>gratis desde $10.000</strong></div>
+        <div class="delivery-chip">🕐 <strong>30–45 min</strong> estimados</div>
+        <div class="delivery-chip">🏪 También retiro en local</div>
+      </div>
+
+      <!-- CATEGORY: Hamburguesas -->
+      <section class="category-section" id="cat-hamburguesas">
+        <h2 class="category-title">
+          <span class="emoji">🍔</span> Hamburguesas
+        </h2>
+        <div class="product-grid">
+
+          <div class="product-card">
+            <div class="product-img">🍔</div>
+            <div class="product-body">
+              <div class="product-name">Clásica</div>
+              <div class="product-desc">Medallón de carne, lechuga, tomate, cebolla y salsa especial.</div>
+              <div><span class="tag">Sin TACC disponible</span></div>
+              <div class="product-footer">
+                <span class="product-price">$8.500</span>
+                <button class="btn-add">+</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="product-card">
+            <div class="product-img" style="background:#fef3c7; font-size:3.5rem; display:flex; align-items:center; justify-content:center;">
+              <img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&q=80" alt="Doble" style="width:100%;height:100%;object-fit:cover;" />
+            </div>
+            <div class="product-body">
+              <div class="product-name">Doble Smash</div>
+              <div class="product-desc">Dos medallones smash, queso cheddar doble, pepinillos y mostaza ahumada.</div>
+              <div class="product-footer">
+                <span class="product-price">$12.500</span>
+                <button class="btn-add">+</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="product-card">
+            <div class="product-img">🍔</div>
+            <div class="product-body">
+              <div class="product-name">Crispy Chicken</div>
+              <div class="product-desc">Pollo rebozado crocante, coleslaw y salsa ranch casera.</div>
+              <div class="product-footer">
+                <span class="product-price">$9.900</span>
+                <button class="btn-add">+</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="product-card">
+            <div class="product-img">🍔</div>
+            <div class="product-body">
+              <div class="product-name">Veggie BBQ</div>
+              <div class="product-desc">Medallón de lentejas y garbanzos, rúcula, tomate asado y BBQ.</div>
+              <div><span class="tag">Vegetariana</span></div>
+              <div class="product-footer">
+                <span class="product-price">$8.200</span>
+                <button class="btn-add">+</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- CATEGORY: Papas -->
+      <section class="category-section" id="cat-papas">
+        <h2 class="category-title">
+          <span class="emoji">🍟</span> Papas
+        </h2>
+        <div class="product-grid">
+
+          <div class="product-card">
+            <div class="product-img">🍟</div>
+            <div class="product-body">
+              <div class="product-name">Papas Fritas</div>
+              <div class="product-desc">Porción generosa de papas fritas crujientes con sal marina.</div>
+              <div class="product-footer">
+                <span class="product-price">$3.500</span>
+                <button class="btn-add">+</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="product-card">
+            <div class="product-img">🍟</div>
+            <div class="product-body">
+              <div class="product-name">Papas con Cheddar</div>
+              <div class="product-desc">Papas fritas bañadas en salsa cheddar caliente y panceta crocante.</div>
+              <div class="product-footer">
+                <span class="product-price">$5.200</span>
+                <button class="btn-add">+</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script>
+    // Sidebar interactivity demo
+    document.querySelectorAll('.sidebar-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.sidebar-item').forEach(b => b.classList.remove('active'))
+        btn.classList.add('active')
+      })
+    })
+    document.querySelectorAll('.mobile-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.mobile-tab').forEach(b => b.classList.remove('active'))
+        btn.classList.add('active')
+      })
+    })
+  </script>
+
+</body>
+</html>

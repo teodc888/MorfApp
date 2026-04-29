@@ -1,0 +1,35 @@
+# Dirs starting with dot (tools, configs)
+.claude/
+.claude-flow/
+.teodc/
+.cursor/
+.mcp.json
+
+# Node
+node_modules/
+.next/
+.turbo/
+*.tsbuildinfo
+
+# .NET build artifacts
+bin/
+obj/
+publish-linux/
+publish/
+back/32
+
+# Env files (secrets)
+.env
+.env.local
+.env.production
+.env.*.local
+*.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+*.user
+.vs/
+*.suo
