@@ -54,7 +54,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const isActive = (segment: string) => pathname.includes(`${base}/${segment}`)
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50 flex w-full max-w-screen overflow-x-hidden">
       {/* Sidebar desktop */}
       <aside className="hidden md:flex flex-col w-56 bg-white border-r border-gray-200 fixed top-0 left-0 h-full z-20">
         <div className="h-14 flex items-center px-4 border-b border-gray-100">
@@ -83,7 +83,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* Main content */}
-      <div className="flex-1 md:ml-56 flex flex-col min-h-screen">
+      <div className="flex-1 md:ml-56 flex flex-col min-h-screen w-full max-w-screen overflow-x-hidden">
         <header className="md:hidden h-14 bg-white border-b border-gray-200 flex items-center px-4 sticky top-0 z-10">
           <span className="font-bold text-orange-600">MorfApp</span>
           <span className="ml-1 text-xs text-gray-400">admin</span>
@@ -94,7 +94,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </div>
 
       {/* Bottom tabs mobile */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-20 bg-white border-t border-gray-200 flex">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 w-screen max-w-none z-20 bg-white border-t border-gray-200 flex">
         {NAV.map((item) => (
           <Link
             key={item.segment}
