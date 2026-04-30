@@ -297,8 +297,8 @@ export default function ConfigPage() {
 
         <div className="space-y-2">
           {hours.map((h, i) => (
-            <div key={h.dayOfWeek} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
-              <div className="sm:w-24 sm:flex-shrink-0">
+            <div key={h.dayOfWeek} className="flex flex-col gap-1 md:flex-row md:items-center md:gap-3">
+              <div className="md:w-24 md:flex-shrink-0">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
@@ -311,7 +311,7 @@ export default function ConfigPage() {
               </div>
 
               {h.isOpen ? (
-                <div className="flex items-center gap-2 flex-1 ml-6 sm:ml-0">
+                <div className="flex items-center gap-2 flex-1 ml-6 md:ml-0">
                   <input
                     type="time"
                     value={h.opensAt ?? '09:00'}
@@ -327,7 +327,7 @@ export default function ConfigPage() {
                   />
                 </div>
               ) : (
-                <span className="text-sm text-gray-400 ml-6 sm:ml-0">Cerrado</span>
+                <span className="text-sm text-gray-400 ml-6 md:ml-0">Cerrado</span>
               )}
             </div>
           ))}

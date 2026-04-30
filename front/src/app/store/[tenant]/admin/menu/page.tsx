@@ -72,7 +72,11 @@ export default function MenuPage() {
 
   useEffect(() => {
     if (!openMenuId) return
-    const handler = () => setOpenMenuId(null)
+    const handler = (e: MouseEvent) => {
+      if (!(e.target as Element).closest('[data-menu-trigger],[data-menu-dropdown]')) {
+        setOpenMenuId(null)
+      }
+    }
     document.addEventListener('click', handler)
     return () => document.removeEventListener('click', handler)
   }, [openMenuId])
@@ -282,10 +286,8 @@ export default function MenuPage() {
                   + Producto
                 </button>
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setOpenMenuId(openMenuId === cat.id ? null : cat.id)
-                  }}
+                  data-menu-trigger
+                  onClick={() => setOpenMenuId(openMenuId === cat.id ? null : cat.id)}
                   className="text-sm px-2 py-1.5 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors font-bold leading-none"
                 >
                   ⋯
@@ -294,7 +296,7 @@ export default function MenuPage() {
 
               {/* Dropdown */}
               {openMenuId === cat.id && (
-                <div className="absolute right-4 top-full mt-1 z-30 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[120px]">
+                <div data-menu-dropdown className="absolute right-4 top-full mt-1 z-30 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[120px]">
                   <button
                     onClick={() => { openEditCat(cat); setOpenMenuId(null) }}
                     className="w-full text-left text-sm px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors"
