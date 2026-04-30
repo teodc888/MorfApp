@@ -16,6 +16,7 @@ const NAV: NavItem[] = [
   { label: 'Carta', emoji: '📋', href: 'menu', segment: 'menu' },
   { label: 'Personaliz.', emoji: '✨', href: 'modifiers', segment: 'modifiers' },
   { label: 'Apariencia', emoji: '🎨', href: 'branding', segment: 'branding' },
+  { label: 'WhatsApp', emoji: '💬', href: 'whatsapp', segment: 'whatsapp' },
   { label: 'Config.', emoji: '⚙️', href: 'config', segment: 'config' },
 ]
 

@@ -165,6 +165,14 @@ export async function updateHours(body: BusinessHour[]): Promise<void> {
   return assertOk(res)
 }
 
+export async function updateWhatsAppTemplate(template: string | null): Promise<void> {
+  const res = await adminFetch('/api/admin/whatsapp-template', {
+    method: 'PUT',
+    body: JSON.stringify({ template }),
+  })
+  return assertOk(res)
+}
+
 export async function getAdminCategories(): Promise<CategoryWithProducts[]> {
   const res = await adminFetch('/api/admin/categories')
   return parseJson<CategoryWithProducts[]>(res)

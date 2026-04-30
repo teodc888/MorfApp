@@ -13,11 +13,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { tenant: slug } = await params
   try {
     const tenant = await getTenant(slug)
+    const description = tenant.branding.tagline ?? 'Pedidos online para tu local gastronómico'
+    const ogImage = tenant.branding.bannerUrl ?? tenant.branding.logoUrl ?? undefined
     return {
       title: tenant.name,
-      icons: tenant.branding.logoUrl
-        ? { icon: tenant.branding.logoUrl }
-        : undefined,
+      description,
+      icons: tenant.branding.logoUrl ? { icon: tenant.branding.logoUrl } : undefined,
+      openGraph: {
+        title: tenant.name,
+        description,
+        type: 'website',
+        ...(ogImage ? { images: [{ url: ogImage, width: 1200, height: 630, alt: tenant.name }] } : {}),
+      },
     }
   } catch {
     return { title: 'MorfApp' }

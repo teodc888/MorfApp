@@ -29,6 +29,7 @@ public class StoreController(IAppDbContext db) : ControllerBase
             Slug: tenant.Slug,
             Name: tenant.Name,
             WhatsappNumber: tenant.WhatsappNumber,
+            WhatsAppMessageTemplate: tenant.WhatsAppMessageTemplate,
             IsOpen: isOpen,
             Branding: new BrandingDto(
                 ColorPrimary: tenant.Branding?.ColorPrimary ?? "#e8390e",

@@ -12,6 +12,7 @@ export type TenantAdmin = {
   slug: string
   name: string
   whatsappNumber: string
+  whatsAppMessageTemplate: string | null
   branding: TenantBranding
   delivery: DeliveryConfig | null
   hours: BusinessHour[]
@@ -38,6 +39,7 @@ export type TenantPublic = {
   slug: string
   name: string
   whatsappNumber: string
+  whatsAppMessageTemplate: string | null
   isOpen: boolean
   branding: TenantBranding
   deliveryConfig: DeliveryConfig

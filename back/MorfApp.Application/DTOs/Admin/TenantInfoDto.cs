@@ -5,6 +5,7 @@ public record TenantInfoDto(
     string Slug,
     string Name,
     string WhatsappNumber,
+    string? WhatsAppMessageTemplate,
     BrandingAdminDto? Branding,
     DeliveryAdminDto? Delivery,
     List<HourAdminDto> Hours

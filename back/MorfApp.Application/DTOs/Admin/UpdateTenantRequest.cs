@@ -21,3 +21,5 @@ public record UpdateDeliveryRequest(
 );
 
 public record UpdateHoursRequest(List<HourAdminDto> Hours);
+
+public record UpdateWhatsAppTemplateRequest(string? Template);

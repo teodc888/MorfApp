@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear Nueva Aplicación en MorfApp</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 60px 40px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 60px 40px;
+        }
+
+        section {
+            margin-bottom: 50px;
+        }
+
+        section h2 {
+            color: #667eea;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+            padding-left: 15px;
+        }
+
+        section h3 {
+            color: #764ba2;
+            font-size: 1.3em;
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+
+        p, li {
+            margin-bottom: 12px;
+            font-size: 1.05em;
+            line-height: 1.8;
+        }
+
+        ul {
+            margin-left: 25px;
+        }
+
+        .code-block {
+            background: #f5f5f5;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            overflow-x: auto;
+            font-size: 0.95em;
+        }
+
+        .architecture {
+            background: #f0f4ff;
+            padding: 25px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 2px solid #667eea;
+        }
+
+        .architecture h4 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .step-by-step {
+            background: #fff9e6;
+            padding: 25px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #ffc107;
+        }
+
+        .step-by-step ol {
+            margin-left: 25px;
+        }
+
+        .step-by-step li {
+            margin-bottom: 15px;
+            line-height: 1.8;
+        }
+
+        .important {
+            background: #ffebee;
+            border: 2px solid #f44336;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .important strong {
+            color: #f44336;
+        }
+
+        .success {
+            background: #e8f5e9;
+            border: 2px solid #4caf50;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .success strong {
+            color: #4caf50;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        th {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            text-align: left;
+        }
+
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        tr:hover {
+            background: #f5f5f5;
+        }
+
+        .example-dialog {
+            background: #e3f2fd;
+            border: 2px solid #2196f3;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .example-dialog strong {
+            color: #2196f3;
+        }
+
+        footer {
+            background: #f5f5f5;
+            padding: 30px 40px;
+            text-align: center;
+            border-top: 1px solid #ddd;
+            color: #666;
+            font-size: 0.95em;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .feature-card {
+            background: #f0f4ff;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .feature-card h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.8em;
+            }
+
+            .content {
+                padding: 30px 20px;
+            }
+
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .code-block {
+                font-size: 0.85em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 Crear Nueva Aplicación en MorfApp</h1>
+            <p>Guía completa para desplegar nuevas instancias multi-tenant</p>
+        </header>
+
+        <div class="content">
+            <!-- OVERVIEW -->
+            <section>
+                <h2>📋 Visión General</h2>
+                <p>MorfApp utiliza un modelo <strong>multi-tenant por subdominio</strong>. Esto significa que cada aplicación (como <code>amadeo.morfapp.app</code> o <code>dev.morfapp.app</code>) es una instancia completamente independiente en cuanto a la experiencia del usuario, pero <strong>comparte la misma base de datos backend</strong>.</p>
+
+                <div class="architecture">
+                    <h4>🏗️ Arquitectura Multi-Tenant</h4>
+                    <ul>
+                        <li><strong>Frontend (Next.js):</strong> Interpreta el subdominio y reescribe las rutas internamente</li>
+                        <li><strong>Backend (.NET):</strong> Diferencia tenants por <code>TenantId</code> extraído del JWT</li>
+                        <li><strong>Base de Datos (PostgreSQL):</strong> Una sola BD con aislamiento por <code>TenantId</code></li>
+                        <li><strong>Cloudflare Tunnel:</strong> Proxy que dirige todos los subdomios al backend</li>
+                    </ul>
+                </div>
+
+                <p><strong>Ejemplo:</strong> Cuando un usuario accede a <code>dev.morfapp.app</code>, la aplicación sabe que es el tenant <code>dev</code> y solo muestra datos donde <code>TenantId = 'dev-tenant-uuid'</code>.</p>
+            </section>
+
+            <!-- PREREQUISITOS -->
+            <section>
+                <h2>✅ Requisitos Previos</h2>
+                <ul>
+                    <li>✓ Acceso al servidor (teo@192.168.0.55)</li>
+                    <li>✓ Acceso a Cloudflare DNS y Tunnel</li>
+                    <li>✓ Base de datos PostgreSQL activa y accesible</li>
+                    <li>✓ Frontend y Backend desplegados y funcionando</li>
+                    <li>✓ Herramientas: <code>curl</code>, <code>psql</code>, editor de texto</li>
+                </ul>
+            </section>
+
+            <!-- COMO FUNCIONA EL AISLAMIENTO -->
+            <section>
+                <h2>🔐 ¿Cómo Diferencia Entre Proyectos?</h2>
+
+                <h3>1️⃣ Frontend (Next.js Middleware)</h3>
+                <p>El archivo <code>front/src/proxy.ts</code> intercepta cada request y reescribe las rutas según el subdominio:</p>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Subdominio</th>
+                                <th>Ruta interna</th>
+                                <th>Componentes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>amadeo.morfapp.app</code></td>
+                                <td><code>/store/amadeo/...</code></td>
+                                <td>Storefront público + Admin</td>
+                            </tr>
+                            <tr>
+                                <td><code>dev.morfapp.app</code></td>
+                                <td><code>/store/dev/...</code></td>
+                                <td>Storefront público + Admin</td>
+                            </tr>
+                            <tr>
+                                <td><code>admin.morfapp.app</code></td>
+                                <td><code>/admin/...</code></td>
+                                <td>Admin global</td>
+                            </tr>
+                            <tr>
+                                <td><code>super.morfapp.app</code></td>
+                                <td><code>/superadmin/...</code></td>
+                                <td>Superadmin</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>2️⃣ Backend (.NET 9)</h3>
+                <p>El JWT token incluye un claim <code>tenant_id</code> que identifica al tenant:</p>
+
+                <div class="code-block">
+// En cada endpoint AdminController, se extrae:
+var tenantId = User.FindFirst("tenant_id")?.Value;
+
+// Luego se filtra la BD por este TenantId:
+var products = await context.Products
+    .Where(p => p.TenantId == tenantId)
+    .ToListAsync();
+                </div>
+
+                <div class="important">
+                    <strong>⚠️ CRÍTICO:</strong> Cada nuevo endpoint debe filtrar explícitamente por <code>TenantId</code>. No hay middleware global que lo haga. Si olvidas el filtro, un usuario podría ver datos de otros tenants.
+                </div>
+
+                <h3>3️⃣ Base de Datos (PostgreSQL)</h3>
+                <p><strong>Una sola BD compartida</strong> para todos los tenants. El aislamiento ocurre a nivel de aplicación:</p>
+
+                <div class="code-block">
+-- Tabla example:
+CREATE TABLE products (
+    id UUID PRIMARY KEY,
+    tenant_id UUID NOT NULL,  -- ← Campo de aislamiento
+    name VARCHAR NOT NULL,
+    ...
+);
+
+-- Índice para queries rápidas por tenant:
+CREATE INDEX idx_products_tenant_id ON products(tenant_id);
+                </div>
+
+                <h3>4️⃣ JWT Token</h3>
+                <p>El token de autenticación contiene:</p>
+
+                <div class="code-block">
+{
+    "sub": "user-uuid",
+    "email": "admin@dev.morfapp.app",
+    "is_superadmin": false,
+    "tenant_id": "dev-tenant-uuid",
+    "tenant_slug": "dev",
+    "exp": 1234567890
+}
+                </div>
+            </section>
+
+            <!-- PASO A PASO -->
+            <section>
+                <h2>📝 Paso a Paso: Crear Nueva Aplicación</h2>
+
+                <p>Asumiendo que quieres crear <strong><code>dev.morfapp.app</code></strong>:</p>
+
+                <div class="step-by-step">
+                    <h3>Paso 1: Crear el Tenant en la Base de Datos</h3>
+                    <p>Conectarte a PostgreSQL y crear el registro del tenant:</p>
+
+                    <div class="code-block">
+psql -h localhost -U postgres -d morfapp_db
+
+-- Generar un UUID para el tenant (ej: dev-tenant-uuid)
+INSERT INTO tenants (
+    id,
+    slug,
+    name,
+    is_active
+) VALUES (
+    'dev-tenant-uuid',
+    'dev',
+    'Dev Store',
+    true
+);
+
+-- Crear configuración de branding
+INSERT INTO tenant_brandings (
+    id,
+    tenant_id,
+    logo_url,
+    primary_color,
+    secondary_color
+) VALUES (
+    gen_random_uuid(),
+    'dev-tenant-uuid',
+    'https://...',
+    '#667eea',
+    '#764ba2'
+);
+                    </div>
+
+                    <p><strong>Nota:</strong> Guarda el <code>tenant_id</code> que acabas de crear.</p>
+                </div>
+
+                <div class="step-by-step">
+                    <h3>Paso 2: Configurar DNS en Cloudflare</h3>
+                    <p>Agregar un registro DNS que apunte el subdominio al tunnel:</p>
+                    <ol>
+                        <li>Ve a <strong>Cloudflare Dashboard → DNS</strong></li>
+                        <li>Agrega un nuevo registro <strong>CNAME</strong>:
+                            <ul>
+                                <li><strong>Nombre:</strong> <code>dev</code></li>
+                                <li><strong>Apunta a:</strong> <code>64358d35-f78d-426e-b221-3225bb277276.cfargotunnel.com</code> (ID del tunnel)</li>
+                                <li><strong>Proxy status:</strong> Proxied (naranja)</li>
+                            </ul>
+                        </li>
+                        <li>Guarda y espera propagación (usualmente segundos)</li>
+                    </ol>
+                </div>
+
+                <div class="step-by-step">
+                    <h3>Paso 3: Configurar el Cloudflare Tunnel</h3>
+                    <p>Agregar la ruta del nuevo subdominio al archivo de configuración del tunnel:</p>
+
+                    <div class="code-block">
+sudo nano /etc/cloudflared/config.yml
+
+# Agregar antes de la línea final http_status:404:
+  - hostname: dev.morfapp.app
+    service: http://localhost:3200
+                    </div>
+
+                    <p>Luego reinicia el servicio:</p>
+
+                    <div class="code-block">
+sudo systemctl restart cloudflared
+                    </div>
+
+                    <div class="success">
+                        <strong>✅ Verificación:</strong> <code>curl -I https://dev.morfapp.app</code> debe devolver <strong>HTTP 200</strong>
+                    </div>
+                </div>
+
+                <div class="step-by-step">
+                    <h3>Paso 4: Crear Usuario Admin para el Tenant</h3>
+                    <p>El primer admin debe crearse directamente en la BD (no existe UI de signup aún):</p>
+
+                    <div class="code-block">
+INSERT INTO admin_users (
+    id,
+    tenant_id,
+    email,
+    password_hash,
+    is_active,
+    created_at
+) VALUES (
+    gen_random_uuid(),
+    'dev-tenant-uuid',
+    'admin@dev.morfapp.app',
+    'bcrypt-hash-here',  -- Usa bcrypt
+    true,
+    now()
+);
+                    </div>
+
+                    <p><strong>Nota:</strong> Para generar el bcrypt hash, usa Node.js, Python, o una herramienta online de bcrypt.</p>
+                </div>
+
+                <div class="step-by-step">
+                    <h3>Paso 5: Probar el Login</h3>
+                    <p>Accede a <code>dev.morfapp.app/store/dev/admin</code> e ingresa:</p>
+                    <ul>
+                        <li><strong>Email:</strong> <code>admin@dev.morfapp.app</code></li>
+                        <li><strong>Contraseña:</strong> (la que creaste en bcrypt)</li>
+                    </ul>
+
+                    <p>Si ves el panel de admin, ¡está todo correcto! ✅</p>
+                </div>
+
+                <div class="step-by-step">
+                    <h3>Paso 6: Verificar Aislamiento de Datos</h3>
+                    <p>Crea un producto en <code>dev.morfapp.app</code> y verifica que NO aparece en <code>amadeo.morfapp.app</code>:</p>
+                    <ol>
+                        <li>Ve a <code>dev.morfapp.app/store/dev/admin</code> → Crear producto "Dev Product"</li>
+                        <li>Ve a <code>amadeo.morfapp.app/store/amadeo/admin</code> → Verifica que no lo ves</li>
+                        <li>Si el aislamiento funciona, ¡listo! ✅</li>
+                    </ol>
+                </div>
+            </section>
+
+            <!-- EJEMPLO CONCRETO -->
+            <section>
+                <h2>💡 Ejemplo Concreto: dev.morfapp.app</h2>
+
+                <div class="example-dialog">
+                    <p><strong>Escenario:</strong> Quieres crear <code>dev.morfapp.app</code> para testing interno.</p>
+
+                    <p><strong>Pasos exactos (copy-paste):</strong></p>
+
+                    <div class="code-block">
+# 1. Conecta a la BD:
+psql -h 192.168.0.55 -U postgres -d morfapp_db
+
+# 2. Crea el tenant:
+INSERT INTO tenants (id, slug, name, is_active) VALUES (
+    'a1b2c3d4-e5f6-4a7b-8c9d-e0f1a2b3c4d5',
+    'dev',
+    'Dev Store',
+    true
+);
+
+# 3. Crea branding básico:
+INSERT INTO tenant_brandings (id, tenant_id, logo_url, primary_color) VALUES (
+    gen_random_uuid(),
+    'a1b2c3d4-e5f6-4a7b-8c9d-e0f1a2b3c4d5',
+    'https://morfapp.app/logo.png',
+    '#667eea'
+);
+
+# 4. Configura Cloudflare (DNS):
+# - Dashboard → DNS
+# - CNAME: dev → 64358d35-f78d-426e-b221-3225bb277276.cfargotunnel.com
+
+# 5. Configura el tunnel:
+sudo nano /etc/cloudflared/config.yml
+# Agregar:
+  - hostname: dev.morfapp.app
+    service: http://localhost:3200
+
+sudo systemctl restart cloudflared
+
+# 6. Crea admin:
+INSERT INTO admin_users (id, tenant_id, email, password_hash, is_active, created_at) VALUES (
+    gen_random_uuid(),
+    'a1b2c3d4-e5f6-4a7b-8c9d-e0f1a2b3c4d5',
+    'admin@dev.morfapp.app',
+    '$2b$12$...',  -- bcrypt hash
+    true,
+    now()
+);
+
+# 7. Prueba:
+curl -I https://dev.morfapp.app  # Debe ser 200 OK
+                    </div>
+                </div>
+            </section>
+
+            <!-- CHECKLISTS -->
+            <section>
+                <h2>✔️ Checklists</h2>
+
+                <h3>Antes de Crear</h3>
+                <ul>
+                    <li>☐ Decidiste el slug del tenant (ej: <code>dev</code>, <code>store2</code>, etc.)</li>
+                    <li>☐ Tienes acceso a PostgreSQL</li>
+                    <li>☐ Tienes acceso a Cloudflare DNS & Tunnel</li>
+                    <li>☐ Tienes acceso SSH al servidor</li>
+                </ul>
+
+                <h3>Después de Crear (Verificación)</h3>
+                <ul>
+                    <li>☐ <code>curl -I https://[slug].morfapp.app</code> devuelve 200 OK</li>
+                    <li>☐ El tenant existe en BD: <code>SELECT * FROM tenants WHERE slug='[slug]';</code></li>
+                    <li>☐ El CNAME está en Cloudflare DNS (proxy ON)</li>
+                    <li>☐ El hostname está en <code>/etc/cloudflared/config.yml</code></li>
+                    <li>☐ Puedes hacer login con el admin creado</li>
+                    <li>☐ Los datos del nuevo tenant no aparecen en otros tenants</li>
+                </ul>
+            </section>
+
+            <!-- TROUBLESHOOTING -->
+            <section>
+                <h2>🔧 Troubleshooting</h2>
+
+                <h3>❌ "503 Service Unavailable"</h3>
+                <p><strong>Causa:</strong> El frontend no está escuchando en <code>localhost:3200</code></p>
+                <div class="code-block">
+# Verifica que Next.js está corriendo:
+ps aux | grep next
+# O en el servidor:
+netstat -tulpn | grep 3200
+                </div>
+
+                <h3>❌ "404 Not Found"</h3>
+                <p><strong>Causa:</strong> El hostname no está en <code>/etc/cloudflared/config.yml</code> o el archivo no fue reloaded</p>
+                <div class="code-block">
+# Verifica que la entrada existe:
+grep "dev.morfapp.app" /etc/cloudflared/config.yml
+
+# Reinicia cloudflared:
+sudo systemctl restart cloudflared
+
+# Verifica logs:
+sudo journalctl -u cloudflared -f
+                </div>
+
+                <h3>❌ "DNS NXDOMAIN"</h3>
+                <p><strong>Causa:</strong> El CNAME no está configurado en Cloudflare o aún no propagó</p>
+                <div class="code-block">
+# Espera 1-2 minutos y verifica:
+nslookup dev.morfapp.app
+
+# O en el servidor:
+dig dev.morfapp.app
+                </div>
+
+                <h3>❌ Usuario ve datos de otro tenant</h3>
+                <p><strong>Causa:</strong> El endpoint backend no filtra por <code>TenantId</code></p>
+                <div class="code-block">
+// En AdminController, SIEMPRE agrega:
+var tenantId = User.FindFirst("tenant_id")?.Value;
+var data = await context.SomeTable
+    .Where(x => x.TenantId == tenantId)  // ← OBLIGATORIO
+    .ToListAsync();
+                </div>
+            </section>
+
+            <!-- ARQUITECTURA ADICIONAL -->
+            <section>
+                <h2>🏗️ Detalles Técnicos Adicionales</h2>
+
+                <h3>Flujo de Autenticación</h3>
+                <div class="code-block">
+1. Usuario ingresa email/password en dev.morfapp.app
+2. POST /api/auth/login con credenciales
+3. Backend verifica en BD (admin_users WHERE email = X AND tenant_id = Y)
+4. Si OK, retorna JWT con claims:
+   - sub: user-id
+   - email: user@dev.morfapp.app
+   - tenant_id: a1b2c3d4-...
+   - tenant_slug: "dev"
+5. Frontend guarda token en localStorage
+6. Siguientes requests envían Authorization: Bearer [token]
+7. Backend valida token y extrae tenant_id de los claims
+                </div>
+
+                <h3>Token Refresh</h3>
+                <p>Los tokens access son válidos por 15 minutos. Cuando expiran:</p>
+                <ol>
+                    <li>Frontend detecta 401 Unauthorized</li>
+                    <li>Llama a POST /api/auth/refresh con el refresh_token</li>
+                    <li>Backend valida que el refresh_token esté en la BD y no esté revoked</li>
+                    <li>Genera nuevo access_token</li>
+                    <li>Retorna nuevo token al frontend</li>
+                </ol>
+
+                <h3>Índices Recomendados en la BD</h3>
+                <div class="code-block">
+-- Para queries rápidas por tenant:
+CREATE INDEX idx_products_tenant_id ON products(tenant_id);
+CREATE INDEX idx_categories_tenant_id ON categories(tenant_id);
+CREATE INDEX idx_admin_users_tenant_id ON admin_users(tenant_id);
+CREATE INDEX idx_admin_users_email_tenant ON admin_users(email, tenant_id);
+
+-- Para login:
+CREATE INDEX idx_admin_users_email ON admin_users(email);
+                </div>
+            </section>
+
+            <!-- VARIABLES DE ENTORNO -->
+            <section>
+                <h2>⚙️ Variables de Entorno</h2>
+
+                <h3>Frontend (<code>front/.env.local</code>)</h3>
+                <p>Estas variables son globales (no por tenant):</p>
+                <div class="code-block">
+# URL pública del API
+NEXT_PUBLIC_API_URL=https://api.morfapp.app
+
+# URL interna para SSR (evita round-trip de red)
+NEXT_INTERNAL_API_URL=http://localhost:5200
+
+# Dominio raíz (debe ser igual en todos los tenants)
+NEXT_PUBLIC_ROOT_DOMAIN=morfapp.app
+                </div>
+
+                <h3>Backend (<code>back/appsettings.json</code> o env vars)</h3>
+                <div class="code-block">
+{
+    "ConnectionStrings": {
+        "DefaultConnection": "Host=192.168.0.55;Database=morfapp_db;Username=postgres;Password=..."
+    },
+    "Jwt": {
+        "Secret": "your-secret-key-min-32-chars-in-prod",
+        "Issuer": "morfapp",
+        "Audience": "morfapp-users",
+        "ExpirationMinutes": 15
+    },
+    "App": {
+        "RootDomain": "morfapp.app",
+        "RefreshTokenExpirationDays": 7
+    }
+}
+                </div>
+
+                <div class="important">
+                    <strong>⚠️ Importante:</strong> El <code>RootDomain</code> es global. Si cambias de <code>morfapp.app</code> a otro dominio, afecta TODOS los tenants. Actualiza simultáneamente en frontend y backend.
+                </div>
+            </section>
+
+            <!-- RESUMEN FINAL -->
+            <section>
+                <h2>📌 Resumen Final</h2>
+
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h4>🗄️ Base de Datos</h4>
+                        <p><strong>Una sola BD</strong> PostgreSQL compartida. Aislamiento por <code>TenantId</code> en aplicación.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🌐 Frontend</h4>
+                        <p><strong>Middleware Next.js</strong> reescribe subdominio → path. Comparten código, no datos.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🔐 JWT Token</h4>
+                        <p><strong>Claim <code>tenant_id</code></strong> identifica al tenant. Backend extrae y filtra por él.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🚀 Cloudflare</h4>
+                        <p><strong>Un tunnel</strong> con múltiples hostnames. Cada subdominio → servicio local.</p>
+                    </div>
+                </div>
+
+                <div class="success">
+                    <p><strong>✅ Crear nueva aplicación es simple:</strong></p>
+                    <ol>
+                        <li>Crear Tenant en BD</li>
+                        <li>Agregar CNAME en Cloudflare</li>
+                        <li>Agregar hostname en Cloudflare Tunnel config</li>
+                        <li>Crear usuario admin</li>
+                        <li>¡Listo! Ya tienes una nueva instancia aislada</li>
+                    </ol>
+                </div>
+            </section>
+        </div>
+
+        <footer>
+            <p>MorfApp Documentation — Última actualización: 2026-04-29</p>
+            <p>Para dudas o actualizaciones, contacta al equipo de desarrollo</p>
+        </footer>
+    </div>
+</body>
+</html>

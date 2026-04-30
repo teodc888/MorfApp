@@ -141,6 +141,18 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
         return NoContent();
     }
 
+    [HttpPut("whatsapp-template")]
+    public async Task<IActionResult> UpdateWhatsAppTemplate([FromBody] UpdateWhatsAppTemplateRequest req)
+    {
+        var tenant = await db.Tenants.FindAsync(TenantId);
+        if (tenant is null) return NotFound();
+
+        tenant.WhatsAppMessageTemplate = req.Template;
+        tenant.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+        return NoContent();
+    }
+
     // ── Categories ───────────────────────────────────────────────────────────
 
     [HttpGet("categories")]
@@ -427,7 +439,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
     // ── Mappers ──────────────────────────────────────────────────────────────
 
     private static TenantInfoDto MapTenantInfo(Domain.Entities.Tenant t) => new(
-        t.Id, t.Slug, t.Name, t.WhatsappNumber,
+        t.Id, t.Slug, t.Name, t.WhatsappNumber, t.WhatsAppMessageTemplate,
         t.Branding is null ? null : new BrandingAdminDto(
             t.Branding.ColorPrimary, t.Branding.ColorAccent,
             t.Branding.LogoUrl, t.Branding.BannerUrl,
