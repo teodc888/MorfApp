@@ -8,6 +8,7 @@ import { saveTokens, isAuthenticated } from '@/lib/auth'
 export default function LoginPage() {
   const router = useRouter()
   const params = useParams<{ tenant: string }>()
+  const base = `/store/${params.tenant}/admin`
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -15,9 +16,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated()) {
-      router.replace(`/admin/menu`)
+      router.replace(`${base}/menu`)
     }
-  }, [params.tenant, router])
+  }, [base, router])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -27,7 +28,7 @@ export default function LoginPage() {
     try {
       const data = await login(email, password)
       saveTokens(data.accessToken, data.refreshToken)
-      router.replace(`/admin/menu`)
+      router.replace(`${base}/menu`)
     } catch {
       setError('Email o contraseña incorrectos')
     } finally {

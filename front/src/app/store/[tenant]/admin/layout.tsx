@@ -25,17 +25,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const params = useParams<{ tenant: string }>()
   const pathname = usePathname()
   const [ready, setReady] = useState(false)
+  const base = `/store/${params.tenant}/admin`
 
   const isLoginPage = pathname.endsWith('/login')
 
   useEffect(() => {
     if (isLoginPage) return
     if (!isAuthenticated()) {
-      router.replace(`/admin/login`)
+      router.replace(`${base}/login`)
       return
     }
     setReady(true)
-  }, [isLoginPage, params.tenant, router])
+  }, [base, isLoginPage, router])
 
   // Login page renders immediately — no auth check needed
   if (isLoginPage) {
@@ -50,9 +51,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     )
   }
 
-  const base = `/admin`
-
-  const isActive = (segment: string) => pathname.includes(`/admin/${segment}`)
+  const isActive = (segment: string) => pathname.includes(`${base}/${segment}`)
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
