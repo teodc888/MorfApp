@@ -241,7 +241,7 @@ export default function MenuPage() {
 
       <div className="space-y-4">
         {categories.map((cat) => (
-          <div key={cat.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div key={cat.id} className="bg-white rounded-xl border border-gray-200">
             <div className="relative flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
               <div className="flex items-center gap-2 min-w-0 flex-1">
                 <span className="text-xl flex-shrink-0">{cat.emoji}</span>
