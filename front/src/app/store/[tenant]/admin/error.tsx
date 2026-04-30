@@ -1,6 +1,6 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 
 export default function AdminError({
   error,
@@ -10,6 +10,8 @@ export default function AdminError({
   reset: () => void
 }) {
   const router = useRouter()
+  const params = useParams<{ tenant: string }>()
+  const base = `/store/${params.tenant}/admin`
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-4 text-center">
@@ -33,7 +35,7 @@ export default function AdminError({
           Reintentar
         </button>
         <button
-          onClick={() => router.replace('/admin/login')}
+          onClick={() => router.replace(`${base}/login`)}
           className="px-5 py-2 rounded-lg border border-gray-300 text-gray-600 text-sm font-medium hover:bg-gray-100 transition-colors"
         >
           Volver al login

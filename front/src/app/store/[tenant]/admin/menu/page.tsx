@@ -68,6 +68,19 @@ export default function MenuPage() {
   const [prodSaving, setProdSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
 
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!openMenuId) return
+    const handler = (e: MouseEvent) => {
+      if (!(e.target as Element).closest('[data-menu-trigger],[data-menu-dropdown]')) {
+        setOpenMenuId(null)
+      }
+    }
+    document.addEventListener('click', handler)
+    return () => document.removeEventListener('click', handler)
+  }, [openMenuId])
+
   const load = useCallback(async () => {
     try {
       setError(null)
@@ -232,16 +245,18 @@ export default function MenuPage() {
 
       <div className="space-y-4">
         {categories.map((cat) => (
-          <div key={cat.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">{cat.emoji}</span>
-                <span className="font-semibold text-gray-800">{cat.name}</span>
+          <div key={cat.id} className="bg-white rounded-xl border border-gray-200">
+            <div className="relative flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <span className="text-xl flex-shrink-0">{cat.emoji}</span>
+                <span className="font-semibold text-gray-800 truncate">{cat.name}</span>
                 {!cat.isActive && (
-                  <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">inactiva</span>
+                  <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full flex-shrink-0">inactiva</span>
                 )}
               </div>
-              <div className="flex items-center gap-2">
+
+              {/* Desktop: all three buttons */}
+              <div className="hidden md:flex items-center gap-2 flex-shrink-0">
                 <button
                   onClick={() => openNewProd(cat.id)}
                   className="text-xs px-3 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-lg font-medium transition-colors"
@@ -261,6 +276,41 @@ export default function MenuPage() {
                   Eliminar
                 </button>
               </div>
+
+              {/* Mobile: + Producto + ⋯ menu */}
+              <div className="flex md:hidden items-center gap-2 flex-shrink-0">
+                <button
+                  onClick={() => openNewProd(cat.id)}
+                  className="text-xs px-3 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-lg font-medium transition-colors"
+                >
+                  + Producto
+                </button>
+                <button
+                  data-menu-trigger
+                  onClick={() => setOpenMenuId(openMenuId === cat.id ? null : cat.id)}
+                  className="text-sm px-2 py-1.5 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors font-bold leading-none"
+                >
+                  ⋯
+                </button>
+              </div>
+
+              {/* Dropdown */}
+              {openMenuId === cat.id && (
+                <div data-menu-dropdown className="absolute right-4 top-full mt-1 z-30 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[120px]">
+                  <button
+                    onClick={() => { openEditCat(cat); setOpenMenuId(null) }}
+                    className="w-full text-left text-sm px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    onClick={() => { removeCat(cat.id); setOpenMenuId(null) }}
+                    className="w-full text-left text-sm px-4 py-2 text-red-500 hover:bg-red-50 transition-colors"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              )}
             </div>
 
             {cat.products.length === 0 ? (

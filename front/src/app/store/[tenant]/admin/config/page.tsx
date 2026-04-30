@@ -297,8 +297,8 @@ export default function ConfigPage() {
 
         <div className="space-y-2">
           {hours.map((h, i) => (
-            <div key={h.dayOfWeek} className="flex items-center gap-3">
-              <div className="w-24 flex-shrink-0">
+            <div key={h.dayOfWeek} className="flex flex-col gap-1 md:flex-row md:items-center md:gap-3">
+              <div className="md:w-24 md:flex-shrink-0">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
@@ -311,23 +311,23 @@ export default function ConfigPage() {
               </div>
 
               {h.isOpen ? (
-                <div className="flex items-center gap-2 flex-1">
+                <div className="flex items-center gap-2 flex-1 ml-6 md:ml-0">
                   <input
                     type="time"
                     value={h.opensAt ?? '09:00'}
                     onChange={(e) => updateHour(i, 'opensAt', e.target.value)}
-                    className="flex-1 px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    className="flex-1 min-w-0 px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
                   />
-                  <span className="text-gray-400 text-sm">–</span>
+                  <span className="text-gray-400 text-sm flex-shrink-0">–</span>
                   <input
                     type="time"
                     value={h.closesAt ?? '22:00'}
                     onChange={(e) => updateHour(i, 'closesAt', e.target.value)}
-                    className="flex-1 px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    className="flex-1 min-w-0 px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
               ) : (
-                <span className="text-sm text-gray-400 flex-1">Cerrado</span>
+                <span className="text-sm text-gray-400 ml-6 md:ml-0">Cerrado</span>
               )}
             </div>
           ))}
