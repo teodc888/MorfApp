@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import type { Product, ModifierGroup, SelectedOption, CartItem } from '@/types/store'
 import { formatPrice } from '@/lib/utils'
@@ -166,6 +166,10 @@ export function ProductModal({ product, categoryEmoji, onClose }: Props) {
   const [qty, setQty] = useState(1)
   const [selections, setSelections] = useState<Selections>({})
   const [observations, setObservations] = useState('')
+  const [translateY, setTranslateY] = useState(0)
+  const [isSnapping, setIsSnapping] = useState(false)
+  const dragStartRef = useRef(0)
+  const cardRef = useRef<HTMLDivElement>(null)
   const addItem = useCartStore((s) => s.addItem)
 
   const handleSelectionChange = (
@@ -211,6 +215,40 @@ export function ProductModal({ product, categoryEmoji, onClose }: Props) {
     onClose()
   }
 
+  const handleDragStart = (e: React.MouseEvent) => {
+    dragStartRef.current = e.clientY - translateY
+    setIsSnapping(false)
+  }
+
+  useEffect(() => {
+    if (isSnapping) return
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (dragStartRef.current === undefined) return
+      const newY = e.clientY - dragStartRef.current
+      const maxTranslate = 0
+      const minTranslate = -300
+      setTranslateY(Math.max(minTranslate, Math.min(maxTranslate, newY)))
+    }
+
+    const handleMouseUp = () => {
+      setIsSnapping(true)
+      const cardHeight = cardRef.current?.offsetHeight ?? 600
+      const threshold = cardHeight * 0.5
+      const targetY = translateY > -threshold ? 0 : -300
+      setTranslateY(targetY)
+      setTimeout(() => setIsSnapping(false), 300)
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [translateY, isSnapping])
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
       <div
@@ -218,8 +256,18 @@ export function ProductModal({ product, categoryEmoji, onClose }: Props) {
         onClick={onClose}
       />
 
-      <div className="relative bg-white rounded-t-2xl max-h-[90dvh] flex flex-col max-w-[520px] mx-auto w-full overflow-hidden animate-slide-up">
-        <div className="flex-shrink-0 flex justify-center pt-3 pb-1">
+      <div
+        ref={cardRef}
+        className="relative bg-white rounded-t-2xl max-h-[90dvh] flex flex-col max-w-[520px] mx-auto w-full overflow-hidden animate-slide-up"
+        style={{
+          transform: `translateY(${translateY}px)`,
+          transition: isSnapping ? 'transform 0.3s ease-out' : 'none',
+        }}
+      >
+        <div
+          className="flex-shrink-0 flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing"
+          onMouseDown={handleDragStart}
+        >
           <div className="w-10 h-1 rounded-full bg-zinc-300" />
         </div>
 
