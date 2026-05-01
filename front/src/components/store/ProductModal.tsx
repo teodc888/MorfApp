@@ -226,13 +226,17 @@ export function ProductModal({ product, categoryEmoji, onClose }: Props) {
     const handleMouseMove = (e: MouseEvent) => {
       if (dragStartRef.current === undefined) return
       const newY = e.clientY - dragStartRef.current
-      const maxTranslate = 0
-      const minTranslate = -300
-      setTranslateY(Math.max(minTranslate, Math.min(maxTranslate, newY)))
+      setTranslateY(newY)
     }
 
     const handleMouseUp = () => {
       setIsSnapping(true)
+
+      if (translateY > 150) {
+        onClose()
+        return
+      }
+
       const cardHeight = cardRef.current?.offsetHeight ?? 600
       const threshold = cardHeight * 0.5
       const targetY = translateY > -threshold ? 0 : -300
@@ -247,7 +251,7 @@ export function ProductModal({ product, categoryEmoji, onClose }: Props) {
       document.removeEventListener('mousemove', handleMouseMove)
       document.removeEventListener('mouseup', handleMouseUp)
     }
-  }, [translateY, isSnapping])
+  }, [translateY, isSnapping, onClose])
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
