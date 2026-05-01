@@ -66,6 +66,12 @@ export function CartModal({ tenant, onClose }: Props) {
   const items = useCartStore((s) => s.items)
   const total = useCartStore((s) => s.total())
   const clear = useCartStore((s) => s.clear)
+  const [isClosing, setIsClosing] = useState(false)
+
+  const handleClose = () => {
+    setIsClosing(true)
+    setTimeout(onClose, 300)
+  }
 
   const deliveryMode = tenant.deliveryConfig.mode
 
@@ -117,20 +123,29 @@ export function CartModal({ tenant, onClose }: Props) {
     const number = tenant.whatsappNumber.replace(/\D/g, '')
     window.open(`https://wa.me/${number}?text=${encoded}`, '_blank')
     clear()
-    onClose()
+    handleClose()
   }
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div
+        className={`absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${
+          isClosing ? 'opacity-0' : 'opacity-100'
+        }`}
+        onClick={handleClose}
+      />
 
-      <div className="relative bg-white rounded-t-2xl max-h-[92dvh] flex flex-col max-w-[520px] mx-auto w-full overflow-hidden">
+      <div
+        className={`relative bg-white rounded-t-2xl max-h-[92dvh] flex flex-col max-w-[520px] mx-auto w-full overflow-hidden transition-opacity duration-300 ${
+          isClosing ? 'animate-slide-down opacity-0' : 'animate-slide-up opacity-100'
+        }`}
+      >
         {/* Header */}
         <div className="flex-shrink-0 flex items-center justify-between px-4 pt-4 pb-2 border-b border-zinc-100">
           <div className="w-10 h-1 rounded-full bg-zinc-300 absolute left-1/2 -translate-x-1/2 top-3" />
           <h2 className="font-bold text-zinc-900 text-base">Tu carrito</h2>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="text-zinc-400 p-1 rounded-full hover:bg-zinc-100"
           >
             ✕
