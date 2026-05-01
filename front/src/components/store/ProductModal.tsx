@@ -227,8 +227,8 @@ export function ProductModal({ product, categoryEmoji, onClose }: Props) {
       />
 
       <div
-        className={`relative bg-white rounded-t-2xl max-h-[90dvh] flex flex-col max-w-[520px] mx-auto w-full overflow-hidden ${
-          isClosing ? 'animate-slide-down' : 'animate-slide-up'
+        className={`relative bg-white rounded-t-2xl max-h-[90dvh] flex flex-col max-w-[520px] mx-auto w-full overflow-hidden transition-opacity duration-300 ${
+          isClosing ? 'animate-slide-down opacity-0' : 'animate-slide-up opacity-100'
         }`}
       >
         <div className="flex-shrink-0 flex justify-between items-center px-4 pt-3 pb-1">
