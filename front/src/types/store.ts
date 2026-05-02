@@ -67,6 +67,8 @@ export type Product = {
   name: string
   description: string | null
   price: number
+  finalPrice?: number | null
+  discountPercent?: number | null
   emoji: string
   imageUrl: string | null
   tags: string[]

@@ -5,6 +5,8 @@ public record ProductDto(
     string Name,
     string? Description,
     decimal Price,
+    decimal? FinalPrice,
+    int? DiscountPercent,
     string Emoji,
     string? ImageUrl,
     List<string> Tags,

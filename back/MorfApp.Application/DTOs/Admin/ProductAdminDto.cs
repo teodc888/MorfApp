@@ -6,6 +6,7 @@ public record ProductAdminDto(
     string Name,
     string? Description,
     decimal Price,
+    int? DiscountPercent,
     string Emoji,
     string? ImageUrl,
     int SortOrder,
@@ -37,3 +38,5 @@ public record UpdateProductRequest(
     bool IsActive,
     List<string> Tags
 );
+
+public record UpdateProductDiscountRequest(int? DiscountPercent);
