@@ -3,6 +3,7 @@ using MorfApp.Application.Interfaces;
 using MorfApp.Domain.Entities;
 using MorfApp.Domain.Enums;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace MorfApp.Infrastructure.Persistence;
 
@@ -22,6 +23,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<PageView> PageViews => Set<PageView>();
     public DbSet<Promotion> Promotions => Set<Promotion>();
     public DbSet<PromoRedemption> PromoRedemptions => Set<PromoRedemption>();
+    public DbSet<Order> Orders => Set<Order>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -225,6 +227,40 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
              .OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(r => new { r.PromotionId, r.PhoneNumber });
             e.HasIndex(r => new { r.TenantId, r.PhoneNumber });
+        });
+
+        // Order - Items serialized with PropertyNameCaseInsensitive for compatibility
+        var jsonOptions = new JsonSerializerOptions
+        {
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+            PropertyNameCaseInsensitive = true
+        };
+
+        modelBuilder.Entity<Order>(e =>
+        {
+            e.HasKey(o => o.Id);
+            e.Property(o => o.TotalPrice).HasPrecision(18, 2);
+            e.Property(o => o.Status).HasConversion<string>();
+            e.Property(o => o.CustomerName).IsRequired();
+            e.Property(o => o.DeliveryMode).IsRequired().HasDefaultValue("delivery");
+            e.Property(o => o.Address).IsRequired(false);
+            e.Property(o => o.Notes).IsRequired(false);
+            e.Property(o => o.PaymentMethod).IsRequired(false);
+            e.Property(o => o.Items)
+             .HasColumnType("jsonb")
+             .HasConversion(
+                 v => JsonSerializer.Serialize(v, jsonOptions),
+                 v => JsonSerializer.Deserialize<List<OrderItem>>(v, jsonOptions) ?? new List<OrderItem>());
+            e.HasIndex(o => new { o.TenantId, o.Status, o.ConfirmedAt });
+            e.HasIndex(o => new { o.TenantId, o.CreatedAt });
+            e.HasIndex(o => o.ConfirmedAt);
+            // Índice para queries de métricas: tenant + status + created_at en un solo scan
+            e.HasIndex(o => new { o.TenantId, o.Status, o.CreatedAt })
+             .HasDatabaseName("ix_orders_tenant_id_status_created_at");
+            e.HasOne(o => o.Tenant)
+             .WithMany(t => t.Orders)
+             .HasForeignKey(o => o.TenantId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }
