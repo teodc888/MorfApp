@@ -77,14 +77,20 @@ public class StoreController(IAppDbContext db) : ControllerBase
 
         var result = categories.Select(c => new CategoryDto(
             c.Id, c.Name, c.Emoji, c.SortOrder,
-            c.Products.Select(p => new ProductDto(
-                p.Id, p.Name, p.Description, p.Price, p.Emoji, p.ImageUrl, p.Tags,
-                p.ModifierGroups.Select(g => new ModifierGroupDto(
-                    g.Id, g.Name, g.Type.ToString().ToLowerInvariant(), g.IsRequired, g.MaxSelect,
-                    g.Options.Select(o => new ModifierOptionDto(o.Id, o.Name, o.Emoji, o.ExtraPrice))
-                             .ToList()
-                )).ToList()
-            )).ToList()
+            c.Products.Select(p =>
+            {
+                var finalPrice = p.DiscountPercent is > 0
+                    ? (decimal?)Math.Round(p.Price * (1 - p.DiscountPercent.Value / 100m), 0)
+                    : null;
+                return new ProductDto(
+                    p.Id, p.Name, p.Description, p.Price, finalPrice, p.DiscountPercent, p.Emoji, p.ImageUrl, p.Tags,
+                    p.ModifierGroups.Select(g => new ModifierGroupDto(
+                        g.Id, g.Name, g.Type.ToString().ToLowerInvariant(), g.IsRequired, g.MaxSelect,
+                        g.Options.Select(o => new ModifierOptionDto(o.Id, o.Name, o.Emoji, o.ExtraPrice))
+                                 .ToList()
+                    )).ToList()
+                );
+            }).ToList()
         )).ToList();
 
         return Ok(result);
@@ -196,14 +202,20 @@ public class StoreController(IAppDbContext db) : ControllerBase
         return new PromotionDto(
             p.Id, p.Name, p.Description, p.Price, p.Emoji, p.ImageUrl, p.SortOrder, p.MaxPerUser,
             originalPrice, discountPercent,
-            products.Select(prod => new ProductDto(
-                prod.Id, prod.Name, prod.Description, prod.Price, prod.Emoji, prod.ImageUrl, prod.Tags,
-                prod.ModifierGroups.Select(g => new ModifierGroupDto(
-                    g.Id, g.Name, g.Type.ToString().ToLowerInvariant(), g.IsRequired, g.MaxSelect,
-                    g.Options.Select(o => new ModifierOptionDto(o.Id, o.Name, o.Emoji, o.ExtraPrice))
-                             .ToList()
-                )).ToList()
-            )).ToList(),
+            products.Select(prod =>
+            {
+                var finalPrice = prod.DiscountPercent is > 0
+                    ? (decimal?)Math.Round(prod.Price * (1 - prod.DiscountPercent.Value / 100m), 0)
+                    : null;
+                return new ProductDto(
+                    prod.Id, prod.Name, prod.Description, prod.Price, finalPrice, prod.DiscountPercent, prod.Emoji, prod.ImageUrl, prod.Tags,
+                    prod.ModifierGroups.Select(g => new ModifierGroupDto(
+                        g.Id, g.Name, g.Type.ToString().ToLowerInvariant(), g.IsRequired, g.MaxSelect,
+                        g.Options.Select(o => new ModifierOptionDto(o.Id, o.Name, o.Emoji, o.ExtraPrice))
+                                 .ToList()
+                    )).ToList()
+                );
+            }).ToList(),
             p.ModifierGroups.Select(g => new ModifierGroupDto(
                 g.Id, g.Name, g.Type.ToString().ToLowerInvariant(), g.IsRequired, g.MaxSelect,
                 g.Options.Select(o => new ModifierOptionDto(o.Id, o.Name, o.Emoji, o.ExtraPrice))

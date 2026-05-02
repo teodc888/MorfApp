@@ -38,7 +38,7 @@ function buildProductsBlock(items: CartItem[]): string {
   let total = 0
 
   items.forEach((item, index) => {
-    const itemTotal = (item.product.price + item.extraPrice) * item.qty
+    const itemTotal = ((item.product.finalPrice ?? item.product.price) + item.extraPrice) * item.qty
     total += itemTotal
 
     lines.push(`*${index + 1}. ${item.product.emoji} ${item.product.name}* x${item.qty}`)
@@ -71,7 +71,7 @@ export function buildWhatsAppMessage(
 ): string {
   let total = 0
   items.forEach((item) => {
-    const itemTotal = (item.product.price + item.extraPrice) * item.qty
+    const itemTotal = ((item.product.finalPrice ?? item.product.price) + item.extraPrice) * item.qty
     total += itemTotal
   })
 
@@ -116,7 +116,7 @@ export function buildWhatsAppMessage(
   lines.push('━━━━━━━━━━━━━━━━')
 
   items.forEach((item, index) => {
-    const itemTotal = (item.product.price + item.extraPrice) * item.qty
+    const itemTotal = ((item.product.finalPrice ?? item.product.price) + item.extraPrice) * item.qty
 
     lines.push(`*${index + 1}. ${item.product.emoji} ${item.product.name}* x${item.qty}`)
 

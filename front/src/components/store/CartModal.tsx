@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { usePathname } from 'next/navigation'
 import type { TenantPublic, CartItem, SelectedOption } from '@/types/store'
 import { useCartStore } from '@/store/cart'
 import { formatPrice, buildWhatsAppMessage } from '@/lib/utils'
@@ -24,13 +23,23 @@ function CartItemRow({ item }: { item: CartItem }) {
     })
     .join(', ')
 
-  const subtotal = (item.product.price + item.extraPrice) * item.qty
+  const subtotal = ((item.product.finalPrice ?? item.product.price) + item.extraPrice) * item.qty
 
   return (
     <div className="flex items-start gap-3 py-3 border-b border-zinc-100 last:border-0">
       <span className="text-3xl leading-none flex-shrink-0">{item.product.emoji}</span>
       <div className="flex-1 min-w-0">
         <p className="font-semibold text-zinc-900 text-sm leading-snug">{item.product.name}</p>
+        {item.product.discountPercent && item.product.finalPrice && (
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className="line-through text-xs text-zinc-400">
+              {formatPrice(item.product.price)}
+            </span>
+            <span className="text-xs font-bold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded-full">
+              -{item.product.discountPercent}%
+            </span>
+          </div>
+        )}
         {modifierSummary && (
           <p className="text-xs text-zinc-400 mt-0.5">{modifierSummary}</p>
         )}
@@ -65,7 +74,6 @@ function CartItemRow({ item }: { item: CartItem }) {
 }
 
 export function CartModal({ tenant, onClose }: Props) {
-  const pathname = usePathname()
   const items = useCartStore((s) => s.items)
   const total = useCartStore((s) => s.total())
   const clear = useCartStore((s) => s.clear)
@@ -115,6 +123,7 @@ export function CartModal({ tenant, onClose }: Props) {
 
   const isFormValid =
     form.name.trim().length > 0 &&
+    form.phone.trim().length > 0 &&
     (activeDelivery === 'pickup' || form.address.trim().length > 0)
 
   const handleConfirm = async () => {
@@ -123,11 +132,10 @@ export function CartModal({ tenant, onClose }: Props) {
     // Validar redemptions para promos antes de abrir WhatsApp
     try {
       setRedemptionError(null)
-      const slug = pathname.split('/')[2] // Extrae slug de /store/[slug]/...
       for (const item of items) {
         if (item.product.id.startsWith('promo:')) {
           const promoId = item.product.id.replace('promo:', '')
-          const status = await registerRedemption(slug, promoId, {
+          const status = await registerRedemption(tenant.slug, promoId, {
             phoneNumber: form.phone,
             quantity: item.qty,
           })
@@ -230,7 +238,7 @@ export function CartModal({ tenant, onClose }: Props) {
                 />
                 <input
                   type="tel"
-                  placeholder="Teléfono (opcional)"
+                  placeholder="Teléfono *"
                   value={form.phone}
                   onChange={(e) => handleInput('phone', e.target.value)}
                   className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm outline-none ring-primary focus:border-primary"

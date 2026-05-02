@@ -260,6 +260,18 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
         return NoContent();
     }
 
+    [HttpPut("products/{id}/discount")]
+    public async Task<IActionResult> UpdateProductDiscount(string id, [FromBody] UpdateProductDiscountRequest req)
+    {
+        var product = await db.Products.FirstOrDefaultAsync(p => p.Id == id && p.TenantId == TenantId);
+        if (product is null) return NotFound();
+
+        product.DiscountPercent = req.DiscountPercent is > 0 ? req.DiscountPercent : null;
+        product.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+        return NoContent();
+    }
+
     [HttpPut("products/{id}/modifier-groups")]
     public async Task<IActionResult> UpdateProductModifierGroups(string id, [FromBody] UpdateProductModifierGroupsRequest req)
     {
@@ -463,7 +475,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
 
     private static ProductAdminDto MapProduct(Product p) => new(
         p.Id, p.CategoryId, p.Name, p.Description,
-        p.Price, p.Emoji, p.ImageUrl, p.SortOrder, p.IsActive, p.Tags,
+        p.Price, p.DiscountPercent, p.Emoji, p.ImageUrl, p.SortOrder, p.IsActive, p.Tags,
         p.ModifierGroups.Select(g => g.Id).ToList()
     );
 
