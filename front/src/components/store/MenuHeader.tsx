@@ -40,7 +40,7 @@ export function MenuHeader({ tenant, onCartOpen }: Props) {
         </div>
 
         <div className="flex items-center gap-3 flex-shrink-0">
-          <span className={`hidden sm:flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full ${
+          <span className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full ${
             tenant.isOpen ? 'bg-white/20 text-white' : 'bg-black/25 text-white/80'
           }`}>
             <span className={`w-1.5 h-1.5 rounded-full ${tenant.isOpen ? 'bg-green-300' : 'bg-red-300'}`} />
