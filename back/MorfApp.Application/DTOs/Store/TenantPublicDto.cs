@@ -9,6 +9,7 @@ public record TenantPublicDto(
     bool IsOpen,
     BrandingDto Branding,
     DeliveryConfigDto DeliveryConfig,
+    PaymentConfigDto PaymentConfig,
     List<BusinessHourDto> BusinessHours
 );
 
@@ -35,4 +36,13 @@ public record BusinessHourDto(
     bool IsOpen,
     string? OpensAt,
     string? ClosesAt
+);
+
+public record PaymentConfigDto(
+    bool DeliveryCash,
+    bool DeliveryTransfer,
+    bool DeliveryCard,
+    bool PickupCash,
+    bool PickupTransfer,
+    bool PickupCard
 );

@@ -17,6 +17,7 @@ public class StoreController(IAppDbContext db) : ControllerBase
         var tenant = await db.Tenants
             .Include(t => t.Branding)
             .Include(t => t.DeliveryConfig)
+            .Include(t => t.PaymentConfig)
             .Include(t => t.BusinessHours)
             .FirstOrDefaultAsync(t => t.Slug == slug);
 
@@ -49,6 +50,16 @@ public class StoreController(IAppDbContext db) : ControllerBase
                     MinOrderAmount: tenant.DeliveryConfig.MinOrderAmount,
                     EstimatedMinutes: tenant.DeliveryConfig.EstimatedMinutes,
                     PickupAddress: tenant.DeliveryConfig.PickupAddress
+                ),
+            PaymentConfig: tenant.PaymentConfig is null
+                ? new PaymentConfigDto(true, true, true, true, true, true)
+                : new PaymentConfigDto(
+                    DeliveryCash: tenant.PaymentConfig.DeliveryCash,
+                    DeliveryTransfer: tenant.PaymentConfig.DeliveryTransfer,
+                    DeliveryCard: tenant.PaymentConfig.DeliveryCard,
+                    PickupCash: tenant.PaymentConfig.PickupCash,
+                    PickupTransfer: tenant.PaymentConfig.PickupTransfer,
+                    PickupCard: tenant.PaymentConfig.PickupCard
                 ),
             BusinessHours: tenant.BusinessHours
                 .OrderBy(h => h.DayOfWeek)

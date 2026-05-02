@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { getAdminMe, updateAdminMe, updateDelivery, updateHours } from '@/lib/admin-api'
-import type { BusinessHour } from '@/types/store'
+import { getAdminMe, updateAdminMe, updateDelivery, updateHours, updatePayment } from '@/lib/admin-api'
+import type { BusinessHour, PaymentConfig } from '@/types/store'
 
 const DAY_NAMES = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -48,6 +48,17 @@ export default function ConfigPage() {
   const [hoursSaving, setHoursSaving] = useState(false)
   const [hoursSaved, setHoursSaved] = useState(false)
 
+  const [payment, setPayment] = useState<PaymentConfig>({
+    deliveryCash: true,
+    deliveryTransfer: true,
+    deliveryCard: true,
+    pickupCash: true,
+    pickupTransfer: true,
+    pickupCard: true,
+  })
+  const [paymentSaving, setPaymentSaving] = useState(false)
+  const [paymentSaved, setPaymentSaved] = useState(false)
+
   useEffect(() => {
     getAdminMe()
       .then((tenant) => {
@@ -72,6 +83,10 @@ export default function ConfigPage() {
             return found ?? { dayOfWeek: i, isOpen: false, opensAt: '09:00', closesAt: '22:00' }
           })
           setHours(filled)
+        }
+
+        if (tenant.payment) {
+          setPayment(tenant.payment)
         }
       })
       .catch(() => setError('No se pudo cargar la configuración'))
@@ -124,6 +139,19 @@ export default function ConfigPage() {
     }
   }
 
+  async function savePayment() {
+    setPaymentSaving(true)
+    setError(null)
+    try {
+      await updatePayment(payment)
+      setPaymentSaved(true)
+    } catch {
+      setError('Error al guardar medios de pago')
+    } finally {
+      setPaymentSaving(false)
+    }
+  }
+
   function updateHour<K extends keyof BusinessHour>(index: number, key: K, value: BusinessHour[K]) {
     setHours((prev) => prev.map((h, i) => (i === index ? { ...h, [key]: value } : h)))
     setHoursSaved(false)
@@ -132,6 +160,11 @@ export default function ConfigPage() {
   function setDel<K extends keyof DeliveryForm>(key: K, value: DeliveryForm[K]) {
     setDelivery((f) => ({ ...f, [key]: value }))
     setDeliverySaved(false)
+  }
+
+  function togglePayment<K extends keyof PaymentConfig>(key: K) {
+    setPayment((p) => ({ ...p, [key]: !p[key] }))
+    setPaymentSaved(false)
   }
 
   if (loading) {
@@ -342,6 +375,88 @@ export default function ConfigPage() {
             {hoursSaving ? 'Guardando...' : 'Guardar horarios'}
           </button>
           {hoursSaved && <p className="text-sm text-green-600 font-medium">Guardado</p>}
+        </div>
+      </div>
+
+      {/* Medios de pago */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+        <h2 className="font-semibold text-gray-800">Medios de pago</h2>
+
+        <div className="grid grid-cols-2 gap-6">
+          {/* Delivery */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-medium text-gray-700 border-b border-gray-200 pb-2">🛵 Delivery</h3>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={payment.deliveryCash}
+                onChange={() => togglePayment('deliveryCash')}
+                className="w-4 h-4 accent-orange-600 rounded"
+              />
+              <span className="text-sm text-gray-700">💵 Efectivo</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={payment.deliveryTransfer}
+                onChange={() => togglePayment('deliveryTransfer')}
+                className="w-4 h-4 accent-orange-600 rounded"
+              />
+              <span className="text-sm text-gray-700">🏦 Transferencia</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={payment.deliveryCard}
+                onChange={() => togglePayment('deliveryCard')}
+                className="w-4 h-4 accent-orange-600 rounded"
+              />
+              <span className="text-sm text-gray-700">💳 Tarjeta</span>
+            </label>
+          </div>
+
+          {/* Pickup */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-medium text-gray-700 border-b border-gray-200 pb-2">🏠 Retiro en local</h3>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={payment.pickupCash}
+                onChange={() => togglePayment('pickupCash')}
+                className="w-4 h-4 accent-orange-600 rounded"
+              />
+              <span className="text-sm text-gray-700">💵 Efectivo</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={payment.pickupTransfer}
+                onChange={() => togglePayment('pickupTransfer')}
+                className="w-4 h-4 accent-orange-600 rounded"
+              />
+              <span className="text-sm text-gray-700">🏦 Transferencia</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={payment.pickupCard}
+                onChange={() => togglePayment('pickupCard')}
+                className="w-4 h-4 accent-orange-600 rounded"
+              />
+              <span className="text-sm text-gray-700">💳 Tarjeta</span>
+            </label>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 pt-2">
+          <button
+            onClick={savePayment}
+            disabled={paymentSaving}
+            className="px-5 py-2.5 bg-orange-600 hover:bg-orange-700 disabled:bg-orange-300 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            {paymentSaving ? 'Guardando...' : 'Guardar medios de pago'}
+          </button>
+          {paymentSaved && <p className="text-sm text-green-600 font-medium">Guardado</p>}
         </div>
       </div>
     </div>

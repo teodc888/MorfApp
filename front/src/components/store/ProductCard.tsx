@@ -50,9 +50,25 @@ export function ProductCard({ product, categoryEmoji, onSelect }: Props) {
           </div>
         )}
         <div className="flex items-center justify-between mt-auto pt-3">
-          <span className="font-bold text-sm text-primary">
-            {formatPrice(product.price)}
-          </span>
+          <div className="flex items-center gap-1.5">
+            {product.discountPercent && product.finalPrice ? (
+              <>
+                <span className="line-through text-xs text-zinc-400">
+                  {formatPrice(product.price)}
+                </span>
+                <span className="font-bold text-sm text-primary">
+                  {formatPrice(product.finalPrice)}
+                </span>
+                <span className="text-[10px] font-bold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded-full">
+                  -{product.discountPercent}%
+                </span>
+              </>
+            ) : (
+              <span className="font-bold text-sm text-primary">
+                {formatPrice(product.price)}
+              </span>
+            )}
+          </div>
           <span className="w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center text-lg font-bold leading-none flex-shrink-0">
             +
           </span>

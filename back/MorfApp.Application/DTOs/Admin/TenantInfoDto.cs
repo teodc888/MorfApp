@@ -8,6 +8,7 @@ public record TenantInfoDto(
     string? WhatsAppMessageTemplate,
     BrandingAdminDto? Branding,
     DeliveryAdminDto? Delivery,
+    PaymentAdminDto? Payment,
     List<HourAdminDto> Hours
 );
 
@@ -30,3 +31,12 @@ public record DeliveryAdminDto(
 );
 
 public record HourAdminDto(int DayOfWeek, bool IsOpen, string? OpensAt, string? ClosesAt);
+
+public record PaymentAdminDto(
+    bool DeliveryCash,
+    bool DeliveryTransfer,
+    bool DeliveryCard,
+    bool PickupCash,
+    bool PickupTransfer,
+    bool PickupCard
+);

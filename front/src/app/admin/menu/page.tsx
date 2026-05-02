@@ -12,12 +12,13 @@ import {
   uploadImage,
   getModifierGroups,
   updateProductModifierGroups,
+  updateProductDiscount,
   type ModifierGroupAdmin,
 } from '@/lib/admin-api'
 import type { Category, Product } from '@/types/store'
 
 type CategoryAdmin = Category & { isActive: boolean }
-type ProductAdmin = Product & { categoryId: string; sortOrder: number; isActive: boolean }
+type ProductAdmin = Product & { categoryId: string; sortOrder: number; isActive: boolean; discountPercent?: number | null }
 
 type CategoryForm = { name: string; emoji: string; sortOrder: number }
 type ProductForm = {
@@ -70,6 +71,10 @@ export default function MenuPage() {
 
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog>({ open: false, type: null, id: '', name: '' })
+
+  const [discountModal, setDiscountModal] = useState<{ prodId: string; prodName: string; current: number | null } | null>(null)
+  const [discountInput, setDiscountInput] = useState('')
+  const [discountSaving, setDiscountSaving] = useState(false)
 
   useEffect(() => {
     if (!openMenuId) return
@@ -206,6 +211,45 @@ export default function MenuPage() {
       setError('Error al eliminar producto')
     }
   }
+
+  function openDiscountModal(prod: ProductAdmin) {
+    setDiscountModal({ prodId: prod.id, prodName: prod.name, current: prod.discountPercent ?? null })
+    setDiscountInput(prod.discountPercent ? String(prod.discountPercent) : '')
+  }
+
+  async function saveDiscount() {
+    if (!discountModal) return
+    setDiscountSaving(true)
+    try {
+      const percent = discountInput.trim() === '' ? null : (parseInt(discountInput) || null)
+      await updateProductDiscount(discountModal.prodId, percent)
+      setDiscountModal(null)
+      setDiscountInput('')
+      await load()
+    } catch {
+      setError('Error al guardar descuento')
+    } finally {
+      setDiscountSaving(false)
+    }
+  }
+
+  function removeDiscount() {
+    if (!discountModal) return
+    setDiscountInput('')
+    setDiscountSaving(true)
+    updateProductDiscount(discountModal.prodId, null)
+      .then(() => {
+        setDiscountModal(null)
+        setDiscountInput('')
+        return load()
+      })
+      .catch(() => setError('Error al quitar descuento'))
+      .finally(() => setDiscountSaving(false))
+  }
+
+  const calculatedFinalPrice = discountInput.trim() !== '' && discountModal
+    ? Math.round(((categories.find(c => c.products.some(p => p.id === discountModal.prodId))?.products.find(p => p.id === discountModal.prodId)?.price ?? 0) * (1 - parseInt(discountInput) / 100)))
+    : null
 
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -348,10 +392,21 @@ export default function MenuPage() {
                           <p className="font-medium text-gray-800 truncate">{prod.name}</p>
                           <p className="text-sm text-gray-500">
                             ${prod.price.toLocaleString('es-AR')}
+                            {p.discountPercent && (
+                              <span className="ml-2 text-xs font-bold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded-full">
+                                -{p.discountPercent}%
+                              </span>
+                            )}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                        <button
+                          onClick={() => openDiscountModal(p)}
+                          className="text-xs px-3 py-1.5 text-orange-500 hover:bg-orange-50 rounded-lg transition-colors"
+                        >
+                          Descuento
+                        </button>
                         <button
                           onClick={() => openEditProd(p)}
                           className="text-xs px-3 py-1.5 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
@@ -645,6 +700,61 @@ export default function MenuPage() {
                 className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors"
               >
                 Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Discount modal */}
+      {discountModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4">
+            <h2 className="font-bold text-gray-900">Descuento - {discountModal.prodName}</h2>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Porcentaje de descuento (%)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={discountInput}
+                  onChange={(e) => setDiscountInput(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="50"
+                />
+              </div>
+
+              {discountInput.trim() !== '' && calculatedFinalPrice !== null && (
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                  <p className="text-sm text-gray-600">Precio final: <span className="font-bold text-orange-600">${calculatedFinalPrice.toLocaleString('es-AR')}</span></p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setDiscountModal(null)}
+                className="flex-1 py-2.5 border border-gray-300 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              {discountModal.current !== null && (
+                <button
+                  onClick={removeDiscount}
+                  disabled={discountSaving}
+                  className="py-2.5 px-4 border border-red-300 text-red-600 text-sm font-medium rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
+                >
+                  {discountSaving ? 'Quitando...' : 'Quitar'}
+                </button>
+              )}
+              <button
+                onClick={saveDiscount}
+                disabled={discountSaving || discountInput.trim() === ''}
+                className="flex-1 py-2.5 bg-orange-600 hover:bg-orange-700 disabled:bg-orange-300 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                {discountSaving ? 'Guardando...' : 'Guardar'}
               </button>
             </div>
           </div>

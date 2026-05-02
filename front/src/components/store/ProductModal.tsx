@@ -201,7 +201,8 @@ export function ProductModal({ product, categoryEmoji, onClose }: Props) {
     }, 0)
   }, [selections])
 
-  const subtotal = (product.price + extraPrice) * qty
+  const basePrice = product.finalPrice ?? product.price
+  const subtotal = (basePrice + extraPrice) * qty
 
   const handleAdd = () => {
     if (!isValid) return
@@ -273,9 +274,25 @@ export function ProductModal({ product, categoryEmoji, onClose }: Props) {
           {product.description && (
             <p className="text-sm text-zinc-500 mt-1 mb-3">{product.description}</p>
           )}
-          <p className="font-bold text-lg text-primary mb-4">
-            {formatPrice(product.price)}
-          </p>
+          <div className="flex items-center gap-2 mb-4">
+            {product.discountPercent && product.finalPrice ? (
+              <>
+                <span className="line-through text-sm text-zinc-400">
+                  {formatPrice(product.price)}
+                </span>
+                <p className="font-bold text-lg text-primary">
+                  {formatPrice(product.finalPrice)}
+                </p>
+                <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-full">
+                  -{product.discountPercent}%
+                </span>
+              </>
+            ) : (
+              <p className="font-bold text-lg text-primary">
+                {formatPrice(product.price)}
+              </p>
+            )}
+          </div>
 
           {product.modifierGroups.map((group: ModifierGroup) => (
             <ModifierGroupSection

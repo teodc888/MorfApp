@@ -1,5 +1,5 @@
 import { getAccessToken, getRefreshToken, saveTokens, clearTokens } from '@/lib/auth'
-import type { TenantAdmin, TenantBranding, DeliveryConfig, BusinessHour, Category, Product } from '@/types/store'
+import type { TenantAdmin, TenantBranding, DeliveryConfig, PaymentConfig, BusinessHour, Category, Product } from '@/types/store'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5500'
 
@@ -9,6 +9,7 @@ type ProductAdmin = Product & {
   categoryId: string
   sortOrder: number
   isActive: boolean
+  discountPercent?: number | null
 }
 
 type CreateCategoryBody = {
@@ -173,6 +174,14 @@ export async function updateWhatsAppTemplate(template: string | null): Promise<v
   return assertOk(res)
 }
 
+export async function updatePayment(body: PaymentConfig): Promise<void> {
+  const res = await adminFetch('/api/admin/payment', {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  })
+  return assertOk(res)
+}
+
 export async function getAdminCategories(): Promise<CategoryWithProducts[]> {
   const res = await adminFetch('/api/admin/categories')
   return parseJson<CategoryWithProducts[]>(res)
@@ -229,6 +238,14 @@ export async function deleteProduct(id: string): Promise<void> {
     const text = await res.text().catch(() => '')
     throw new Error(`Delete product failed ${res.status}: ${text}`)
   }
+}
+
+export async function updateProductDiscount(id: string, discountPercent: number | null): Promise<void> {
+  const res = await adminFetch(`/api/admin/products/${id}/discount`, {
+    method: 'PUT',
+    body: JSON.stringify({ discountPercent }),
+  })
+  return assertOk(res)
 }
 
 // ── Modifier Groups ──────────────────────────────────────────────────────────

@@ -30,23 +30,44 @@ function CartItemRow({ item }: { item: CartItem }) {
       <span className="text-3xl leading-none flex-shrink-0">{item.product.emoji}</span>
       <div className="flex-1 min-w-0">
         <p className="font-semibold text-zinc-900 text-sm leading-snug">{item.product.name}</p>
-        {item.product.discountPercent && item.product.finalPrice && (
-          <div className="flex items-center gap-2 mt-0.5">
-            <span className="line-through text-xs text-zinc-400">
-              {formatPrice(item.product.price)}
-            </span>
-            <span className="text-xs font-bold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded-full">
-              -{item.product.discountPercent}%
+        <div className="mt-1 space-y-0.5">
+          <div className="flex justify-between items-start">
+            <div className="flex items-center gap-2">
+              {item.product.discountPercent && item.product.finalPrice && (
+                <>
+                  <span className="line-through text-xs text-zinc-400">
+                    {formatPrice(item.product.price)}
+                  </span>
+                  <span className="text-xs font-bold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded-full">
+                    -{item.product.discountPercent}%
+                  </span>
+                </>
+              )}
+            </div>
+            <span className="text-xs font-semibold text-zinc-700">
+              {formatPrice((item.product.finalPrice ?? item.product.price) * item.qty)}
             </span>
           </div>
-        )}
-        {modifierSummary && (
-          <p className="text-xs text-zinc-400 mt-0.5">{modifierSummary}</p>
-        )}
-        {item.observations && (
-          <p className="text-xs text-zinc-400 mt-0.5 italic">📝 {item.observations}</p>
-        )}
-        <p className="text-sm font-bold text-primary mt-1">{formatPrice(subtotal)}</p>
+
+          {Object.entries(item.selections).map(([, value]) => {
+            const selections = Array.isArray(value) ? value : [value]
+            return selections.map((sel: SelectedOption) => (
+              <div key={sel.optionId} className="flex justify-between text-xs text-zinc-500">
+                <span>· {sel.name}</span>
+                <span>+ {formatPrice(sel.extraPrice * item.qty)}</span>
+              </div>
+            ))
+          })}
+
+          {item.observations && (
+            <p className="text-xs text-zinc-400 italic mt-1">📝 {item.observations}</p>
+          )}
+
+          <div className="flex justify-between items-center pt-1 border-t border-zinc-100 mt-1">
+            <span className="text-xs font-bold text-zinc-900">Total</span>
+            <span className="text-sm font-bold text-primary">{formatPrice(subtotal)}</span>
+          </div>
+        </div>
       </div>
       <div className="flex items-center gap-1 flex-shrink-0">
         <button
@@ -103,9 +124,23 @@ export function CartModal({ tenant, onClose }: Props) {
     setForm((prev) => ({ ...prev, [field]: value }))
   }
 
+  const getAvailablePaymentMethods = (mode: 'delivery' | 'pickup') => {
+    const methods = [
+      { key: 'cash' as const, label: 'Efectivo', icon: '💵',
+        enabled: mode === 'delivery' ? tenant.paymentConfig.deliveryCash : tenant.paymentConfig.pickupCash },
+      { key: 'transfer' as const, label: 'Transferencia', icon: '🏦',
+        enabled: mode === 'delivery' ? tenant.paymentConfig.deliveryTransfer : tenant.paymentConfig.pickupTransfer },
+      { key: 'card' as const, label: 'Tarjeta', icon: '💳',
+        enabled: mode === 'delivery' ? tenant.paymentConfig.deliveryCard : tenant.paymentConfig.pickupCard },
+    ]
+    return methods.filter(m => m.enabled)
+  }
+
   const handleDeliverySwitch = (mode: 'delivery' | 'pickup') => {
     setActiveDelivery(mode)
-    setForm((prev) => ({ ...prev, deliveryMode: mode }))
+    const available = getAvailablePaymentMethods(mode)
+    const newPaymentMethod = available.length > 0 ? available[0].key : 'cash'
+    setForm((prev) => ({ ...prev, deliveryMode: mode, paymentMethod: newPaymentMethod }))
   }
 
   const minAmount = tenant.deliveryConfig.minOrderAmount ?? 0
@@ -264,11 +299,7 @@ export function CartModal({ tenant, onClose }: Props) {
                 <div>
                   <p className="text-xs font-medium text-zinc-500 mb-2">Forma de pago</p>
                   <div className="flex gap-2">
-                    {([
-                      { key: 'cash', label: 'Efectivo', icon: '💵' },
-                      { key: 'transfer', label: 'Transferencia', icon: '🏦' },
-                      { key: 'card', label: 'Tarjeta', icon: '💳' },
-                    ] as const).map(({ key, label, icon }) => (
+                    {getAvailablePaymentMethods(activeDelivery).map(({ key, label, icon }) => (
                       <button
                         key={key}
                         onClick={() => setForm((f) => ({ ...f, paymentMethod: key }))}

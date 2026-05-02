@@ -8,6 +8,7 @@ public interface IAppDbContext
     DbSet<Tenant> Tenants { get; }
     DbSet<TenantBranding> TenantBrandings { get; }
     DbSet<DeliveryConfig> DeliveryConfigs { get; }
+    DbSet<PaymentConfig> PaymentConfigs { get; }
     DbSet<BusinessHour> BusinessHours { get; }
     DbSet<Category> Categories { get; }
     DbSet<Product> Products { get; }

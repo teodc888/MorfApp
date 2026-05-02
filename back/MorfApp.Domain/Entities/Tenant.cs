@@ -19,6 +19,7 @@ public class Tenant
 
     public TenantBranding? Branding { get; set; }
     public DeliveryConfig? DeliveryConfig { get; set; }
+    public PaymentConfig? PaymentConfig { get; set; }
     public ICollection<BusinessHour> BusinessHours { get; set; } = [];
     public ICollection<Category> Categories { get; set; } = [];
     public ICollection<Product> Products { get; set; } = [];

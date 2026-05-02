@@ -23,3 +23,12 @@ public record UpdateDeliveryRequest(
 public record UpdateHoursRequest(List<HourAdminDto> Hours);
 
 public record UpdateWhatsAppTemplateRequest(string? Template);
+
+public record UpdatePaymentRequest(
+    bool DeliveryCash,
+    bool DeliveryTransfer,
+    bool DeliveryCard,
+    bool PickupCash,
+    bool PickupTransfer,
+    bool PickupCard
+);

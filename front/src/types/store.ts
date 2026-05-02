@@ -15,6 +15,7 @@ export type TenantAdmin = {
   whatsAppMessageTemplate: string | null
   branding: TenantBranding
   delivery: DeliveryConfig | null
+  payment: PaymentConfig | null
   hours: BusinessHour[]
 }
 
@@ -25,6 +26,15 @@ export type DeliveryConfig = {
   minOrderAmount: number | null
   estimatedMinutes: string | null
   pickupAddress: string | null
+}
+
+export type PaymentConfig = {
+  deliveryCash: boolean
+  deliveryTransfer: boolean
+  deliveryCard: boolean
+  pickupCash: boolean
+  pickupTransfer: boolean
+  pickupCard: boolean
 }
 
 export type BusinessHour = {
@@ -43,6 +53,7 @@ export type TenantPublic = {
   isOpen: boolean
   branding: TenantBranding
   deliveryConfig: DeliveryConfig
+  paymentConfig: PaymentConfig
   businessHours: BusinessHour[]
 }
 

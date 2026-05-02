@@ -104,6 +104,14 @@ export default function WhatsAppPage() {
             estimatedMinutes: null,
             pickupAddress: null,
           },
+          paymentConfig: data.payment || {
+            deliveryCash: true,
+            deliveryTransfer: true,
+            deliveryCard: true,
+            pickupCash: true,
+            pickupTransfer: true,
+            pickupCard: true,
+          },
           businessHours: data.hours,
         })
       } catch (err) {

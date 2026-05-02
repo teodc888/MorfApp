@@ -11,6 +11,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<TenantBranding> TenantBrandings => Set<TenantBranding>();
     public DbSet<DeliveryConfig> DeliveryConfigs => Set<DeliveryConfig>();
+    public DbSet<PaymentConfig> PaymentConfigs => Set<PaymentConfig>();
     public DbSet<BusinessHour> BusinessHours => Set<BusinessHour>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Product> Products => Set<Product>();
@@ -57,6 +58,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasOne(d => d.Tenant)
              .WithOne(t => t.DeliveryConfig)
              .HasForeignKey<DeliveryConfig>(d => d.TenantId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // PaymentConfig — one-to-one
+        modelBuilder.Entity<PaymentConfig>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.HasOne(p => p.Tenant)
+             .WithOne(t => t.PaymentConfig)
+             .HasForeignKey<PaymentConfig>(p => p.TenantId)
              .OnDelete(DeleteBehavior.Cascade);
         });
 

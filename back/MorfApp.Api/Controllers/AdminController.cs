@@ -25,6 +25,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
         var tenant = await db.Tenants
             .Include(t => t.Branding)
             .Include(t => t.DeliveryConfig)
+            .Include(t => t.PaymentConfig)
             .Include(t => t.BusinessHours)
             .FirstOrDefaultAsync(t => t.Id == TenantId);
 
@@ -149,6 +150,36 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
 
         tenant.WhatsAppMessageTemplate = req.Template;
         tenant.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [HttpPut("payment")]
+    public async Task<IActionResult> UpdatePayment([FromBody] UpdatePaymentRequest req)
+    {
+        var payment = await db.PaymentConfigs.FirstOrDefaultAsync(p => p.TenantId == TenantId);
+        if (payment is null)
+        {
+            db.PaymentConfigs.Add(new PaymentConfig
+            {
+                TenantId = TenantId,
+                DeliveryCash = req.DeliveryCash,
+                DeliveryTransfer = req.DeliveryTransfer,
+                DeliveryCard = req.DeliveryCard,
+                PickupCash = req.PickupCash,
+                PickupTransfer = req.PickupTransfer,
+                PickupCard = req.PickupCard
+            });
+        }
+        else
+        {
+            payment.DeliveryCash = req.DeliveryCash;
+            payment.DeliveryTransfer = req.DeliveryTransfer;
+            payment.DeliveryCard = req.DeliveryCard;
+            payment.PickupCash = req.PickupCash;
+            payment.PickupTransfer = req.PickupTransfer;
+            payment.PickupCard = req.PickupCard;
+        }
         await db.SaveChangesAsync();
         return NoContent();
     }
@@ -462,6 +493,10 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
             t.DeliveryConfig.DeliveryCost, t.DeliveryConfig.FreeDeliveryFrom,
             t.DeliveryConfig.MinOrderAmount, t.DeliveryConfig.EstimatedMinutes,
             t.DeliveryConfig.PickupAddress
+        ),
+        t.PaymentConfig is null ? new PaymentAdminDto(true, true, true, true, true, true) : new PaymentAdminDto(
+            t.PaymentConfig.DeliveryCash, t.PaymentConfig.DeliveryTransfer, t.PaymentConfig.DeliveryCard,
+            t.PaymentConfig.PickupCash, t.PaymentConfig.PickupTransfer, t.PaymentConfig.PickupCard
         ),
         t.BusinessHours.OrderBy(h => h.DayOfWeek)
             .Select(h => new HourAdminDto(h.DayOfWeek, h.IsOpen, h.OpensAt, h.ClosesAt))
