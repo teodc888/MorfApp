@@ -235,6 +235,79 @@ public class StoreController(IAppDbContext db) : ControllerBase
         );
     }
 
+    // POST /api/store/{slug}/orders
+    // Crea un nuevo pedido para el tenant identificado por slug.
+    // No requiere autenticación — endpoint público para clientes.
+    [HttpPost("{slug}/orders")]
+    public async Task<ActionResult<CreateOrderResponse>> CreateOrder(string slug, [FromBody] CreateOrderRequest req)
+    {
+        // 1. Validar campos obligatorios
+        if (req.Items is null || req.Items.Count == 0)
+            return BadRequest(new { message = "El pedido debe tener al menos un item." });
+
+        if (string.IsNullOrWhiteSpace(req.CustomerName))
+            return BadRequest(new { message = "El nombre del cliente es obligatorio." });
+
+        if (string.IsNullOrWhiteSpace(req.CustomerPhone))
+            return BadRequest(new { message = "El teléfono del cliente es obligatorio." });
+
+        var mode = req.DeliveryMode?.ToLowerInvariant();
+        if (mode != "delivery" && mode != "pickup")
+            return BadRequest(new { message = "deliveryMode debe ser 'delivery' o 'pickup'." });
+
+        if (mode == "delivery" && string.IsNullOrWhiteSpace(req.Address))
+            return BadRequest(new { message = "La dirección es obligatoria para delivery." });
+
+        // 2. Buscar tenant por slug
+        var tenant = await db.Tenants
+            .FirstOrDefaultAsync(t => t.Slug == slug && t.Status != TenantStatus.Suspended);
+
+        if (tenant is null)
+            return NotFound(new { message = "Tienda no encontrada." });
+
+        // 3. Normalizar teléfono (solo dígitos)
+        var normalizedPhone = string.Concat(req.CustomerPhone.Where(char.IsDigit));
+
+        // 4. Construir items como value objects (snapshot)
+        var items = req.Items.Select(i => new OrderItem
+        {
+            ProductId   = i.ProductId,
+            ProductName = i.ProductName,
+            Quantity    = i.Quantity,
+            UnitPrice   = i.Price + i.ExtraPrice,
+            Modifiers   = new List<OrderItemModifier>()
+        }).ToList();
+
+        // 5. Crear el pedido
+        var order = new Order
+        {
+            Id            = Guid.NewGuid().ToString(),
+            TenantId      = tenant.Id,
+            CustomerName  = req.CustomerName.Trim(),
+            CustomerPhone = normalizedPhone,
+            Items         = items,
+            TotalPrice    = req.Total,
+            DeliveryMode  = mode,
+            Address       = mode == "delivery" ? req.Address?.Trim() : null,
+            Notes         = string.IsNullOrWhiteSpace(req.Notes) ? null : req.Notes.Trim(),
+            PaymentMethod = string.IsNullOrWhiteSpace(req.PaymentMethod) ? null : req.PaymentMethod.Trim().ToLowerInvariant(),
+            Status        = OrderStatus.Pending,
+            CreatedAt     = DateTime.UtcNow
+        };
+
+        try
+        {
+            db.Orders.Add(order);
+            await db.SaveChangesAsync();
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, new { message = "Error al guardar el pedido. Intente nuevamente." });
+        }
+
+        return Ok(new CreateOrderResponse(order.Id, true));
+    }
+
     private static bool IsCurrentlyOpen(ICollection<Domain.Entities.BusinessHour> hours)
     {
         var tz = TimeZoneInfo.FindSystemTimeZoneById("America/Argentina/Buenos_Aires");

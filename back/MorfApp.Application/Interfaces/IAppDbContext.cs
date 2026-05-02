@@ -19,5 +19,6 @@ public interface IAppDbContext
     DbSet<PageView> PageViews { get; }
     DbSet<Promotion> Promotions { get; }
     DbSet<PromoRedemption> PromoRedemptions { get; }
+    DbSet<Order> Orders { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

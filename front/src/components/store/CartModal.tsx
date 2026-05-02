@@ -5,7 +5,7 @@ import type { TenantPublic, CartItem, SelectedOption } from '@/types/store'
 import { useCartStore } from '@/store/cart'
 import { formatPrice, buildWhatsAppMessage } from '@/lib/utils'
 import type { CustomerForm } from '@/lib/utils'
-import { registerRedemption } from '@/lib/api'
+import { registerRedemption, createOrder, buildOrderItems } from '@/lib/api'
 
 type Props = {
   tenant: TenantPublic
@@ -100,6 +100,8 @@ export function CartModal({ tenant, onClose }: Props) {
   const clear = useCartStore((s) => s.clear)
   const [isClosing, setIsClosing] = useState(false)
   const [redemptionError, setRedemptionError] = useState<string | null>(null)
+  const [orderError, setOrderError] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
 
   const handleClose = () => {
     setIsClosing(true)
@@ -162,11 +164,13 @@ export function CartModal({ tenant, onClose }: Props) {
     (activeDelivery === 'pickup' || form.address.trim().length > 0)
 
   const handleConfirm = async () => {
-    if (!isFormValid || shortfall > 0) return
+    if (!isFormValid || shortfall > 0 || isSaving) return
 
-    // Validar redemptions para promos antes de abrir WhatsApp
+    setRedemptionError(null)
+    setOrderError(null)
+
+    // Validar redemptions para promos antes de guardar el pedido
     try {
-      setRedemptionError(null)
       for (const item of items) {
         if (item.product.id.startsWith('promo:')) {
           const promoId = item.product.id.replace('promo:', '')
@@ -187,7 +191,27 @@ export function CartModal({ tenant, onClose }: Props) {
       return
     }
 
-    // Abrir WhatsApp (si llegó aquí, todas las validaciones pasaron)
+    // Guardar pedido en BD antes de abrir WhatsApp
+    setIsSaving(true)
+    try {
+      await createOrder(tenant.slug, {
+        items: buildOrderItems(items),
+        total: grandTotal,
+        customerName: form.name,
+        customerPhone: form.phone,
+        deliveryMode: activeDelivery,
+        address: activeDelivery === 'delivery' ? form.address : undefined,
+        notes: form.notes || undefined,
+        paymentMethod: form.paymentMethod,
+      })
+    } catch {
+      setOrderError('Error al guardar pedido. Intenta de nuevo.')
+      setIsSaving(false)
+      return
+    }
+    setIsSaving(false)
+
+    // Abrir WhatsApp (si llegó aquí, todas las validaciones pasaron y el pedido fue guardado)
     const message = buildWhatsAppMessage(tenant, items, {
       ...form,
       deliveryMode: activeDelivery,
@@ -350,14 +374,27 @@ export function CartModal({ tenant, onClose }: Props) {
                 {redemptionError}
               </div>
             )}
+            {orderError && (
+              <div className="bg-red-100 border border-red-300 text-red-700 px-3 py-2 rounded text-sm mb-3">
+                {orderError}
+              </div>
+            )}
             <button
               onClick={handleConfirm}
-              disabled={!isFormValid || shortfall > 0}
-              className={`w-full py-3.5 rounded-2xl font-bold text-sm text-white transition-opacity bg-accent ${
-                isFormValid && shortfall === 0 ? 'opacity-100' : 'opacity-60 cursor-not-allowed'
+              disabled={!isFormValid || shortfall > 0 || isSaving}
+              className={`w-full py-3.5 rounded-2xl font-bold text-sm text-white transition-opacity bg-accent flex items-center justify-center gap-2 ${
+                isFormValid && shortfall === 0 && !isSaving ? 'opacity-100' : 'opacity-60 cursor-not-allowed'
               }`}
             >
-              {shortfall > 0
+              {isSaving ? (
+                <>
+                  <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Guardando pedido...
+                </>
+              ) : shortfall > 0
                 ? `Te faltan ${formatPrice(shortfall)} para el mínimo`
                 : `Confirmar pedido · ${formatPrice(grandTotal)}`}
             </button>
