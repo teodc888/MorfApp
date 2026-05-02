@@ -24,3 +24,14 @@ export function clearTokens(): void {
 export function isAuthenticated(): boolean {
   return Boolean(getAccessToken())
 }
+
+export function getTenantFromToken(): string | null {
+  const token = getAccessToken()
+  if (!token) return null
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return payload.tenant_slug || null
+  } catch {
+    return null
+  }
+}

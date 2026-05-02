@@ -1,10 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import { usePathname } from 'next/navigation'
 import type { TenantPublic, CartItem, SelectedOption } from '@/types/store'
 import { useCartStore } from '@/store/cart'
 import { formatPrice, buildWhatsAppMessage } from '@/lib/utils'
 import type { CustomerForm } from '@/lib/utils'
+import { registerRedemption } from '@/lib/api'
 
 type Props = {
   tenant: TenantPublic
@@ -63,10 +65,12 @@ function CartItemRow({ item }: { item: CartItem }) {
 }
 
 export function CartModal({ tenant, onClose }: Props) {
+  const pathname = usePathname()
   const items = useCartStore((s) => s.items)
   const total = useCartStore((s) => s.total())
   const clear = useCartStore((s) => s.clear)
   const [isClosing, setIsClosing] = useState(false)
+  const [redemptionError, setRedemptionError] = useState<string | null>(null)
 
   const handleClose = () => {
     setIsClosing(true)
@@ -113,8 +117,34 @@ export function CartModal({ tenant, onClose }: Props) {
     form.name.trim().length > 0 &&
     (activeDelivery === 'pickup' || form.address.trim().length > 0)
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (!isFormValid || shortfall > 0) return
+
+    // Validar redemptions para promos antes de abrir WhatsApp
+    try {
+      setRedemptionError(null)
+      const slug = pathname.split('/')[2] // Extrae slug de /store/[slug]/...
+      for (const item of items) {
+        if (item.product.id.startsWith('promo:')) {
+          const promoId = item.product.id.replace('promo:', '')
+          const status = await registerRedemption(slug, promoId, {
+            phoneNumber: form.phone,
+            quantity: item.qty,
+          })
+          if (!status.canRedeem) {
+            setRedemptionError(
+              `Ya alcanzaste el límite de esta promo. Máximo: ${status.maxPerUser}, Usado: ${status.used}`
+            )
+            return
+          }
+        }
+      }
+    } catch {
+      setRedemptionError('Error validando promoción')
+      return
+    }
+
+    // Abrir WhatsApp (si llegó aquí, todas las validaciones pasaron)
     const message = buildWhatsAppMessage(tenant, items, {
       ...form,
       deliveryMode: activeDelivery,
@@ -277,6 +307,11 @@ export function CartModal({ tenant, onClose }: Props) {
         {/* Confirm button */}
         {items.length > 0 && (
           <div className="flex-shrink-0 px-4 pb-5 pt-2 border-t border-zinc-100">
+            {redemptionError && (
+              <div className="bg-red-100 border border-red-300 text-red-700 px-3 py-2 rounded text-sm mb-3">
+                {redemptionError}
+              </div>
+            )}
             <button
               onClick={handleConfirm}
               disabled={!isFormValid || shortfall > 0}

@@ -413,6 +413,115 @@ namespace MorfApp.Infrastructure.Migrations
                     b.ToTable("products", (string)null);
                 });
 
+            modelBuilder.Entity("MorfApp.Domain.Entities.PromoRedemption", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("phone_number");
+
+                    b.Property<string>("PromotionId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("promotion_id");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer")
+                        .HasColumnName("quantity");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_promo_redemptions");
+
+                    b.HasIndex("PromotionId", "PhoneNumber")
+                        .HasDatabaseName("ix_promo_redemptions_promotion_id_phone_number");
+
+                    b.HasIndex("TenantId", "PhoneNumber")
+                        .HasDatabaseName("ix_promo_redemptions_tenant_id_phone_number");
+
+                    b.ToTable("promo_redemptions", (string)null);
+                });
+
+            modelBuilder.Entity("MorfApp.Domain.Entities.Promotion", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<string>("Emoji")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("emoji");
+
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("text")
+                        .HasColumnName("image_url");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<int?>("MaxPerUser")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_per_user");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("price");
+
+                    b.Property<string>("ProductIds")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("product_ids");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_promotions");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_promotions_tenant_id");
+
+                    b.ToTable("promotions", (string)null);
+                });
+
             modelBuilder.Entity("MorfApp.Domain.Entities.RefreshToken", b =>
                 {
                     b.Property<string>("Id")
@@ -599,6 +708,25 @@ namespace MorfApp.Infrastructure.Migrations
                     b.ToTable("product_modifier_groups", (string)null);
                 });
 
+            modelBuilder.Entity("promotion_modifier_groups", b =>
+                {
+                    b.Property<string>("promotion_id")
+                        .HasColumnType("text")
+                        .HasColumnName("promotion_id");
+
+                    b.Property<string>("modifier_group_id")
+                        .HasColumnType("text")
+                        .HasColumnName("modifier_group_id");
+
+                    b.HasKey("promotion_id", "modifier_group_id")
+                        .HasName("pk_promotion_modifier_groups");
+
+                    b.HasIndex("modifier_group_id")
+                        .HasDatabaseName("ix_promotion_modifier_groups_modifier_group_id");
+
+                    b.ToTable("promotion_modifier_groups", (string)null);
+                });
+
             modelBuilder.Entity("MorfApp.Domain.Entities.AdminUser", b =>
                 {
                     b.HasOne("MorfApp.Domain.Entities.Tenant", "Tenant")
@@ -703,6 +831,30 @@ namespace MorfApp.Infrastructure.Migrations
                     b.Navigation("Tenant");
                 });
 
+            modelBuilder.Entity("MorfApp.Domain.Entities.PromoRedemption", b =>
+                {
+                    b.HasOne("MorfApp.Domain.Entities.Promotion", "Promotion")
+                        .WithMany("Redemptions")
+                        .HasForeignKey("PromotionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_promo_redemptions_promotions_promotion_id");
+
+                    b.Navigation("Promotion");
+                });
+
+            modelBuilder.Entity("MorfApp.Domain.Entities.Promotion", b =>
+                {
+                    b.HasOne("MorfApp.Domain.Entities.Tenant", "Tenant")
+                        .WithMany("Promotions")
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_promotions_tenants_tenant_id");
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("MorfApp.Domain.Entities.RefreshToken", b =>
                 {
                     b.HasOne("MorfApp.Domain.Entities.AdminUser", "AdminUser")
@@ -744,6 +896,23 @@ namespace MorfApp.Infrastructure.Migrations
                         .HasConstraintName("fk_product_modifier_groups_products_product_id");
                 });
 
+            modelBuilder.Entity("promotion_modifier_groups", b =>
+                {
+                    b.HasOne("MorfApp.Domain.Entities.ModifierGroup", null)
+                        .WithMany()
+                        .HasForeignKey("modifier_group_id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_promotion_modifier_groups_modifier_groups_modifier_group_id");
+
+                    b.HasOne("MorfApp.Domain.Entities.Promotion", null)
+                        .WithMany()
+                        .HasForeignKey("promotion_id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_promotion_modifier_groups_promotions_promotion_id");
+                });
+
             modelBuilder.Entity("MorfApp.Domain.Entities.Category", b =>
                 {
                     b.Navigation("Products");
@@ -752,6 +921,11 @@ namespace MorfApp.Infrastructure.Migrations
             modelBuilder.Entity("MorfApp.Domain.Entities.ModifierGroup", b =>
                 {
                     b.Navigation("Options");
+                });
+
+            modelBuilder.Entity("MorfApp.Domain.Entities.Promotion", b =>
+                {
+                    b.Navigation("Redemptions");
                 });
 
             modelBuilder.Entity("MorfApp.Domain.Entities.Tenant", b =>
@@ -771,6 +945,8 @@ namespace MorfApp.Infrastructure.Migrations
                     b.Navigation("PageViews");
 
                     b.Navigation("Products");
+
+                    b.Navigation("Promotions");
                 });
 #pragma warning restore 612, 618
         }

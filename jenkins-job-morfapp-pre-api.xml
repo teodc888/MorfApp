@@ -1,0 +1,47 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<org.jenkinsci.plugins.workflow.job.WorkflowJob plugin="workflow-job@1461.v5a1a0098b876">
+  <actions/>
+  <description>Build and deploy MorfApp backend to PRE environment</description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>
+      <scope>GLOBAL</scope>
+      <id>github-pat</id>
+      <description>GitHub Personal Access Token</description>
+      <username>oauth2</username>
+      <password>{GITHUB_PAT}</password>
+      <usernameSecret>false</usernameSecret>
+    </com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>
+    <org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+      <triggers>
+        <com.cloudbees.plugins.credentials.impl.CertificateCredentialsImpl.PushEventFilter>
+          <excludeBranchesRegex></excludeBranchesRegex>
+          <includeBranchesRegex></includeBranchesRegex>
+        </com.cloudbees.plugins.credentials.impl.CertificateCredentialsImpl.PushEventFilter>
+      </triggers>
+    </org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+  </properties>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition" plugin="workflow-cps@3743.v4c0ec1e8ad56">
+    <scm class="hudson.plugins.git.GitSCM" plugin="git@5.2.2">
+      <configVersion>2</configVersion>
+      <userRemoteConfigs>
+        <hudson.plugins.git.UserRemoteConfig>
+          <url>https://github.com/yourusername/morfapp.git</url>
+          <credentialsId></credentialsId>
+        </hudson.plugins.git.UserRemoteConfig>
+      </userRemoteConfigs>
+      <branches>
+        <hudson.plugins.git.BranchSpec>
+          <name>*/master</name>
+        </hudson.plugins.git.BranchSpec>
+      </branches>
+      <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+      <submoduleCfg class="list"/>
+      <extensions/>
+    </scm>
+    <scriptPath>Jenkinsfile.pre</scriptPath>
+    <lightweight>true</lightweight>
+  </definition>
+  <triggers/>
+  <disabled>false</disabled>
+</org.jenkinsci.plugins.workflow.job.WorkflowJob>

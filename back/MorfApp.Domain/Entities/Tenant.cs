@@ -25,4 +25,5 @@ public class Tenant
     public ICollection<ModifierGroup> ModifierGroups { get; set; } = [];
     public ICollection<AdminUser> AdminUsers { get; set; } = [];
     public ICollection<PageView> PageViews { get; set; } = [];
+    public ICollection<Promotion> Promotions { get; set; } = new List<Promotion>();
 }

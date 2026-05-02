@@ -29,8 +29,9 @@ type ProductForm = {
   imageUrl: string
   sortOrder: number
   isActive: boolean
-  tags: string
 }
+
+type ConfirmDialog = { open: boolean; type: 'category' | 'product' | null; id: string; name: string }
 
 const EMPTY_CAT: CategoryForm = { name: '', emoji: '🍽️', sortOrder: 0 }
 const EMPTY_PROD: ProductForm = {
@@ -42,7 +43,6 @@ const EMPTY_PROD: ProductForm = {
   imageUrl: '',
   sortOrder: 0,
   isActive: true,
-  tags: '',
 }
 
 export default function MenuPage() {
@@ -69,6 +69,7 @@ export default function MenuPage() {
   const [uploading, setUploading] = useState(false)
 
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog>({ open: false, type: null, id: '', name: '' })
 
   useEffect(() => {
     if (!openMenuId) return
@@ -123,10 +124,15 @@ export default function MenuPage() {
     }
   }
 
-  async function removeCat(id: string) {
-    if (!confirm('¿Eliminar esta categoría?')) return
+  function openRemoveCatDialog(id: string, name: string) {
+    setConfirmDialog({ open: true, type: 'category', id, name })
+  }
+
+  async function confirmRemoveCat() {
+    if (confirmDialog.type !== 'category') return
     try {
-      await deleteCategory(id)
+      await deleteCategory(confirmDialog.id)
+      setConfirmDialog({ open: false, type: null, id: '', name: '' })
       await load()
     } catch {
       setError('Error al eliminar categoría')
@@ -151,7 +157,6 @@ export default function MenuPage() {
       imageUrl: prod.imageUrl ?? '',
       sortOrder: prod.sortOrder,
       isActive: prod.isActive,
-      tags: prod.tags.join(', '),
     })
     setSelectedGroupIds((prod as ProductAdmin & { modifierGroupIds?: string[] }).modifierGroupIds ?? [])
     setProdModal({ open: true, editing: prod, defaultCategoryId: prod.categoryId })
@@ -169,7 +174,7 @@ export default function MenuPage() {
         imageUrl: prodForm.imageUrl || null,
         sortOrder: prodForm.sortOrder,
         isActive: prodForm.isActive,
-        tags: prodForm.tags.split(',').map((t) => t.trim()).filter(Boolean),
+        tags: [],
       }
       if (prodModal.editing) {
         await updateProduct(prodModal.editing.id, body)
@@ -187,10 +192,15 @@ export default function MenuPage() {
     }
   }
 
-  async function removeProd(id: string) {
-    if (!confirm('¿Eliminar este producto?')) return
+  function openRemoveProdDialog(id: string, name: string) {
+    setConfirmDialog({ open: true, type: 'product', id, name })
+  }
+
+  async function confirmRemoveProd() {
+    if (confirmDialog.type !== 'product') return
     try {
-      await deleteProduct(id)
+      await deleteProduct(confirmDialog.id)
+      setConfirmDialog({ open: false, type: null, id: '', name: '' })
       await load()
     } catch {
       setError('Error al eliminar producto')
@@ -270,7 +280,7 @@ export default function MenuPage() {
                   Editar
                 </button>
                 <button
-                  onClick={() => removeCat(cat.id)}
+                  onClick={() => openRemoveCatDialog(cat.id, cat.name)}
                   className="text-xs px-3 py-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                 >
                   Eliminar
@@ -304,7 +314,7 @@ export default function MenuPage() {
                     Editar
                   </button>
                   <button
-                    onClick={() => { removeCat(cat.id); setOpenMenuId(null) }}
+                    onClick={() => { openRemoveCatDialog(cat.id, cat.name); setOpenMenuId(null) }}
                     className="w-full text-left text-sm px-4 py-2 text-red-500 hover:bg-red-50 transition-colors"
                   >
                     Eliminar
@@ -349,7 +359,7 @@ export default function MenuPage() {
                           Editar
                         </button>
                         <button
-                          onClick={() => removeProd(prod.id)}
+                          onClick={() => openRemoveProdDialog(prod.id, prod.name)}
                           className="text-xs px-3 py-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                         >
                           Eliminar
@@ -543,17 +553,6 @@ export default function MenuPage() {
                 </label>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tags (separados por coma)</label>
-                <input
-                  type="text"
-                  value={prodForm.tags}
-                  onChange={(e) => setProdForm((f) => ({ ...f, tags: e.target.value }))}
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  placeholder="vegano, sin gluten"
-                />
-              </div>
-
               {availableGroups.length > 0 && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -610,6 +609,39 @@ export default function MenuPage() {
                 className="flex-1 py-2.5 bg-orange-600 hover:bg-orange-700 disabled:bg-orange-300 text-white text-sm font-medium rounded-lg transition-colors"
               >
                 {prodSaving ? 'Guardando...' : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation dialog */}
+      {confirmDialog.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="bg-white rounded-2xl max-w-sm p-6 space-y-4 shadow-lg">
+            <div className="space-y-2">
+              <h2 className="font-bold text-gray-900 text-lg">
+                {confirmDialog.type === 'category' ? '¿Eliminar categoría?' : '¿Eliminar producto?'}
+              </h2>
+              <p className="text-sm text-gray-600">
+                {confirmDialog.type === 'category'
+                  ? `Se eliminará la categoría "${confirmDialog.name}" y todos sus productos.`
+                  : `Se eliminará el producto "${confirmDialog.name}" y no se podrá recuperar.`}
+              </p>
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <button
+                onClick={() => setConfirmDialog({ open: false, type: null, id: '', name: '' })}
+                className="flex-1 py-2.5 border border-gray-300 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmDialog.type === 'category' ? confirmRemoveCat : confirmRemoveProd}
+                className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                Eliminar
               </button>
             </div>
           </div>

@@ -1,42 +1,31 @@
 'use client'
 
 import Image from 'next/image'
-import type { Promotion, Product } from '@/types/store'
-import { useCartStore } from '@/store/cart'
+import type { Promotion } from '@/types/store'
 import { formatPrice } from '@/lib/utils'
 
 type Props = {
   promo: Promotion
+  onSelect: () => void
 }
 
-export function PromoCard({ promo }: Props) {
-  const addItem = useCartStore(s => s.addItem)
-
-  const handleAdd = () => {
-    const synthetic: Product = {
-      id: `promo:${promo.id}`,
-      name: promo.name,
-      description: promo.description,
-      price: promo.price,
-      emoji: promo.emoji,
-      imageUrl: promo.imageUrl,
-      tags: [],
-      modifierGroups: [],
+export function PromoCard({ promo, onSelect }: Props) {
+  // Count quantities of each product
+  const productCounts: {[key: string]: {name: string; count: number}} = {}
+  promo.products.forEach(p => {
+    if (!productCounts[p.id]) {
+      productCounts[p.id] = { name: p.name, count: 0 }
     }
-    addItem({
-      cartId: crypto.randomUUID(),
-      product: synthetic,
-      qty: 1,
-      selections: {},
-      extraPrice: 0,
-    })
-  }
+    productCounts[p.id].count++
+  })
 
-  const productNames = promo.products.map(p => p.name).join(', ')
+  const productDisplay = Object.values(productCounts)
+    .map(p => p.count > 1 ? `${p.count}x ${p.name}` : p.name)
+    .join(', ')
 
   return (
     <button
-      onClick={handleAdd}
+      onClick={onSelect}
       className="w-full bg-white rounded-2xl border border-zinc-100 overflow-hidden text-left hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-200 flex flex-col relative"
     >
       {/* Image */}
@@ -69,7 +58,7 @@ export function PromoCard({ promo }: Props) {
           </p>
         )}
         <p className="text-xs text-zinc-500 mt-2">
-          <span className="font-medium">Incluye:</span> {productNames}
+          <span className="font-medium">Incluye:</span> {productDisplay}
         </p>
         <div className="flex items-baseline gap-2 mt-auto pt-3">
           <span className="text-xs text-zinc-400 line-through">{formatPrice(promo.originalPrice)}</span>

@@ -1,5 +1,5 @@
 import type { Promotion } from '@/types/store'
-import { PromoCard } from './PromoCard'
+import { PromoCardClient } from './PromoCardClient'
 
 type Props = {
   promotions: Promotion[]
@@ -14,7 +14,7 @@ export function PromotionsSection({ promotions }: Props) {
       </h2>
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
         {promotions.map(promo => (
-          <PromoCard key={promo.id} promo={promo} />
+          <PromoCardClient key={promo.id} promo={promo} />
         ))}
       </div>
     </section>

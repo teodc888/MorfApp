@@ -19,6 +19,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<AdminUser> AdminUsers => Set<AdminUser>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<PageView> PageViews => Set<PageView>();
+    public DbSet<Promotion> Promotions => Set<Promotion>();
+    public DbSet<PromoRedemption> PromoRedemptions => Set<PromoRedemption>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -168,6 +170,50 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
              .WithMany(t => t.PageViews)
              .HasForeignKey(v => v.TenantId)
              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Promotion
+        modelBuilder.Entity<Promotion>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.Property(p => p.Price)
+             .HasPrecision(18, 2);
+            e.Property(p => p.ProductIds)
+             .HasColumnType("jsonb")
+             .HasConversion(
+                 v => JsonSerializer.Serialize(v, JsonSerializerOptions.Default),
+                 v => JsonSerializer.Deserialize<List<string>>(v, JsonSerializerOptions.Default) ?? new List<string>());
+            e.HasOne(p => p.Tenant)
+             .WithMany(t => t.Promotions)
+             .HasForeignKey(p => p.TenantId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Promotion ↔ ModifierGroup many-to-many
+        modelBuilder.Entity<Promotion>()
+            .HasMany(p => p.ModifierGroups)
+            .WithMany()
+            .UsingEntity<Dictionary<string, object>>(
+                "promotion_modifier_groups",
+                r => r.HasOne<ModifierGroup>().WithMany()
+                       .HasForeignKey("modifier_group_id")
+                       .OnDelete(DeleteBehavior.Cascade),
+                l => l.HasOne<Promotion>().WithMany()
+                       .HasForeignKey("promotion_id")
+                       .OnDelete(DeleteBehavior.Cascade),
+                j => j.HasKey("promotion_id", "modifier_group_id")
+            );
+
+        // PromoRedemption
+        modelBuilder.Entity<PromoRedemption>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.HasOne(r => r.Promotion)
+             .WithMany(p => p.Redemptions)
+             .HasForeignKey(r => r.PromotionId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(r => new { r.PromotionId, r.PhoneNumber });
+            e.HasIndex(r => new { r.TenantId, r.PhoneNumber });
         });
     }
 }

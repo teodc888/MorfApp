@@ -108,4 +108,5 @@ export type Promotion = {
   originalPrice: number
   discountPercent: number
   products: Product[]
+  modifierGroups: ModifierGroup[]
 }

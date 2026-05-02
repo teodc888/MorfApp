@@ -33,6 +33,11 @@ export function proxy(request: NextRequest) {
     return NextResponse.rewrite(url);
   }
 
+  // empresa1.morfapp.com/admin/... → /admin/... (tenant admin)
+  if (subdomain && subdomain !== ROOT_DOMAIN && url.pathname.startsWith('/admin')) {
+    return NextResponse.rewrite(url);
+  }
+
   // empresa1.morfapp.com → /store/empresa1/...
   if (subdomain && subdomain !== ROOT_DOMAIN) {
     url.pathname = `/store/${subdomain}${url.pathname}`;

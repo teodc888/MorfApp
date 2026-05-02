@@ -317,3 +317,85 @@ export async function uploadImage(file: File): Promise<string> {
   const data = await res.json() as { url: string }
   return data.url
 }
+
+// ── Promotions ──────────────────────────────────────────────────────────
+
+export type PromotionAdmin = {
+  id: string
+  name: string
+  description: string | null
+  discountPercent: number
+  emoji: string
+  imageUrl: string | null
+  sortOrder: number
+  isActive: boolean
+  maxPerUser: number | null
+  originalPrice: number
+  productIds: string[]
+  modifierGroupIds: string[]
+}
+
+export async function getPromotions(): Promise<PromotionAdmin[]> {
+  const res = await adminFetch('/api/admin/promotions')
+  return parseJson<PromotionAdmin[]>(res)
+}
+
+export async function createPromotion(body: {
+  name: string
+  description: string | null
+  discountPercent: number
+  emoji: string | null
+  imageUrl: string | null
+  sortOrder: number
+  isActive: boolean
+  maxPerUser: number | null
+  productIds: string[]
+  modifierGroupIds?: string[]
+}): Promise<PromotionAdmin> {
+  const res = await adminFetch('/api/admin/promotions', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
+  return parseJson<PromotionAdmin>(res)
+}
+
+export async function updatePromotion(
+  id: string,
+  body: {
+    name: string
+    description: string | null
+    discountPercent: number
+    emoji: string | null
+    imageUrl: string | null
+    sortOrder: number
+    isActive: boolean
+    maxPerUser: number | null
+  }
+): Promise<void> {
+  const res = await adminFetch(`/api/admin/promotions/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  })
+  return assertOk(res)
+}
+
+export async function updatePromotionProducts(id: string, productIds: string[]): Promise<void> {
+  const res = await adminFetch(`/api/admin/promotions/${id}/products`, {
+    method: 'PUT',
+    body: JSON.stringify({ productIds }),
+  })
+  return assertOk(res)
+}
+
+export async function updatePromotionModifierGroups(id: string, modifierGroupIds: string[]): Promise<void> {
+  const res = await adminFetch(`/api/admin/promotions/${id}/modifier-groups`, {
+    method: 'PUT',
+    body: JSON.stringify({ modifierGroupIds }),
+  })
+  return assertOk(res)
+}
+
+export async function deletePromotion(id: string): Promise<void> {
+  const res = await adminFetch(`/api/admin/promotions/${id}`, { method: 'DELETE' })
+  return assertOk(res)
+}

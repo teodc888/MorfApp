@@ -473,4 +473,189 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
             o.Id, o.Name, o.Emoji, o.ExtraPrice, o.SortOrder, o.IsActive
         )).ToList()
     );
+
+    // ── Promotions ────────────────────────────────────────────────────────────
+
+    [HttpGet("promotions")]
+    public async Task<List<PromotionAdminDto>> GetPromotions()
+    {
+        var promotions = await db.Promotions
+            .Where(p => p.TenantId == TenantId)
+            .Include(p => p.ModifierGroups)
+            .OrderBy(p => p.SortOrder)
+            .ToListAsync();
+
+        var allProducts = await db.Products
+            .Where(p => p.TenantId == TenantId)
+            .ToListAsync();
+
+        return promotions.Select(promo =>
+        {
+            var originalPrice = promo.ProductIds.Distinct().Sum(id =>
+            {
+                var product = allProducts.FirstOrDefault(p => p.Id == id);
+                var count = promo.ProductIds.Count(x => x == id);
+                return (product?.Price ?? 0) * count;
+            });
+            return MapPromotion(promo, originalPrice);
+        }).ToList();
+    }
+
+    [HttpPost("promotions")]
+    public async Task<IActionResult> CreatePromotion([FromBody] CreatePromotionRequest req)
+    {
+        // Validar que todos los productos pertenecen al tenant (permitir duplicados)
+        var productCounts = req.ProductIds.GroupBy(x => x).ToDictionary(g => g.Key, g => g.Count());
+        var uniqueProductIds = productCounts.Keys.ToList();
+        var existingProducts = await db.Products
+            .Where(p => p.TenantId == TenantId && uniqueProductIds.Contains(p.Id))
+            .ToListAsync();
+        if (existingProducts.Count != uniqueProductIds.Count)
+            return BadRequest("Some products don't belong to this tenant");
+
+        // Validar que todos los modifier groups pertenecen al tenant
+        var modifierGroupIds = new HashSet<string>(req.ModifierGroupIds ?? new List<string>());
+        var existingModifierGroups = await db.ModifierGroups
+            .Where(mg => mg.TenantId == TenantId && modifierGroupIds.Contains(mg.Id))
+            .ToListAsync();
+        if (modifierGroupIds.Count > 0 && existingModifierGroups.Count != modifierGroupIds.Count)
+            return BadRequest("Some modifier groups don't belong to this tenant");
+
+        var originalPrice = existingProducts.Sum(x => x.Price * productCounts[x.Id]);
+        var discountedPrice = originalPrice == 0 ? 0 : Math.Round(originalPrice * (1M - req.DiscountPercent / 100M));
+
+        var promo = new Promotion
+        {
+            Id = Guid.NewGuid().ToString(),
+            TenantId = TenantId,
+            Name = req.Name,
+            Description = req.Description,
+            Price = discountedPrice,
+            Emoji = req.Emoji ?? "🎁",
+            ImageUrl = req.ImageUrl,
+            SortOrder = req.SortOrder,
+            IsActive = req.IsActive,
+            MaxPerUser = req.MaxPerUser,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            ProductIds = req.ProductIds
+        };
+
+        db.Promotions.Add(promo);
+        await db.SaveChangesAsync();
+
+        // Add modifier groups after saving
+        foreach (var group in existingModifierGroups)
+            promo.ModifierGroups.Add(group);
+        await db.SaveChangesAsync();
+
+        return Created($"api/admin/promotions/{promo.Id}", MapPromotion(promo, originalPrice));
+    }
+
+    [HttpPut("promotions/{id}")]
+    public async Task<IActionResult> UpdatePromotion(string id, [FromBody] UpdatePromotionRequest req)
+    {
+        var promo = await db.Promotions
+            .FirstOrDefaultAsync(p => p.Id == id && p.TenantId == TenantId);
+        if (promo is null)
+            return NotFound();
+
+        var uniqueProductIds = promo.ProductIds.Distinct().ToList();
+        var products = await db.Products
+            .Where(p => p.TenantId == TenantId && uniqueProductIds.Contains(p.Id))
+            .ToListAsync();
+        var productCounts = promo.ProductIds.GroupBy(x => x).ToDictionary(g => g.Key, g => g.Count());
+        var originalPrice = products.Sum(x => x.Price * productCounts[x.Id]);
+        var discountedPrice = originalPrice == 0 ? 0 : Math.Round(originalPrice * (1M - req.DiscountPercent / 100M));
+
+        promo.Name = req.Name;
+        promo.Description = req.Description;
+        promo.Price = discountedPrice;
+        promo.Emoji = req.Emoji ?? promo.Emoji;
+        promo.ImageUrl = req.ImageUrl;
+        promo.SortOrder = req.SortOrder;
+        promo.IsActive = req.IsActive;
+        promo.MaxPerUser = req.MaxPerUser;
+        promo.UpdatedAt = DateTime.UtcNow;
+
+        db.Promotions.Update(promo);
+        await db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [HttpPut("promotions/{id}/products")]
+    public async Task<IActionResult> UpdatePromotionProducts(string id, [FromBody] UpdatePromotionProductsRequest req)
+    {
+        var promo = await db.Promotions
+            .FirstOrDefaultAsync(p => p.Id == id && p.TenantId == TenantId);
+        if (promo is null)
+            return NotFound();
+
+        // Validar productos (permitir duplicados)
+        var productCounts = req.ProductIds.GroupBy(x => x).ToDictionary(g => g.Key, g => g.Count());
+        var uniqueProductIds = productCounts.Keys.ToList();
+        var existingProducts = await db.Products
+            .Where(p => p.TenantId == TenantId && uniqueProductIds.Contains(p.Id))
+            .ToListAsync();
+        if (existingProducts.Count != uniqueProductIds.Count)
+            return BadRequest("Some products don't belong to this tenant");
+
+        // Asignar IDs directamente (puede tener duplicados)
+        promo.ProductIds = req.ProductIds;
+        promo.UpdatedAt = DateTime.UtcNow;
+        db.Promotions.Update(promo);
+        await db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [HttpPut("promotions/{id}/modifier-groups")]
+    public async Task<IActionResult> UpdatePromotionModifierGroups(string id, [FromBody] UpdatePromotionModifierGroupsRequest req)
+    {
+        var promo = await db.Promotions
+            .Include(p => p.ModifierGroups)
+            .FirstOrDefaultAsync(p => p.Id == id && p.TenantId == TenantId);
+        if (promo is null)
+            return NotFound();
+
+        // Validar modifier groups
+        var modifierGroupIds = new HashSet<string>(req.ModifierGroupIds ?? new List<string>());
+        var existingModifierGroups = await db.ModifierGroups
+            .Where(mg => mg.TenantId == TenantId && modifierGroupIds.Contains(mg.Id))
+            .ToListAsync();
+        if (modifierGroupIds.Count > 0 && existingModifierGroups.Count != modifierGroupIds.Count)
+            return BadRequest("Some modifier groups don't belong to this tenant");
+
+        // Clear + re-add
+        promo.ModifierGroups.Clear();
+        foreach (var group in existingModifierGroups)
+            promo.ModifierGroups.Add(group);
+
+        promo.UpdatedAt = DateTime.UtcNow;
+        db.Promotions.Update(promo);
+        await db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [HttpDelete("promotions/{id}")]
+    public async Task<IActionResult> DeletePromotion(string id)
+    {
+        var promo = await db.Promotions.FirstOrDefaultAsync(p => p.Id == id && p.TenantId == TenantId);
+        if (promo is null)
+            return NotFound();
+
+        db.Promotions.Remove(promo);
+        await db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    private static PromotionAdminDto MapPromotion(Promotion p, decimal originalPrice)
+    {
+        var discountPercent = originalPrice == 0 ? 0 : Math.Round((originalPrice - p.Price) / originalPrice * 100, 0);
+        return new PromotionAdminDto(
+            p.Id, p.Name, p.Description, p.Price, p.Emoji, p.ImageUrl, p.SortOrder, p.IsActive, p.MaxPerUser,
+            originalPrice, discountPercent,
+            p.ProductIds,
+            p.ModifierGroups.Select(x => x.Id).ToList()
+        );
+    }
 }
