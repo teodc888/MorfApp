@@ -13,6 +13,8 @@ type NavItem = {
 }
 
 const NAV: NavItem[] = [
+  { label: 'Pedidos', emoji: '🧾', href: 'orders', segment: 'orders' },
+  { label: 'Métricas', emoji: '📈', href: 'metrics', segment: 'metrics' },
   { label: 'Carta', emoji: '📋', href: 'menu', segment: 'menu' },
   { label: 'Opciones', emoji: '✨', href: 'modifiers', segment: 'modifiers' },
   { label: 'Promos', emoji: '🎁', href: 'promotions', segment: 'promotions' },

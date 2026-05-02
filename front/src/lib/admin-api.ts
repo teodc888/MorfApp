@@ -416,3 +416,115 @@ export async function deletePromotion(id: string): Promise<void> {
   const res = await adminFetch(`/api/admin/promotions/${id}`, { method: 'DELETE' })
   return assertOk(res)
 }
+
+// ── Orders ──────────────────────────────────────────────────────────
+
+export type OrderItemJson = {
+  productId: string
+  productName: string
+  qty: number
+  unitPrice: number
+  extraPrice: number
+  observations?: string | null
+}
+
+export type OrderItemFromApi = {
+  productId: string
+  productName: string
+  quantity: number
+  unitPrice: number
+  modifiers: Array<{
+    optionId: string
+    optionName: string
+    extraPrice: number
+  }>
+}
+
+export type OrderAdmin = {
+  id: string
+  customerName: string | null
+  customerPhone: string
+  items: OrderItemFromApi[]
+  totalPrice: number
+  deliveryMode: string | null
+  address: string | null
+  notes: string | null
+  paymentMethod: string | null
+  status: 'pending' | 'confirmed' | 'cancelled'
+  createdAt: string
+  confirmedAt: string | null
+}
+
+export async function getOrders(status?: string): Promise<OrderAdmin[]> {
+  const query = status ? `?status=${encodeURIComponent(status)}` : ''
+  const res = await adminFetch(`/api/admin/orders${query}`)
+  return parseJson<OrderAdmin[]>(res)
+}
+
+export async function confirmOrder(id: string): Promise<void> {
+  const res = await adminFetch(`/api/admin/orders/${id}/confirm`, { method: 'POST' })
+  return assertOk(res)
+}
+
+export async function cancelOrder(id: string): Promise<void> {
+  const res = await adminFetch(`/api/admin/orders/${id}/cancel`, { method: 'POST' })
+  return assertOk(res)
+}
+
+// ── Metrics ──────────────────────────────────────────────────────────
+
+export type MetricsPeriod = 'today' | 'week' | 'month' | 'year'
+
+export type TopProduct = {
+  productId: string
+  productName: string
+  quantity: number
+  revenue: number
+}
+
+export type RevenuePoint = {
+  label: string
+  revenue: number
+  orders: number
+}
+
+export type HourlyPoint = {
+  hour: number
+  orders: number
+}
+
+export type MetricsData = {
+  totalOrders: number
+  totalRevenue: number
+  averageOrderValue: number
+  totalCustomers: number
+  topProducts: TopProduct[]
+  revenueOverTime: RevenuePoint[]
+  ordersByHour: HourlyPoint[]
+}
+
+export async function getMetrics(period: MetricsPeriod): Promise<MetricsData> {
+  const today = new Date()
+  const year = today.getFullYear()
+  const month = today.getMonth() + 1
+  const dateStr = today.toISOString().split('T')[0]
+
+  let url = ''
+  switch (period) {
+    case 'today':
+      url = `/api/admin/metrics/daily?date=${dateStr}`
+      break
+    case 'week':
+      url = `/api/admin/metrics/weekly?date=${dateStr}`
+      break
+    case 'month':
+      url = `/api/admin/metrics/monthly?month=${month}&year=${year}`
+      break
+    case 'year':
+      url = `/api/admin/metrics/yearly?year=${year}`
+      break
+  }
+
+  const res = await adminFetch(url)
+  return parseJson<MetricsData>(res)
+}
