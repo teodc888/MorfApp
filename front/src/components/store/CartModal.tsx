@@ -215,7 +215,6 @@ export function CartModal({ tenant, onClose }: Props) {
       >
         {/* Header */}
         <div className="flex-shrink-0 flex items-center justify-between px-4 pt-4 pb-2 border-b border-zinc-100">
-          <div className="w-10 h-1 rounded-full bg-zinc-300 absolute left-1/2 -translate-x-1/2 top-3" />
           <h2 className="font-bold text-zinc-900 text-base">Tu carrito</h2>
           <button
             onClick={handleClose}
