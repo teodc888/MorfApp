@@ -1,5 +1,6 @@
-import { getMenu, getTenant } from '@/lib/api'
+import { getMenu, getTenant, getPromotions } from '@/lib/api'
 import { CategorySection } from '@/components/store/CategorySection'
+import { PromotionsSection } from '@/components/store/PromotionsSection'
 import { StoreShell } from '@/components/store/StoreShell'
 
 type Props = {
@@ -10,11 +11,13 @@ export default async function TenantPage({ params }: Props) {
   const { tenant: slug } = await params
 
   try {
-    const [categories, tenant] = await Promise.all([getMenu(slug), getTenant(slug)])
+    const [categories, tenant, promotions] = await Promise.all([getMenu(slug), getTenant(slug), getPromotions(slug)])
     const sorted = [...categories].sort((a, b) => a.sortOrder - b.sortOrder)
+    const sortedPromos = [...promotions].sort((a, b) => a.sortOrder - b.sortOrder)
 
     return (
       <StoreShell tenant={tenant} categories={sorted}>
+        {sortedPromos.length > 0 && <PromotionsSection promotions={sortedPromos} />}
         {sorted.map((cat) => (
           <CategorySection key={cat.id} category={cat} />
         ))}

@@ -95,3 +95,17 @@ export type CartItem = {
   extraPrice: number
   observations?: string
 }
+
+export type Promotion = {
+  id: string
+  name: string
+  description: string | null
+  price: number
+  emoji: string
+  imageUrl: string | null
+  sortOrder: number
+  maxPerUser: number | null
+  originalPrice: number
+  discountPercent: number
+  products: Product[]
+}
