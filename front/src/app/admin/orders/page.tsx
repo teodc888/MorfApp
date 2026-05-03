@@ -232,12 +232,17 @@ function OrderCard({
 /* ------------------------------------------------------------------ */
 /* Page                                                                  */
 /* ------------------------------------------------------------------ */
+type SortField = 'date' | 'total'
+type SortOrder = 'asc' | 'desc'
+
 export default function OrdersPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('pending')
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [cancellingId, setCancellingId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [currentPage, setCurrentPage] = useState(0)
+  const [sortField, setSortField] = useState<SortField>('date')
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const pageSize = 10
 
   const queryClient = useQueryClient()
@@ -259,7 +264,23 @@ export default function OrdersPage() {
     },
   })
 
-  const orders = response.items
+  const sortedOrders = (() => {
+    const sorted = [...response.items]
+    if (sortField === 'date') {
+      sorted.sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime()
+        const dateB = new Date(b.createdAt).getTime()
+        return sortOrder === 'desc' ? dateB - dateA : dateA - dateB
+      })
+    } else if (sortField === 'total') {
+      sorted.sort((a, b) => {
+        return sortOrder === 'desc' ? b.totalPrice - a.totalPrice : a.totalPrice - b.totalPrice
+      })
+    }
+    return sorted
+  })()
+
+  const orders = sortedOrders
   const totalOrders = response.total
   const totalPages = Math.ceil(totalOrders / pageSize)
 
@@ -344,15 +365,16 @@ export default function OrdersPage() {
         ))}
       </div>
 
-      {/* Búsqueda y paginación */}
+      {/* Filtros, búsqueda y paginación */}
       {statusFilter !== 'pending' && (
         <>
-          <div className="flex gap-2 items-end">
-            <div className="flex-1">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* Búsqueda */}
+            <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Buscar por nombre o teléfono</label>
               <input
                 type="text"
-                placeholder="Nombre o teléfono del cliente..."
+                placeholder="Nombre o teléfono..."
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value)
@@ -361,21 +383,60 @@ export default function OrdersPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-600"
               />
             </div>
-            {searchQuery && (
+
+            {/* Ordenar por */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Ordenar por</label>
+              <select
+                value={sortField}
+                onChange={(e) => setSortField(e.target.value as SortField)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-600"
+              >
+                <option value="date">Fecha</option>
+                <option value="total">Monto</option>
+              </select>
+            </div>
+
+            {/* Orden */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Orden</label>
+              <select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-600"
+              >
+                {sortField === 'date' ? (
+                  <>
+                    <option value="desc">Más recientes primero</option>
+                    <option value="asc">Más antiguos primero</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="desc">Mayor a menor</option>
+                    <option value="asc">Menor a mayor</option>
+                  </>
+                )}
+              </select>
+            </div>
+          </div>
+
+          {searchQuery && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-600">Filtro activo:</span>
               <button
                 onClick={() => {
                   setSearchQuery('')
                   setCurrentPage(0)
                 }}
-                className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg"
+                className="px-3 py-1 text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-full font-medium transition-colors"
               >
-                Limpiar
+                ✕ {searchQuery}
               </button>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Paginación */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between pt-2 border-t border-gray-100">
             <div className="text-xs text-gray-600">
               Mostrando {orders.length === 0 ? 0 : currentPage * pageSize + 1} a {Math.min((currentPage + 1) * pageSize, totalOrders)} de {totalOrders}
             </div>
