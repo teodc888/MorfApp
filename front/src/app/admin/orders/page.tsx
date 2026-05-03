@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useWebSocket } from '@/lib/useWebSocket'
 import {
   getOrders,
   confirmOrder,
@@ -237,6 +238,7 @@ export default function OrdersPage() {
   const [cancellingId, setCancellingId] = useState<string | null>(null)
 
   const queryClient = useQueryClient()
+  useWebSocket()
 
   const { data: orders = [], isLoading, error, refetch } = useQuery<OrderAdmin[], Error>({
     queryKey: ['orders', statusFilter],

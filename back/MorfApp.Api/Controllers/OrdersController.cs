@@ -12,7 +12,9 @@ namespace MorfApp.Api.Controllers;
 [ApiController]
 [Route("api/admin/orders")]
 [Authorize]
-public class OrdersController(IAppDbContext db) : ControllerBase
+public class OrdersController(
+    IAppDbContext db,
+    MorfApp.Api.WebSocket.WebSocketConnectionManager wsManager) : ControllerBase
 {
     private string TenantId => User.FindFirstValue("tenant_id")
         ?? throw new UnauthorizedAccessException();
@@ -51,6 +53,40 @@ public class OrdersController(IAppDbContext db) : ControllerBase
         order.Status = OrderStatus.Confirmed;
         order.ConfirmedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
+
+        // Emitir evento WebSocket
+        await wsManager.BroadcastToTenantAsync(TenantId, new MorfApp.Api.WebSocket.WebSocketEvent
+        {
+            Type = "order_confirmed",
+            Data = new { orderId = order.Id, status = order.Status.ToString().ToLower() }
+        });
+
+        return Ok(MapOrder(order));
+    }
+
+    // POST /api/admin/orders/{id}/cancel
+    // Cancela un pedido pendiente del tenant.
+    [HttpPost("{id}/cancel")]
+    public async Task<ActionResult<OrderAdminDto>> CancelOrder(string id)
+    {
+        var order = await db.Orders
+            .FirstOrDefaultAsync(o => o.Id == id && o.TenantId == TenantId);
+
+        if (order is null)
+            return NotFound(new { message = "Pedido no encontrado." });
+
+        if (order.Status == OrderStatus.Cancelled)
+            return BadRequest(new { message = "El pedido ya fue cancelado." });
+
+        order.Status = OrderStatus.Cancelled;
+        await db.SaveChangesAsync();
+
+        // Emitir evento WebSocket
+        await wsManager.BroadcastToTenantAsync(TenantId, new MorfApp.Api.WebSocket.WebSocketEvent
+        {
+            Type = "order_cancelled",
+            Data = new { orderId = order.Id, status = order.Status.ToString().ToLower() }
+        });
 
         return Ok(MapOrder(order));
     }

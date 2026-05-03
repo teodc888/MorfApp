@@ -56,6 +56,10 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks();
 
+// WebSocket
+builder.Services.AddSingleton<MorfApp.Api.WebSocket.WebSocketConnectionManager>();
+builder.Services.AddScoped<MorfApp.Api.WebSocket.WebSocketHandler>();
+
 builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(o =>
 {
     o.MultipartBodyLengthLimit = 5 * 1024 * 1024;
@@ -86,6 +90,22 @@ app.UseStaticFiles(new StaticFileOptions
 });
 app.UseAuthentication();
 app.UseAuthorization();
+
+// WebSocket endpoint
+app.UseWebSockets();
+app.Map("/ws", async (HttpContext context) =>
+{
+    if (context.WebSockets.IsWebSocketRequest)
+    {
+        var handler = context.RequestServices.GetRequiredService<MorfApp.Api.WebSocket.WebSocketHandler>();
+        await handler.HandleAsync(context, Guid.NewGuid().ToString());
+    }
+    else
+    {
+        context.Response.StatusCode = 400;
+    }
+});
+
 app.MapControllers();
 app.MapHealthChecks("/health");
 
