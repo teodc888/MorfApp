@@ -12,7 +12,8 @@ import {
 } from '@/lib/admin-api'
 import { formatPrice } from '@/lib/utils'
 
-type StatusFilter = 'pending' | 'confirmed' | 'cancelled'
+type StatusFilter = 'pending' | 'history'
+type HistoryStatus = 'confirmed' | 'cancelled'
 
 const STATUS_LABELS: Record<OrderAdmin['status'], string> = {
   pending: 'Pendiente',
@@ -237,6 +238,7 @@ type SortOrder = 'asc' | 'desc'
 
 export default function OrdersPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('pending')
+  const [historyStatus, setHistoryStatus] = useState<HistoryStatus>('confirmed')
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [cancellingId, setCancellingId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -255,11 +257,12 @@ export default function OrdersPage() {
 
   useWebSocket()
 
+  const apiStatus = statusFilter === 'pending' ? 'pending' : historyStatus
   const { data: response = { items: [], total: 0, limit: 10, offset: 0 }, isLoading, error, refetch } = useQuery<{ items: OrderAdmin[], total: number, limit: number, offset: number }, Error>({
-    queryKey: ['orders', statusFilter, searchQuery, currentPage],
+    queryKey: ['orders', apiStatus, searchQuery, currentPage],
     queryFn: async () => {
-      console.log('[Orders Query] Fetching orders with status:', statusFilter, 'search:', searchQuery, 'page:', currentPage)
-      const result = await getOrders(statusFilter, searchQuery, pageSize, currentPage * pageSize)
+      console.log('[Orders Query] Fetching orders with status:', apiStatus, 'search:', searchQuery, 'page:', currentPage)
+      const result = await getOrders(apiStatus, searchQuery, pageSize, currentPage * pageSize)
       return result
     },
   })
@@ -319,12 +322,14 @@ export default function OrdersPage() {
 
   const mutationError = confirmMutation.error?.message ?? cancelMutation.error?.message ?? null
 
-  const STATUS_TABS: StatusFilter[] = ['pending', 'confirmed', 'cancelled']
+  const STATUS_TABS: StatusFilter[] = ['pending']
   const TAB_LABELS: Record<StatusFilter, string> = {
     pending: 'Pendientes',
     confirmed: 'Confirmados',
     cancelled: 'Cancelados',
   }
+
+  const HISTORY_STATUSES: ('confirmed' | 'cancelled')[] = ['confirmed', 'cancelled']
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -346,32 +351,59 @@ export default function OrdersPage() {
 
       {/* Filtro por status */}
       <div className="flex gap-2 border-b border-gray-200 overflow-x-auto">
-        {STATUS_TABS.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => {
-              setStatusFilter(tab)
-              setCurrentPage(0)
-              setSearchQuery('')
-            }}
-            className={`pb-2.5 px-1 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
-              statusFilter === tab
-                ? 'border-orange-600 text-orange-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            {TAB_LABELS[tab]}
-          </button>
-        ))}
+        <button
+          onClick={() => {
+            setStatusFilter('pending')
+            setCurrentPage(0)
+            setSearchQuery('')
+          }}
+          className={`pb-2.5 px-1 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+            statusFilter === 'pending'
+              ? 'border-orange-600 text-orange-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          Pendientes
+        </button>
+        <button
+          onClick={() => {
+            setStatusFilter('history')
+            setCurrentPage(0)
+            setSearchQuery('')
+          }}
+          className={`pb-2.5 px-1 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+            statusFilter === 'history'
+              ? 'border-orange-600 text-orange-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          Historial
+        </button>
       </div>
 
-      {/* Filtros, búsqueda y paginación */}
-      {statusFilter !== 'pending' && (
+      {/* Filtros y búsqueda solo en historial */}
+      {statusFilter === 'history' && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+            {/* Estado */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Estado</label>
+              <select
+                value={historyStatus}
+                onChange={(e) => {
+                  setHistoryStatus(e.target.value as HistoryStatus)
+                  setCurrentPage(0)
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-600"
+              >
+                <option value="confirmed">Confirmados</option>
+                <option value="cancelled">Cancelados</option>
+              </select>
+            </div>
+
             {/* Búsqueda */}
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Buscar por nombre o teléfono</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Buscar cliente</label>
               <input
                 type="text"
                 placeholder="Nombre o teléfono..."
@@ -407,8 +439,8 @@ export default function OrdersPage() {
               >
                 {sortField === 'date' ? (
                   <>
-                    <option value="desc">Más recientes primero</option>
-                    <option value="asc">Más antiguos primero</option>
+                    <option value="desc">Más recientes</option>
+                    <option value="asc">Más antiguos</option>
                   </>
                 ) : (
                   <>
@@ -420,38 +452,21 @@ export default function OrdersPage() {
             </div>
           </div>
 
-          {searchQuery && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-600">Filtro activo:</span>
-              <button
-                onClick={() => {
-                  setSearchQuery('')
-                  setCurrentPage(0)
-                }}
-                className="px-3 py-1 text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-full font-medium transition-colors"
-              >
-                ✕ {searchQuery}
-              </button>
-            </div>
-          )}
-
           {/* Paginación */}
-          <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-            <div className="text-xs text-gray-600">
-              Mostrando {orders.length === 0 ? 0 : currentPage * pageSize + 1} a {Math.min((currentPage + 1) * pageSize, totalOrders)} de {totalOrders}
-            </div>
+          <div className="flex items-center justify-between text-xs text-gray-600">
+            <span>Mostrando {orders.length === 0 ? 0 : currentPage * pageSize + 1}-{Math.min((currentPage + 1) * pageSize, totalOrders)} de {totalOrders}</span>
             <div className="flex gap-2">
               <button
                 onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
                 disabled={currentPage === 0 || isLoading}
-                className="px-3 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-3 py-1.5 text-xs border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 ← Anterior
               </button>
               <button
                 onClick={() => setCurrentPage(p => p + 1)}
                 disabled={currentPage >= totalPages - 1 || isLoading}
-                className="px-3 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-3 py-1.5 text-xs border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Siguiente →
               </button>
@@ -478,9 +493,15 @@ export default function OrdersPage() {
       {!isLoading && orders.length === 0 && (
         <div className="text-center py-16 text-gray-400">
           <p className="text-4xl mb-3">
-            {statusFilter === 'pending' ? '🟡' : statusFilter === 'confirmed' ? '✅' : '❌'}
+            {statusFilter === 'pending' ? '🟡' : historyStatus === 'confirmed' ? '✅' : '❌'}
           </p>
-          <p className="font-medium">Sin pedidos {TAB_LABELS[statusFilter].toLowerCase()}</p>
+          <p className="font-medium">
+            {statusFilter === 'pending'
+              ? 'Sin pedidos pendientes'
+              : historyStatus === 'confirmed'
+              ? 'Sin pedidos confirmados'
+              : 'Sin pedidos cancelados'}
+          </p>
           <p className="text-sm mt-1">
             {statusFilter === 'pending'
               ? 'Los nuevos pedidos aparecerán aquí'
