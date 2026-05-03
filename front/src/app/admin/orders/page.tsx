@@ -322,14 +322,7 @@ export default function OrdersPage() {
 
   const mutationError = confirmMutation.error?.message ?? cancelMutation.error?.message ?? null
 
-  const STATUS_TABS: StatusFilter[] = ['pending']
-  const TAB_LABELS: Record<StatusFilter, string> = {
-    pending: 'Pendientes',
-    confirmed: 'Confirmados',
-    cancelled: 'Cancelados',
-  }
-
-  const HISTORY_STATUSES: ('confirmed' | 'cancelled')[] = ['confirmed', 'cancelled']
+  const HISTORY_STATUSES: HistoryStatus[] = ['confirmed', 'cancelled']
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
