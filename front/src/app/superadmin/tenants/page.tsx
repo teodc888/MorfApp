@@ -5,6 +5,7 @@ import Link from 'next/link'
 import {
   getSuperAdminTenants,
   updateTenantStatus,
+  activateTenant,
   buildWhatsAppNotificationUrl,
   getSettings,
   type SuperAdminTenant,
@@ -33,20 +34,28 @@ export default function TenantsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [toggling, setToggling] = useState<string | null>(null)
+  const [activating, setActivating] = useState<string | null>(null)
   const [confirmDialog, setConfirmDialog] = useState<{ tenantId: string; tenantName: string } | null>(null)
+  const [activateDialog, setActivateDialog] = useState<{ tenantId: string; tenantName: string; ownerEmail: string } | null>(null)
   const [messageTemplate, setMessageTemplate] = useState<string>('')
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
   useEffect(() => {
     load()
     loadTemplate()
   }, [])
 
+  function showToast(message: string, type: 'success' | 'error' = 'success') {
+    setToast({ message, type })
+    setTimeout(() => setToast(null), 4000)
+  }
+
   async function loadTemplate() {
     try {
       const settings = await getSettings()
       setMessageTemplate(settings.notificationMessageTemplate)
     } catch {
-      // silently fail, will use default template
+      // silently fail
     }
   }
 
@@ -63,20 +72,16 @@ export default function TenantsPage() {
 
   async function handleToggleStatus(tenant: SuperAdminTenant) {
     const newStatus = tenant.status === 'Active' ? 'Inactive' : 'Active'
-
     if (newStatus === 'Inactive') {
       setConfirmDialog({ tenantId: tenant.id, tenantName: tenant.name })
       return
     }
-
     setToggling(tenant.id)
     try {
       await updateTenantStatus(tenant.id, newStatus)
-      setTenants(prev =>
-        prev.map(t => t.id === tenant.id ? { ...t, status: newStatus } : t)
-      )
+      setTenants(prev => prev.map(t => t.id === tenant.id ? { ...t, status: newStatus } : t))
     } catch {
-      alert('No se pudo cambiar el estado')
+      showToast('No se pudo cambiar el estado', 'error')
     } finally {
       setToggling(null)
     }
@@ -87,14 +92,29 @@ export default function TenantsPage() {
     setToggling(confirmDialog.tenantId)
     try {
       await updateTenantStatus(confirmDialog.tenantId, 'Inactive')
-      setTenants(prev =>
-        prev.map(t => t.id === confirmDialog.tenantId ? { ...t, status: 'Inactive' } : t)
-      )
+      setTenants(prev => prev.map(t => t.id === confirmDialog.tenantId ? { ...t, status: 'Inactive' } : t))
     } catch {
-      alert('No se pudo cambiar el estado')
+      showToast('No se pudo cambiar el estado', 'error')
     } finally {
       setToggling(null)
       setConfirmDialog(null)
+    }
+  }
+
+  async function confirmActivate() {
+    if (!activateDialog) return
+    setActivating(activateDialog.tenantId)
+    try {
+      const result = await activateTenant(activateDialog.tenantId)
+      setTenants(prev => prev.map(t => t.id === activateDialog.tenantId ? { ...t, status: 'Active' } : t))
+      showToast(result.setupUrl
+        ? 'Negocio activado. Se envió el email al dueño.'
+        : `Negocio activado (no se pudo enviar el email).`)
+    } catch {
+      showToast('No se pudo activar el negocio', 'error')
+    } finally {
+      setActivating(null)
+      setActivateDialog(null)
     }
   }
 
@@ -110,8 +130,19 @@ export default function TenantsPage() {
     return <p className="text-red-600 bg-red-50 px-4 py-3 rounded-lg">{error}</p>
   }
 
+  const pending = tenants.filter(t => t.status === 'Pending')
+  const rest = tenants.filter(t => t.status !== 'Pending')
+
   return (
     <div>
+      {toast && (
+        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg text-sm font-medium transition-all ${
+          toast.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+        }`}>
+          {toast.message}
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Negocios</h1>
@@ -124,6 +155,71 @@ export default function TenantsPage() {
           + Nuevo negocio
         </Link>
       </div>
+
+      {pending.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-sm font-semibold text-amber-700 mb-3 flex items-center gap-2">
+            <span className="w-2 h-2 bg-amber-500 rounded-full inline-block" />
+            Pendientes de activación ({pending.length})
+          </h2>
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-amber-100">
+                    <th className="text-left px-4 py-3 font-medium text-amber-800">Negocio</th>
+                    <th className="text-left px-4 py-3 font-medium text-amber-800">Dueño</th>
+                    <th className="text-left px-4 py-3 font-medium text-amber-800">Plan</th>
+                    <th className="text-left px-4 py-3 font-medium text-amber-800">Registrado</th>
+                    <th className="text-right px-4 py-3 font-medium text-amber-800">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-amber-100">
+                  {pending.map(tenant => (
+                    <tr key={tenant.id} className="hover:bg-amber-100/50 transition-colors">
+                      <td className="px-4 py-3">
+                        <div className="font-medium text-gray-900">{tenant.name}</div>
+                        <div className="text-xs text-gray-400">{tenant.slug}</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="text-gray-700">{tenant.ownerName || '—'}</div>
+                        <div className="text-xs text-gray-400">{tenant.ownerEmail || tenant.ownerPhone || '—'}</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${PLAN_COLORS[tenant.plan] ?? 'bg-gray-100 text-gray-700'}`}>
+                          {PLAN_LABELS[tenant.plan] ?? tenant.plan}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-gray-600">{formatDate(tenant.createdAt)}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => setActivateDialog({
+                              tenantId: tenant.id,
+                              tenantName: tenant.name,
+                              ownerEmail: tenant.ownerEmail ?? ''
+                            })}
+                            disabled={activating === tenant.id}
+                            className="px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition-colors"
+                          >
+                            {activating === tenant.id ? '...' : '✓ Activar'}
+                          </button>
+                          <button
+                            onClick={() => setConfirmDialog({ tenantId: tenant.id, tenantName: tenant.name })}
+                            className="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                          >
+                            Dar baja
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
@@ -139,7 +235,7 @@ export default function TenantsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {tenants.map(tenant => {
+              {rest.map(tenant => {
                 const days = daysLeft(tenant.subscriptionEndsAt)
                 const expiringSoon = days !== null && days <= 7 && days >= 0
                 const expired = days !== null && days < 0
@@ -213,7 +309,7 @@ export default function TenantsPage() {
             </tbody>
           </table>
 
-          {tenants.length === 0 && (
+          {rest.length === 0 && pending.length === 0 && (
             <div className="text-center py-16 text-gray-400">
               <p className="text-4xl mb-2">🏪</p>
               <p>No hay negocios registrados aún</p>
@@ -244,6 +340,40 @@ export default function TenantsPage() {
                   className="flex-1 py-2 px-4 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white font-medium rounded-lg text-sm transition-colors"
                 >
                   {toggling === confirmDialog.tenantId ? 'Dando de baja...' : 'Dar de baja'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activateDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-xl max-w-sm mx-4">
+            <div className="p-6">
+              <h2 className="text-lg font-bold text-gray-900 mb-2">Activar "{activateDialog.tenantName}"</h2>
+              <p className="text-sm text-gray-600 mb-2">
+                Al activar este negocio:
+              </p>
+              <ul className="text-sm text-gray-600 mb-6 space-y-1 list-disc list-inside">
+                <li>Se creará la cuenta del administrador</li>
+                <li>Se enviará un email a <strong>{activateDialog.ownerEmail || 'sin email'}</strong> con el link de configuración de contraseña</li>
+                <li>El negocio quedará activo de inmediato</li>
+              </ul>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setActivateDialog(null)}
+                  disabled={activating === activateDialog.tenantId}
+                  className="flex-1 py-2 px-4 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-100 text-gray-900 font-medium rounded-lg text-sm transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmActivate}
+                  disabled={activating === activateDialog.tenantId}
+                  className="flex-1 py-2 px-4 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium rounded-lg text-sm transition-colors"
+                >
+                  {activating === activateDialog.tenantId ? 'Activando...' : 'Activar negocio'}
                 </button>
               </div>
             </div>

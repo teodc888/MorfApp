@@ -6,6 +6,7 @@ public record SuperAdminTenantDto(
     string Name,
     string OwnerName,
     string OwnerPhone,
+    string? OwnerEmail,
     string Plan,
     string Status,
     DateTime? SubscriptionEndsAt,

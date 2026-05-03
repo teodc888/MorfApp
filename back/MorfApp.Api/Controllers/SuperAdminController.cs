@@ -12,7 +12,7 @@ namespace MorfApp.Api.Controllers;
 [ApiController]
 [Route("api/superadmin")]
 [Authorize]
-public class SuperAdminController(IAppDbContext db) : ControllerBase
+public class SuperAdminController(IAppDbContext db, IEmailService emailService, IConfiguration config) : ControllerBase
 {
     private bool IsSuperAdmin =>
         User.FindFirstValue("is_superadmin") == "true";
@@ -111,6 +111,58 @@ public class SuperAdminController(IAppDbContext db) : ControllerBase
         return NoContent();
     }
 
+    [HttpPost("tenants/{id}/activate")]
+    public async Task<IActionResult> ActivateTenant(string id)
+    {
+        if (!IsSuperAdmin) return Forbid();
+
+        var tenant = await db.Tenants.Include(t => t.AdminUsers).FirstOrDefaultAsync(t => t.Id == id);
+        if (tenant is null) return NotFound();
+        if (tenant.Status != TenantStatus.Pending) return BadRequest(new { message = "El negocio no está en estado pendiente" });
+        if (string.IsNullOrEmpty(tenant.OwnerEmail)) return BadRequest(new { message = "El negocio no tiene email del dueño" });
+
+        var now = DateTime.UtcNow;
+
+        var adminUser = new AdminUser
+        {
+            TenantId = tenant.Id,
+            Email = tenant.OwnerEmail,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString()),
+            IsSuperadmin = false,
+            CreatedAt = now,
+            UpdatedAt = now,
+        };
+        db.AdminUsers.Add(adminUser);
+
+        var setupToken = new SetupToken
+        {
+            AdminUserId = adminUser.Id,
+            Token = Guid.NewGuid().ToString("N"),
+            ExpiresAt = now.AddHours(48),
+            IsUsed = false,
+            CreatedAt = now,
+        };
+        db.SetupTokens.Add(setupToken);
+
+        tenant.Status = TenantStatus.Active;
+        tenant.UpdatedAt = now;
+        await db.SaveChangesAsync();
+
+        var frontendUrl = config["App:FrontendUrl"] ?? "https://morfapp.app";
+        var setupUrl = $"{frontendUrl}/setup?token={setupToken.Token}";
+
+        try
+        {
+            await emailService.SendSetupEmailAsync(tenant.OwnerEmail, tenant.OwnerName, tenant.Name, setupUrl);
+        }
+        catch (Exception ex)
+        {
+            return Ok(new { message = "Negocio activado pero no se pudo enviar el email", setupUrl, error = ex.Message });
+        }
+
+        return Ok(new { message = "Negocio activado y email enviado" });
+    }
+
     [HttpGet("settings")]
     public async Task<ActionResult<SuperAdminSettingsDto>> GetSettings()
     {
@@ -152,6 +204,7 @@ public class SuperAdminController(IAppDbContext db) : ControllerBase
         t.Name,
         t.OwnerName,
         t.OwnerPhone,
+        t.OwnerEmail,
         t.Plan.ToString(),
         t.Status.ToString(),
         t.SubscriptionEndsAt,

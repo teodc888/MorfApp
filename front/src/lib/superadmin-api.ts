@@ -14,6 +14,7 @@ export type SuperAdminTenant = {
   name: string
   ownerName: string
   ownerPhone: string
+  ownerEmail: string | null
   plan: string
   status: string
   subscriptionEndsAt: string | null
@@ -62,6 +63,12 @@ export async function updateTenant(id: string, payload: UpdateTenantPayload): Pr
     body: JSON.stringify(payload),
   })
   if (!res.ok) throw new Error(`API error ${res.status}`)
+}
+
+export async function activateTenant(id: string): Promise<{ message: string; setupUrl?: string }> {
+  return json<{ message: string; setupUrl?: string }>(
+    await adminFetch(`/api/superadmin/tenants/${id}/activate`, { method: 'POST' })
+  )
 }
 
 export async function updateTenantStatus(id: string, status: 'Active' | 'Inactive'): Promise<void> {

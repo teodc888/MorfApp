@@ -8,6 +8,10 @@ public class Tenant
     public string Slug { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public TenantStatus Status { get; set; } = TenantStatus.Active;
+    public TenantPlan Plan { get; set; } = TenantPlan.Basico;
+    public string OwnerName { get; set; } = string.Empty;
+    public string OwnerPhone { get; set; } = string.Empty;
+    public string? OwnerEmail { get; set; }
     public string WhatsappNumber { get; set; } = string.Empty;
     public string Timezone { get; set; } = "America/Argentina/Buenos_Aires";
     public string Locale { get; set; } = "es-AR";

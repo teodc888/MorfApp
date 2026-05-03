@@ -21,5 +21,6 @@ public interface IAppDbContext
     DbSet<PromoRedemption> PromoRedemptions { get; }
     DbSet<Order> Orders { get; }
     DbSet<SuperAdminSettings> SuperAdminSettings { get; }
+    DbSet<SetupToken> SetupTokens { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

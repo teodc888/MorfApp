@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using MorfApp.Application.DTOs.Auth;
+using Microsoft.AspNetCore.Authorization;
 using MorfApp.Application.Interfaces;
 using MorfApp.Domain.Entities;
 using System.IdentityModel.Tokens.Jwt;
@@ -50,6 +51,28 @@ public class AuthController(IAppDbContext db, IConfiguration config) : Controlle
         stored.IsRevoked = true;
         var response = await IssueTokens(stored.AdminUser);
         return Ok(response);
+    }
+
+    [AllowAnonymous]
+    [HttpPost("setup-password")]
+    public async Task<IActionResult> SetupPassword([FromBody] SetupPasswordRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.Password) || req.Password.Length < 8)
+            return BadRequest(new { message = "La contraseña debe tener al menos 8 caracteres" });
+
+        var setupToken = await db.SetupTokens
+            .Include(s => s.AdminUser)
+            .FirstOrDefaultAsync(s => s.Token == req.Token && !s.IsUsed);
+
+        if (setupToken is null || setupToken.ExpiresAt < DateTime.UtcNow)
+            return BadRequest(new { message = "El link es inválido o ya expiró" });
+
+        setupToken.AdminUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password);
+        setupToken.AdminUser.UpdatedAt = DateTime.UtcNow;
+        setupToken.IsUsed = true;
+        await db.SaveChangesAsync();
+
+        return Ok(new { message = "Contraseña configurada correctamente" });
     }
 
     [HttpPost("logout")]
