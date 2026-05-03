@@ -24,6 +24,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Promotion> Promotions => Set<Promotion>();
     public DbSet<PromoRedemption> PromoRedemptions => Set<PromoRedemption>();
     public DbSet<Order> Orders => Set<Order>();
+    public DbSet<SuperAdminSettings> SuperAdminSettings => Set<SuperAdminSettings>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -37,6 +38,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(t => t.Slug).IsUnique();
             e.HasIndex(t => t.CustomDomain).IsUnique();
             e.Property(t => t.Status).HasConversion<string>();
+            e.Property(t => t.Plan).HasConversion<string>();
         });
 
         // TenantBranding — one-to-one
