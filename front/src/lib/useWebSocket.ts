@@ -13,7 +13,7 @@ export function useWebSocket() {
   const wsRef = useRef<WebSocket | null>(null)
 
   const connect = useCallback(() => {
-    const token = localStorage.getItem('access_token')
+    const token = localStorage.getItem('morf_access_token')
     if (!token) return
 
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
@@ -28,17 +28,28 @@ export function useWebSocket() {
 
     ws.onmessage = (event) => {
       try {
-        const message: WebSocketMessage = JSON.parse(event.data)
-        console.log('[WebSocket] Message:', message)
+        const raw = JSON.parse(event.data) as any
+        // Handle both camelCase and PascalCase from backend
+        const message: WebSocketMessage = {
+          type: (raw.type || raw.Type) as WebSocketEventType,
+          data: raw.data || raw.Data
+        }
+        console.log('[WebSocket] Message received:', message.type)
 
         if (message.type === 'new_order') {
-          // Invalidar queries de órdenes y métricas para refetch automático
-          queryClient.invalidateQueries({ queryKey: ['orders'] })
-          queryClient.invalidateQueries({ queryKey: ['metrics'] })
+          console.log('[WebSocket] new_order - refetching all orders queries (same as Actualizar button)')
+
+          // Refetch ALL orders queries - same as clicking "Actualizar" button
+          queryClient.refetchQueries({ queryKey: ['orders'] })
+
+          console.log('[WebSocket] new_order - refetching metrics')
+          queryClient.refetchQueries({ queryKey: ['metrics'] })
         } else if (message.type === 'order_confirmed' || message.type === 'order_cancelled') {
-          // Invalidar queries de órdenes y métricas
-          queryClient.invalidateQueries({ queryKey: ['orders'] })
-          queryClient.invalidateQueries({ queryKey: ['metrics'] })
+          console.log('[WebSocket] order status change:', message.type)
+
+          // Refetch immediately, just like the button would
+          queryClient.refetchQueries({ queryKey: ['orders'] })
+          queryClient.refetchQueries({ queryKey: ['metrics'] })
         }
       } catch (e) {
         console.error('[WebSocket] Parse error:', e)

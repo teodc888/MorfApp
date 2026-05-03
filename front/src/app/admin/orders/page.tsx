@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useWebSocket } from '@/lib/useWebSocket'
 import {
@@ -236,15 +236,37 @@ export default function OrdersPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('pending')
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [cancellingId, setCancellingId] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [currentPage, setCurrentPage] = useState(0)
+  const pageSize = 10
 
   const queryClient = useQueryClient()
+
+  // Log cuando el componente se monta y desmonta
+  useEffect(() => {
+    console.log('[OrdersPage] Mounted with statusFilter:', statusFilter)
+    return () => console.log('[OrdersPage] Unmounted')
+  }, [statusFilter])
+
   useWebSocket()
 
-  const { data: orders = [], isLoading, error, refetch } = useQuery<OrderAdmin[], Error>({
-    queryKey: ['orders', statusFilter],
-    queryFn: () => getOrders(statusFilter),
-    refetchInterval: 30_000, // refresca cada 30s automáticamente
+  const { data: response = { items: [], total: 0, limit: 10, offset: 0 }, isLoading, error, refetch } = useQuery<{ items: OrderAdmin[], total: number, limit: number, offset: number }, Error>({
+    queryKey: ['orders', statusFilter, searchQuery, currentPage],
+    queryFn: async () => {
+      console.log('[Orders Query] Fetching orders with status:', statusFilter, 'search:', searchQuery, 'page:', currentPage)
+      const result = await getOrders(statusFilter, searchQuery, pageSize, currentPage * pageSize)
+      return result
+    },
   })
+
+  const orders = response.items
+  const totalOrders = response.total
+  const totalPages = Math.ceil(totalOrders / pageSize)
+
+  // Log cuando los datos cambian
+  useEffect(() => {
+    console.log('[OrdersPage] Data updated - orders count:', orders.length, 'isLoading:', isLoading)
+  }, [orders, isLoading])
 
   const confirmMutation = useMutation({
     mutationFn: (id: string) => confirmOrder(id),
@@ -306,7 +328,11 @@ export default function OrdersPage() {
         {STATUS_TABS.map((tab) => (
           <button
             key={tab}
-            onClick={() => setStatusFilter(tab)}
+            onClick={() => {
+              setStatusFilter(tab)
+              setCurrentPage(0)
+              setSearchQuery('')
+            }}
             className={`pb-2.5 px-1 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
               statusFilter === tab
                 ? 'border-orange-600 text-orange-600'
@@ -317,6 +343,61 @@ export default function OrdersPage() {
           </button>
         ))}
       </div>
+
+      {/* Búsqueda y paginación */}
+      {statusFilter !== 'pending' && (
+        <>
+          <div className="flex gap-2 items-end">
+            <div className="flex-1">
+              <label className="block text-xs font-medium text-gray-600 mb-1">Buscar por nombre o teléfono</label>
+              <input
+                type="text"
+                placeholder="Nombre o teléfono del cliente..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value)
+                  setCurrentPage(0)
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-600"
+              />
+            </div>
+            {searchQuery && (
+              <button
+                onClick={() => {
+                  setSearchQuery('')
+                  setCurrentPage(0)
+                }}
+                className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg"
+              >
+                Limpiar
+              </button>
+            )}
+          </div>
+
+          {/* Paginación */}
+          <div className="flex items-center justify-between">
+            <div className="text-xs text-gray-600">
+              Mostrando {orders.length === 0 ? 0 : currentPage * pageSize + 1} a {Math.min((currentPage + 1) * pageSize, totalOrders)} de {totalOrders}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
+                disabled={currentPage === 0 || isLoading}
+                className="px-3 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                ← Anterior
+              </button>
+              <button
+                onClick={() => setCurrentPage(p => p + 1)}
+                disabled={currentPage >= totalPages - 1 || isLoading}
+                className="px-3 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Siguiente →
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Errores */}
       {(error || mutationError) && (

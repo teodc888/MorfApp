@@ -14,9 +14,18 @@ public class CreateOrderRequest
 
 public class CreateOrderItemRequest
 {
+    [System.Text.Json.Serialization.JsonPropertyName("productId")]
     public string? ProductId { get; set; }
+
+    [System.Text.Json.Serialization.JsonPropertyName("productName")]
     public string? ProductName { get; set; }
+
+    [System.Text.Json.Serialization.JsonPropertyName("qty")]
     public int Quantity { get; set; }
+
+    [System.Text.Json.Serialization.JsonPropertyName("unitPrice")]
     public decimal Price { get; set; }
+
+    [System.Text.Json.Serialization.JsonPropertyName("extraPrice")]
     public decimal ExtraPrice { get; set; }
 }
