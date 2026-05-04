@@ -255,6 +255,7 @@ export default function ConfigPage() {
               <input
                 type="number"
                 step="0.01"
+                min="0"
                 value={delivery.deliveryCost}
                 onChange={(e) => setDel('deliveryCost', e.target.value)}
                 className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
@@ -266,6 +267,7 @@ export default function ConfigPage() {
               <input
                 type="number"
                 step="0.01"
+                min="0"
                 value={delivery.freeDeliveryFrom}
                 onChange={(e) => setDel('freeDeliveryFrom', e.target.value)}
                 className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
@@ -281,6 +283,7 @@ export default function ConfigPage() {
             <input
               type="number"
               step="0.01"
+              min="0"
               value={delivery.minOrderAmount}
               onChange={(e) => setDel('minOrderAmount', e.target.value)}
               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"

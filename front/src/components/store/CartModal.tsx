@@ -159,8 +159,8 @@ export function CartModal({ tenant, onClose }: Props) {
   const grandTotal = total + deliveryCost
 
   const isFormValid =
-    form.name.trim().length > 0 &&
-    form.phone.trim().length > 0 &&
+    form.name.trim().length >= 2 &&
+    /^\d{6,}$/.test(form.phone.replace(/[\s+\-()]/g, '')) &&
     (activeDelivery === 'pickup' || form.address.trim().length > 0)
 
   const handleConfirm = async () => {

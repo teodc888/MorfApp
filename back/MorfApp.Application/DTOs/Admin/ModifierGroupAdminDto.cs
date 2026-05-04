@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace MorfApp.Application.DTOs.Admin;
 
 public record ModifierGroupAdminDto(
@@ -20,28 +22,28 @@ public record ModifierOptionAdminDto(
 );
 
 public record CreateModifierGroupRequest(
-    string Name,
-    string Type,
+    [property: Required, MinLength(1), MaxLength(100)] string Name,
+    [property: Required] string Type,
     bool IsRequired,
-    int? MaxSelect,
+    [property: Range(1, 100)] int? MaxSelect,
     int SortOrder,
     List<UpsertModifierOptionRequest> Options
 );
 
 public record UpdateModifierGroupRequest(
-    string Name,
-    string Type,
+    [property: Required, MinLength(1), MaxLength(100)] string Name,
+    [property: Required] string Type,
     bool IsRequired,
-    int? MaxSelect,
+    [property: Range(1, 100)] int? MaxSelect,
     int SortOrder,
     List<UpsertModifierOptionRequest> Options
 );
 
 public record UpsertModifierOptionRequest(
     string? Id,
-    string Name,
-    string Emoji,
-    decimal ExtraPrice,
+    [property: Required, MinLength(1), MaxLength(100)] string Name,
+    [property: MaxLength(10)] string Emoji,
+    [property: Range(0, 99999)] decimal ExtraPrice,
     int SortOrder
 );
 

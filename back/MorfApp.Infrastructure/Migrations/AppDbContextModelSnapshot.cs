@@ -57,12 +57,9 @@ namespace MorfApp.Infrastructure.Migrations
                     b.HasKey("Id")
                         .HasName("pk_admin_users");
 
-                    b.HasIndex("Email")
+                    b.HasIndex("TenantId", "Email")
                         .IsUnique()
-                        .HasDatabaseName("ix_admin_users_email");
-
-                    b.HasIndex("TenantId")
-                        .HasDatabaseName("ix_admin_users_tenant_id");
+                        .HasDatabaseName("ix_admin_users_tenant_id_email");
 
                     b.ToTable("admin_users", (string)null);
                 });

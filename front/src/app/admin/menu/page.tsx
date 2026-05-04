@@ -254,6 +254,11 @@ export default function MenuPage() {
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    if (file.size > 5 * 1024 * 1024) {
+      setError('La imagen no puede superar los 5 MB')
+      e.target.value = ''
+      return
+    }
     setUploading(true)
     try {
       const url = await uploadImage(file)
@@ -551,6 +556,7 @@ export default function MenuPage() {
                   <input
                     type="number"
                     step="0.01"
+                    min="0"
                     value={prodForm.price}
                     onChange={(e) => setProdForm((f) => ({ ...f, price: e.target.value }))}
                     className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"

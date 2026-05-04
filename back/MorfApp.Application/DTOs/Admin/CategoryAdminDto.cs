@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace MorfApp.Application.DTOs.Admin;
 
 public record CategoryAdminDto(
@@ -9,6 +11,15 @@ public record CategoryAdminDto(
     List<ProductAdminDto> Products
 );
 
-public record CreateCategoryRequest(string Name, string? Emoji, int SortOrder);
+public record CreateCategoryRequest(
+    [property: Required, MinLength(1), MaxLength(100)] string Name,
+    [property: MaxLength(10)] string? Emoji,
+    int SortOrder
+);
 
-public record UpdateCategoryRequest(string Name, string? Emoji, int SortOrder, bool IsActive);
+public record UpdateCategoryRequest(
+    [property: Required, MinLength(1), MaxLength(100)] string Name,
+    [property: MaxLength(10)] string? Emoji,
+    int SortOrder,
+    bool IsActive
+);

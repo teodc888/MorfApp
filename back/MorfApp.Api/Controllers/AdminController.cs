@@ -142,6 +142,21 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
         return NoContent();
     }
 
+    [HttpPut("plan")]
+    public async Task<IActionResult> UpdatePlan([FromBody] UpdatePlanRequest req)
+    {
+        var tenant = await db.Tenants.FindAsync(TenantId);
+        if (tenant is null) return NotFound();
+
+        if (!Enum.TryParse<TenantPlan>(req.Plan, out var plan))
+            return BadRequest(new { message = "Plan inválido. Opciones: Basico, Pro, Negocio" });
+
+        tenant.Plan = plan;
+        tenant.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+        return NoContent();
+    }
+
     [HttpPut("whatsapp-template")]
     public async Task<IActionResult> UpdateWhatsAppTemplate([FromBody] UpdateWhatsAppTemplateRequest req)
     {
@@ -482,7 +497,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
     // ── Mappers ──────────────────────────────────────────────────────────────
 
     private static TenantInfoDto MapTenantInfo(Domain.Entities.Tenant t) => new(
-        t.Id, t.Slug, t.Name, t.WhatsappNumber, t.WhatsAppMessageTemplate,
+        t.Id, t.Slug, t.Name, t.WhatsappNumber, t.WhatsAppMessageTemplate, t.Plan.ToString(),
         t.Branding is null ? null : new BrandingAdminDto(
             t.Branding.ColorPrimary, t.Branding.ColorAccent,
             t.Branding.LogoUrl, t.Branding.BannerUrl,
