@@ -145,6 +145,7 @@ public class SuperAdminController(IAppDbContext db, IEmailService emailService, 
         db.SetupTokens.Add(setupToken);
 
         tenant.Status = TenantStatus.Active;
+        tenant.SubscriptionEndsAt = now.AddDays(30);
         tenant.UpdatedAt = now;
         await db.SaveChangesAsync();
 
@@ -154,13 +155,12 @@ public class SuperAdminController(IAppDbContext db, IEmailService emailService, 
         try
         {
             await emailService.SendSetupEmailAsync(tenant.OwnerEmail, tenant.OwnerName, tenant.Name, setupUrl);
+            return Ok(new { message = "Negocio activado y email enviado", setupUrl });
         }
         catch (Exception ex)
         {
             return Ok(new { message = "Negocio activado pero no se pudo enviar el email", setupUrl, error = ex.Message });
         }
-
-        return Ok(new { message = "Negocio activado y email enviado" });
     }
 
     [HttpGet("settings")]

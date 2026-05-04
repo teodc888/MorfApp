@@ -158,7 +158,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<AdminUser>(e =>
         {
             e.HasKey(u => u.Id);
-            e.HasIndex(u => u.Email).IsUnique();
+            e.HasIndex(u => new { u.TenantId, u.Email }).IsUnique();
             e.HasOne(u => u.Tenant)
              .WithMany(t => t.AdminUsers)
              .HasForeignKey(u => u.TenantId)
