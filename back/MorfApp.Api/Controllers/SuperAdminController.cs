@@ -87,7 +87,7 @@ public class SuperAdminController(IAppDbContext db, IEmailService emailService, 
         if (req.Name is not null) tenant.Name = req.Name;
         if (req.OwnerName is not null) tenant.OwnerName = req.OwnerName;
         if (req.OwnerPhone is not null) tenant.OwnerPhone = req.OwnerPhone;
-        tenant.SubscriptionEndsAt = req.SubscriptionEndsAt;
+        if (req.SubscriptionEndsAt.HasValue) tenant.SubscriptionEndsAt = req.SubscriptionEndsAt;
         tenant.UpdatedAt = DateTime.UtcNow;
 
         await db.SaveChangesAsync();
@@ -122,6 +122,10 @@ public class SuperAdminController(IAppDbContext db, IEmailService emailService, 
         if (string.IsNullOrEmpty(tenant.OwnerEmail)) return BadRequest(new { message = "El negocio no tiene email del dueño" });
 
         var now = DateTime.UtcNow;
+
+        var existingUser = tenant.AdminUsers.FirstOrDefault(u => u.Email == tenant.OwnerEmail);
+        if (existingUser is not null)
+            return BadRequest(new { message = "Ya existe un usuario admin con ese email para este negocio" });
 
         var adminUser = new AdminUser
         {
@@ -170,12 +174,7 @@ public class SuperAdminController(IAppDbContext db, IEmailService emailService, 
 
         var settings = await db.SuperAdminSettings.FirstOrDefaultAsync();
         if (settings is null)
-        {
-            var newSettings = new SuperAdminSettings();
-            db.SuperAdminSettings.Add(newSettings);
-            await db.SaveChangesAsync();
-            settings = newSettings;
-        }
+            return Ok(MapSettingsToDto(new SuperAdminSettings()));
 
         return Ok(MapSettingsToDto(settings));
     }
@@ -219,5 +218,3 @@ public class SuperAdminController(IAppDbContext db, IEmailService emailService, 
         UpdatedAt = s.UpdatedAt,
     };
 }
-
-public record UpdateTenantStatusRequest(string Status);

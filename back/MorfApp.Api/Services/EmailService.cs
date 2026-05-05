@@ -24,6 +24,7 @@ public class EmailService(IConfiguration config) : IEmailService
         message.Body = bodyBuilder.ToMessageBody();
 
         using var client = new SmtpClient();
+        client.Timeout = 15000;
         await client.ConnectAsync(
             config["Email:SmtpHost"] ?? "smtp.gmail.com",
             config.GetValue<int>("Email:SmtpPort", 587),

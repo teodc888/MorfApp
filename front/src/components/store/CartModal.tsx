@@ -160,7 +160,7 @@ export function CartModal({ tenant, onClose }: Props) {
 
   const isFormValid =
     form.name.trim().length >= 2 &&
-    /^\d{6,}$/.test(form.phone.replace(/[\s+\-()]/g, '')) &&
+    /^\d{8,}$/.test(form.phone.replace(/[\s+\-()]/g, '')) &&
     (activeDelivery === 'pickup' || form.address.trim().length > 0)
 
   const handleConfirm = async () => {

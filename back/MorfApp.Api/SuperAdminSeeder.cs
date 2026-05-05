@@ -12,17 +12,22 @@ public static class SuperAdminSeeder
     public static async Task SeedAsync(AppDbContext db)
     {
         var existing = await db.AdminUsers.FirstOrDefaultAsync(u => u.Email == SuperAdminEmail);
-        if (existing is not null) return;
-
-        db.AdminUsers.Add(new AdminUser
+        if (existing is null)
         {
-            Email = SuperAdminEmail,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(SuperAdminPassword),
-            IsSuperadmin = true,
-            TenantId = null,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow,
-        });
+            db.AdminUsers.Add(new AdminUser
+            {
+                Email = SuperAdminEmail,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(SuperAdminPassword),
+                IsSuperadmin = true,
+                TenantId = null,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            });
+        }
+
+        var settingsExist = await db.SuperAdminSettings.AnyAsync();
+        if (!settingsExist)
+            db.SuperAdminSettings.Add(new SuperAdminSettings());
 
         await db.SaveChangesAsync();
     }
