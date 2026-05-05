@@ -50,6 +50,34 @@ public class OrdersController(IAppDbContext db) : ControllerBase
 
         order.Status = OrderStatus.Confirmed;
         order.ConfirmedAt = DateTime.UtcNow;
+
+        // Descontar inventario según los insumos asociados a cada producto
+        foreach (var item in order.Items)
+        {
+            var productSupplies = await db.ProductSupplies
+                .Where(ps => ps.ProductId == item.ProductId && ps.TenantId == TenantId && !ps.IsUnknownQuantity)
+                .ToListAsync();
+
+            foreach (var ps in productSupplies)
+            {
+                var supply = await db.Supplies.FirstOrDefaultAsync(s => s.Id == ps.SupplyId);
+                if (supply is null) continue;
+
+                var delta = ps.QuantityRequired * item.Quantity;
+                supply.CurrentStock -= delta;
+                supply.UpdatedAt = DateTime.UtcNow;
+
+                db.InventoryMovements.Add(new InventoryMovement
+                {
+                    TenantId = TenantId,
+                    SupplyId = ps.SupplyId,
+                    QuantityChange = -delta,
+                    Reason = "OrderDeducted",
+                    ReferenceId = order.Id
+                });
+            }
+        }
+
         await db.SaveChangesAsync();
 
         return Ok(MapOrder(order));

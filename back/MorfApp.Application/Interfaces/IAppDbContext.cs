@@ -22,5 +22,12 @@ public interface IAppDbContext
     DbSet<Order> Orders { get; }
     DbSet<SuperAdminSettings> SuperAdminSettings { get; }
     DbSet<SetupToken> SetupTokens { get; }
+    DbSet<Supplier> Suppliers { get; }
+    DbSet<Supply> Supplies { get; }
+    DbSet<SupplyPurchase> SupplyPurchases { get; }
+    DbSet<SupplierPayment> SupplierPayments { get; }
+    DbSet<SupplierPaymentAllocation> SupplierPaymentAllocations { get; }
+    DbSet<ProductSupply> ProductSupplies { get; }
+    DbSet<InventoryMovement> InventoryMovements { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

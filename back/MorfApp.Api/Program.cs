@@ -118,6 +118,46 @@ using (var scope = app.Services.CreateScope())
                 WHERE table_schema = 'public' AND table_name = 'tenants'
             )
             ON CONFLICT DO NOTHING;
+
+            DELETE FROM ""__EFMigrationsHistory""
+            WHERE migration_id = '20260502144208_AddPromotionModifierGroups'
+              AND NOT EXISTS (
+                  SELECT 1 FROM information_schema.tables
+                  WHERE table_schema = 'public' AND table_name = 'promotion_modifier_groups'
+              );
+
+            DELETE FROM ""__EFMigrationsHistory""
+            WHERE migration_id = '20260502201140_AddPaymentConfig'
+              AND NOT EXISTS (
+                  SELECT 1 FROM information_schema.tables
+                  WHERE table_schema = 'public' AND table_name = 'payment_configs'
+              );
+
+            DELETE FROM ""__EFMigrationsHistory""
+            WHERE migration_id = '20260505161547_AddSuppliersAndInventory'
+              AND NOT EXISTS (
+                  SELECT 1 FROM information_schema.tables
+                  WHERE table_schema = 'public' AND table_name = 'suppliers'
+              );
+
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.tables
+                    WHERE table_schema = 'public' AND table_name = 'promotions'
+                ) THEN
+                    ALTER TABLE promotions ADD COLUMN IF NOT EXISTS description text NULL;
+                    ALTER TABLE promotions ADD COLUMN IF NOT EXISTS price numeric(18,2) NOT NULL DEFAULT 0;
+                    ALTER TABLE promotions ADD COLUMN IF NOT EXISTS emoji text NOT NULL DEFAULT '🎁';
+                    ALTER TABLE promotions ADD COLUMN IF NOT EXISTS image_url text NULL;
+                    ALTER TABLE promotions ADD COLUMN IF NOT EXISTS sort_order integer NOT NULL DEFAULT 0;
+                    ALTER TABLE promotions ADD COLUMN IF NOT EXISTS is_active boolean NOT NULL DEFAULT true;
+                    ALTER TABLE promotions ADD COLUMN IF NOT EXISTS max_per_user integer NULL;
+                    ALTER TABLE promotions ADD COLUMN IF NOT EXISTS product_ids jsonb NOT NULL DEFAULT '[]'::jsonb;
+                    ALTER TABLE promotions ADD COLUMN IF NOT EXISTS created_at timestamp with time zone NOT NULL DEFAULT now();
+                    ALTER TABLE promotions ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone NOT NULL DEFAULT now();
+                END IF;
+            END $$;
         ";
         await cmd.ExecuteNonQueryAsync();
     }
@@ -149,7 +189,7 @@ app.MapHealthChecks("/health");
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await SuperAdminSeeder.SeedAsync(db);
+    await SuperAdminSeeder.SeedAsync(db, app.Configuration, app.Environment);
 }
 
 if (app.Environment.IsDevelopment())

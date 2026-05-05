@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MorfApp.Infrastructure.Persistence;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MorfApp.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260505161547_AddSuppliersAndInventory")]
+    partial class AddSuppliersAndInventory
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -877,86 +880,6 @@ namespace MorfApp.Infrastructure.Migrations
                         .HasName("pk_suppliers");
 
                     b.ToTable("suppliers", (string)null);
-                });
-
-            modelBuilder.Entity("MorfApp.Domain.Entities.SupplierPayment", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("text")
-                        .HasColumnName("id");
-
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
-                        .HasColumnName("amount");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<string>("Notes")
-                        .HasColumnType("text")
-                        .HasColumnName("notes");
-
-                    b.Property<DateTime>("PaidAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("paid_at");
-
-                    b.Property<string>("SupplierId")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("supplier_id");
-
-                    b.Property<string>("TenantId")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("tenant_id");
-
-                    b.HasKey("Id")
-                        .HasName("pk_supplier_payments");
-
-                    b.HasIndex("TenantId", "SupplierId", "PaidAt")
-                        .HasDatabaseName("ix_supplier_payments_tenant_id_supplier_id_paid_at");
-
-                    b.ToTable("supplier_payments", (string)null);
-                });
-
-            modelBuilder.Entity("MorfApp.Domain.Entities.SupplierPaymentAllocation", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("text")
-                        .HasColumnName("id");
-
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
-                        .HasColumnName("amount");
-
-                    b.Property<string>("SupplierPaymentId")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("supplier_payment_id");
-
-                    b.Property<string>("SupplyPurchaseId")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("supply_purchase_id");
-
-                    b.Property<string>("TenantId")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("tenant_id");
-
-                    b.HasKey("Id")
-                        .HasName("pk_supplier_payment_allocations");
-
-                    b.HasIndex("SupplierPaymentId")
-                        .HasDatabaseName("ix_supplier_payment_allocations_supplier_payment_id");
-
-                    b.HasIndex("TenantId", "SupplyPurchaseId")
-                        .HasDatabaseName("ix_supplier_payment_allocations_tenant_id_supply_purchase_id");
-
-                    b.ToTable("supplier_payment_allocations", (string)null);
                 });
 
             modelBuilder.Entity("MorfApp.Domain.Entities.Supply", b =>

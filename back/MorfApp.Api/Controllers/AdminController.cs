@@ -6,6 +6,7 @@ using MorfApp.Application.Interfaces;
 using MorfApp.Domain.Entities;
 using MorfApp.Domain.Enums;
 using System.Security.Claims;
+using System.ComponentModel.DataAnnotations;
 
 namespace MorfApp.Api.Controllers;
 
@@ -706,6 +707,71 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
             return NotFound();
 
         db.Promotions.Remove(promo);
+        await db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    // ── Product Supplies ─────────────────────────────────────────────────────
+
+    [HttpGet("products/{productId}/supplies")]
+    public async Task<ActionResult<List<ProductSupplyDto>>> GetProductSupplies(string productId)
+    {
+        var product = await db.Products.FirstOrDefaultAsync(p => p.Id == productId && p.TenantId == TenantId);
+        if (product is null) return NotFound();
+
+        var productSupplies = await db.ProductSupplies
+            .Where(ps => ps.ProductId == productId && ps.TenantId == TenantId)
+            .ToListAsync();
+
+        var supplyIds = productSupplies.Select(ps => ps.SupplyId).ToList();
+        var supplies = await db.Supplies
+            .Where(s => s.TenantId == TenantId && supplyIds.Contains(s.Id))
+            .ToDictionaryAsync(s => s.Id);
+
+        var result = productSupplies.Select(ps => new ProductSupplyDto
+        {
+            SupplyId = ps.SupplyId,
+            SupplyName = supplies.TryGetValue(ps.SupplyId, out var s) ? s.Name : "",
+            Unit = supplies.TryGetValue(ps.SupplyId, out var s2) ? s2.Unit : null,
+            QuantityRequired = ps.QuantityRequired,
+            IsUnknownQuantity = ps.IsUnknownQuantity
+        }).ToList();
+
+        return Ok(result);
+    }
+
+    [HttpPut("products/{productId}/supplies")]
+    public async Task<IActionResult> UpdateProductSupplies(string productId, [FromBody] UpdateProductSuppliesRequest req)
+    {
+        var product = await db.Products.FirstOrDefaultAsync(p => p.Id == productId && p.TenantId == TenantId);
+        if (product is null) return NotFound();
+
+        // Verificar que todos los SupplyIds existan y pertenezcan al tenant
+        var supplyIds = req.Supplies.Select(s => s.SupplyId).ToList();
+        var validSupplies = await db.Supplies
+            .Where(s => supplyIds.Contains(s.Id) && s.TenantId == TenantId && s.IsActive)
+            .Select(s => s.Id)
+            .ToListAsync();
+
+        if (validSupplies.Count != supplyIds.Distinct().Count())
+            return BadRequest(new { message = "Uno o más insumos no son válidos." });
+
+        // Limpiar y reemplazar
+        var existing = db.ProductSupplies.Where(ps => ps.ProductId == productId && ps.TenantId == TenantId);
+        db.ProductSupplies.RemoveRange(existing);
+
+        foreach (var item in req.Supplies)
+        {
+            db.ProductSupplies.Add(new ProductSupply
+            {
+                TenantId = TenantId,
+                ProductId = productId,
+                SupplyId = item.SupplyId,
+                QuantityRequired = item.QuantityRequired,
+                IsUnknownQuantity = item.IsUnknownQuantity
+            });
+        }
+
         await db.SaveChangesAsync();
         return NoContent();
     }

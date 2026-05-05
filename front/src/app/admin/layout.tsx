@@ -18,6 +18,8 @@ const NAV: NavItem[] = [
   { label: 'Carta', emoji: '📋', href: 'menu', segment: 'menu' },
   { label: 'Opciones', emoji: '✨', href: 'modifiers', segment: 'modifiers' },
   { label: 'Promos', emoji: '🎁', href: 'promotions', segment: 'promotions' },
+  { label: 'Proveedores', emoji: '🏭', href: 'proveedores', segment: 'proveedores' },
+  { label: 'Insumos', emoji: '📦', href: 'insumos', segment: 'insumos' },
   { label: 'Apariencia', emoji: '🎨', href: 'branding', segment: 'branding' },
   { label: 'WhatsApp', emoji: '💬', href: 'whatsapp', segment: 'whatsapp' },
   { label: 'Config.', emoji: '⚙️', href: 'config', segment: 'config' },
