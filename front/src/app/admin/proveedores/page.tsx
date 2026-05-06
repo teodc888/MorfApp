@@ -12,6 +12,7 @@ import {
   paySupplierAllDebt,
 } from '@/lib/admin-api'
 import type { SupplierDebtDetailDto, SupplierDebtPurchaseDto, SupplierDto } from '@/types/store'
+import { STITCH } from '@/lib/stitch-theme'
 
 type SupplierForm = { name: string; phone: string; address: string; notes: string }
 type ConfirmDialog = { open: boolean; id: string; name: string }
@@ -149,9 +150,9 @@ export default function ProveedoresPage() {
   }
 
   function statusClass(status: SupplierDebtPurchaseDto['status']) {
-    if (status === 'paid') return 'bg-green-50 text-green-700 border-green-200'
-    if (status === 'partial') return 'bg-yellow-50 text-yellow-700 border-yellow-200'
-    return 'bg-red-50 text-red-700 border-red-200'
+    if (status === 'paid') return '#22C55E'
+    if (status === 'partial') return '#F97316'
+    return '#EF4444'
   }
 
   function statusLabel(status: SupplierDebtPurchaseDto['status']) {
@@ -159,6 +160,8 @@ export default function ProveedoresPage() {
     if (status === 'partial') return 'Parcial'
     return 'Pendiente'
   }
+
+  const DS = { bg: STITCH.bg, surface: STITCH.surface, primary: STITCH.primary, secondary: STITCH.secondary, tertiary: STITCH.tertiary, text: STITCH.text, textMuted: STITCH.muted, border: STITCH.border, radius: STITCH.radius }
 
   const partialPaymentAmount = paymentForm ? Number(paymentForm.amount) : 0
   const partialPaymentError = paymentForm && paymentForm.amount
@@ -172,44 +175,44 @@ export default function ProveedoresPage() {
     : null
 
   if (loading) {
-    return <div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full animate-spin" /></div>
+    return <div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderColor: DS.primary, borderTopColor: 'transparent' }} /></div>
   }
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-5xl mx-auto" style={{ backgroundColor: DS.bg, minHeight: '100vh', padding: '24px' }}>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-gray-900">Proveedores</h1>
-        <button onClick={openNew} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">+ Añadir proveedor</button>
+        <h1 className="text-xl font-bold" style={{ color: DS.text }}>Proveedores</h1>
+        <button onClick={openNew} className="px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors" style={{ backgroundColor: DS.primary, borderRadius: DS.radius }}>+ Añadir proveedor</button>
       </div>
 
-      {error && <p className="mb-4 text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+      {error && <p className="mb-4 text-sm px-3 py-2 rounded-lg" style={{ backgroundColor: '#FEF2F2', color: '#DC2626' }}>{error}</p>}
 
       {suppliers.length === 0 ? (
-        <div className="text-center py-16 text-gray-400"><p className="text-4xl mb-3">🏭</p><p>No hay proveedores todavía</p></div>
+        <div className="text-center py-16" style={{ color: DS.textMuted }}><p className="text-4xl mb-3">🏭</p><p>No hay proveedores todavía</p></div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="overflow-hidden" style={{ backgroundColor: DS.surface, border: `1px solid ${DS.border}`, borderRadius: DS.radius, boxShadow: '0px 4px 12px rgba(67,20,7,0.08)' }}>
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">Nombre</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700 hidden sm:table-cell">Teléfono</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700 hidden md:table-cell">Dirección</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">Deuda total</th>
-                <th className="text-right px-4 py-3 font-semibold text-gray-700">Acciones</th>
+              <tr style={{ backgroundColor: '#FAFAFA' }}>
+                <th className="text-left px-4 py-3 font-semibold" style={{ color: DS.text }}>Nombre</th>
+                <th className="text-left px-4 py-3 font-semibold" style={{ color: DS.text }}>Teléfono</th>
+                <th className="text-left px-4 py-3 font-semibold" style={{ color: DS.text }}>Dirección</th>
+                <th className="text-left px-4 py-3 font-semibold" style={{ color: DS.text }}>Deuda total</th>
+                <th className="text-right px-4 py-3 font-semibold" style={{ color: DS.text }}>Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody>
               {suppliers.map((s) => (
-                <tr key={s.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 font-medium text-gray-800">{s.name}</td>
-                  <td className="px-4 py-3 text-gray-600 hidden sm:table-cell">{s.phone ?? '—'}</td>
-                  <td className="px-4 py-3 text-gray-600 hidden md:table-cell">{s.address ?? '—'}</td>
-                  <td className="px-4 py-3"><span className={s.totalDebt > 0 ? 'text-red-600 font-medium' : 'text-green-600 font-medium'}>{formatMoney(s.totalDebt)}</span></td>
+                <tr key={s.id} className="transition-colors" style={{ borderTop: `1px solid ${DS.border}` }}>
+                  <td className="px-4 py-3 font-medium" style={{ color: DS.text }}>{s.name}</td>
+                  <td className="px-4 py-3" style={{ color: DS.textMuted }}>{s.phone ?? '—'}</td>
+                  <td className="px-4 py-3" style={{ color: DS.textMuted }}>{s.address ?? '—'}</td>
+                  <td className="px-4 py-3"><span style={{ color: s.totalDebt > 0 ? DS.primary : DS.secondary, fontWeight: 500 }}>{formatMoney(s.totalDebt)}</span></td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex flex-wrap items-center justify-end gap-2">
-                      <button onClick={() => openDebtDetail(s)} className="text-xs px-3 py-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">👁️ Ver deuda</button>
-                      <button onClick={() => openEdit(s)} className="text-xs px-3 py-1.5 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors">✏️ Editar</button>
-                      <button onClick={() => setConfirmDialog({ open: true, id: s.id, name: s.name })} className="text-xs px-3 py-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors">🗑️</button>
+                      <button onClick={() => openDebtDetail(s)} className="text-xs px-3 py-1.5 rounded-lg transition-colors" style={{ color: DS.primary, border: `1px solid ${DS.primary}`, backgroundColor: 'transparent' }}>👁️ Ver deuda</button>
+                      <button onClick={() => openEdit(s)} className="text-xs px-3 py-1.5 rounded-lg transition-colors" style={{ color: DS.textMuted, border: '1px solid #D1D5DB', backgroundColor: 'transparent' }}>✏️ Editar</button>
+                      <button onClick={() => setConfirmDialog({ open: true, id: s.id, name: s.name })} className="text-xs px-3 py-1.5 rounded-lg transition-colors" style={{ color: DS.primary, backgroundColor: '#FEE2E2' }}>🗑️</button>
                     </div>
                   </td>
                 </tr>
@@ -220,60 +223,60 @@ export default function ProveedoresPage() {
       )}
 
       {modal.open && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 px-4 pb-0">
-          <div className="bg-white rounded-t-2xl md:rounded-2xl w-full max-w-md p-6 space-y-4">
-            <h2 className="font-bold text-gray-900">{modal.editing ? 'Editar proveedor' : 'Nuevo proveedor'}</h2>
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center px-4 pb-0" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}>
+          <div className="w-full max-w-md p-6 space-y-4" style={{ backgroundColor: DS.surface, borderRadius: DS.radius, border: `1px solid ${DS.border}`, boxShadow: '0px 4px 12px rgba(67,20,7,0.08)' }}>
+            <h2 className="font-bold" style={{ color: DS.text }}>{modal.editing ? 'Editar proveedor' : 'Nuevo proveedor'}</h2>
             <div className="space-y-3">
-              <input type="text" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nombre del proveedor" />
-              <input type="text" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Teléfono" />
-              <input type="text" value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Dirección" />
-              <textarea value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={3} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" placeholder="Notas adicionales" />
+              <input type="text" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2" style={{ border: `1px solid ${DS.border}`, borderRadius: '12px', color: DS.text }} placeholder="Nombre del proveedor" />
+              <input type="text" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2" style={{ border: `1px solid ${DS.border}`, borderRadius: '12px', color: DS.text }} placeholder="Teléfono" />
+              <input type="text" value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2" style={{ border: `1px solid ${DS.border}`, borderRadius: '12px', color: DS.text }} placeholder="Dirección" />
+              <textarea value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={3} className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2 resize-none" style={{ border: `1px solid ${DS.border}`, borderRadius: '12px', color: DS.text }} placeholder="Notas adicionales" />
             </div>
             <div className="flex gap-3 pt-2">
-              <button onClick={() => setModal({ open: false, editing: null })} className="flex-1 py-2.5 border border-gray-300 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">Cancelar</button>
-              <button onClick={save} disabled={saving || !form.name.trim()} className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-sm font-medium rounded-lg transition-colors">{saving ? 'Guardando...' : 'Guardar'}</button>
+              <button onClick={() => setModal({ open: false, editing: null })} className="flex-1 py-2.5 text-sm font-medium transition-colors" style={{ border: `1px solid ${DS.border}`, borderRadius: '12px', color: DS.textMuted }}>Cancelar</button>
+              <button onClick={save} disabled={saving || !form.name.trim()} className="flex-1 py-2.5 text-white text-sm font-medium transition-colors" style={{ backgroundColor: DS.primary, borderRadius: '12px', opacity: saving || !form.name.trim() ? 0.5 : 1 }}>{saving ? 'Guardando...' : 'Guardar'}</button>
             </div>
           </div>
         </div>
       )}
 
       {debtModal.open && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 px-4 pb-0">
-          <div className="bg-white rounded-t-2xl md:rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6 space-y-5">
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center px-4 pb-0" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}>
+          <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6 space-y-5" style={{ backgroundColor: DS.surface, borderRadius: DS.radius, border: `1px solid ${DS.border}`, boxShadow: '0px 4px 12px rgba(67,20,7,0.08)' }}>
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="font-bold text-gray-900 text-lg">Detalle de deuda</h2>
-                {debtModal.detail && <p className="text-sm text-gray-500">{debtModal.detail.supplierName} · Deuda actual: <span className={debtModal.detail.totalDebt > 0 ? 'text-red-600 font-semibold' : 'text-green-600 font-semibold'}>{formatMoney(debtModal.detail.totalDebt)}</span></p>}
+                <h2 className="font-bold text-lg" style={{ color: DS.text }}>Detalle de deuda</h2>
+                {debtModal.detail && <p className="text-sm" style={{ color: DS.textMuted }}>{debtModal.detail.supplierName} · Deuda actual: <span style={{ color: debtModal.detail.totalDebt > 0 ? DS.primary : DS.secondary, fontWeight: 600 }}>{formatMoney(debtModal.detail.totalDebt)}</span></p>}
               </div>
-              <button onClick={() => setDebtModal({ open: false, loading: false, detail: null })} className="text-gray-400 hover:text-gray-600">✕</button>
+              <button onClick={() => setDebtModal({ open: false, loading: false, detail: null })} style={{ color: DS.textMuted }}>✕</button>
             </div>
 
             {debtModal.loading || !debtModal.detail ? (
-              <div className="py-12 text-center text-gray-400">Cargando...</div>
+              <div className="py-12 text-center" style={{ color: DS.textMuted }}>Cargando...</div>
             ) : (
               <>
                 <div className="flex justify-end">
-                  <button onClick={payAllDebt} disabled={paying || debtModal.detail.totalDebt <= 0} className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white text-sm font-medium rounded-lg">Pagar toda la deuda del proveedor</button>
+                  <button onClick={payAllDebt} disabled={paying || debtModal.detail.totalDebt <= 0} className="px-4 py-2 text-white text-sm font-medium rounded-lg" style={{ backgroundColor: DS.secondary, borderRadius: DS.radius, opacity: paying || debtModal.detail.totalDebt <= 0 ? 0.5 : 1 }}>Pagar toda la deuda del proveedor</button>
                 </div>
                 <div className="space-y-3">
                   {debtModal.detail.purchases.map((purchase) => (
-                    <div key={purchase.purchaseId} className="border border-gray-200 rounded-xl p-4 space-y-3">
+                    <div key={purchase.purchaseId} className="p-4 space-y-3" style={{ border: `1px solid ${DS.border}`, borderRadius: DS.radius }}>
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
-                          <p className="font-medium text-gray-900">{purchase.supplyName || 'Compra'}</p>
-                          <p className="text-xs text-gray-500">{formatDate(purchase.purchaseDate)}</p>
+                          <p className="font-medium" style={{ color: DS.text }}>{purchase.supplyName || 'Compra'}</p>
+                          <p className="text-xs" style={{ color: DS.textMuted }}>{formatDate(purchase.purchaseDate)}</p>
                         </div>
-                        <span className={`text-xs px-2.5 py-1 border rounded-full ${statusClass(purchase.status)}`}>{statusLabel(purchase.status)}</span>
+                        <span className="text-xs px-2.5 py-1 rounded-full" style={{ border: `1px solid ${statusClass(purchase.status)}`, color: statusClass(purchase.status) }}>{statusLabel(purchase.status)}</span>
                       </div>
                       <div className="grid grid-cols-3 gap-3 text-sm">
-                        <p><span className="block text-gray-400">Total</span>{formatMoney(purchase.totalPrice)}</p>
-                        <p><span className="block text-gray-400">Pagado</span>{formatMoney(purchase.paidAmount)}</p>
-                        <p><span className="block text-gray-400">Pendiente</span>{formatMoney(purchase.pendingAmount)}</p>
+                        <p><span className="block" style={{ color: DS.textMuted }}>Total</span>{formatMoney(purchase.totalPrice)}</p>
+                        <p><span className="block" style={{ color: DS.textMuted }}>Pagado</span>{formatMoney(purchase.paidAmount)}</p>
+                        <p><span className="block" style={{ color: DS.textMuted }}>Pendiente</span>{formatMoney(purchase.pendingAmount)}</p>
                       </div>
                       {purchase.pendingAmount > 0 && (
                         <div className="flex flex-wrap gap-2">
-                          <button onClick={() => setPaymentForm({ purchase, amount: '', notes: '' })} className="text-xs px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg">Pago parcial</button>
-                          <button onClick={() => payPurchaseFull(purchase)} disabled={paying} className="text-xs px-3 py-1.5 bg-green-50 text-green-700 hover:bg-green-100 rounded-lg">Pagar esta deuda completa</button>
+                          <button onClick={() => setPaymentForm({ purchase, amount: '', notes: '' })} className="text-xs px-3 py-1.5 rounded-lg" style={{ color: DS.primary, backgroundColor: '#FEE2E2' }}>Pago parcial</button>
+                          <button onClick={() => payPurchaseFull(purchase)} disabled={paying} className="text-xs px-3 py-1.5 rounded-lg" style={{ color: DS.secondary, backgroundColor: '#DCFCE7' }}>Pagar esta deuda completa</button>
                         </div>
                       )}
                     </div>
@@ -282,13 +285,13 @@ export default function ProveedoresPage() {
 
                 {debtModal.detail.payments.length > 0 && (
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-2">Historial de pagos</h3>
+                    <h3 className="font-semibold mb-2" style={{ color: DS.text }}>Historial de pagos</h3>
                     <div className="space-y-2">
                       {debtModal.detail.payments.map((payment) => (
-                        <div key={payment.id} className="text-sm border border-gray-100 rounded-lg px-3 py-2">
-                          <p className="font-medium text-gray-800">{formatMoney(payment.amount)} · {formatDate(payment.paidAt)}</p>
-                          {payment.notes && <p className="text-gray-500">{payment.notes}</p>}
-                          <p className="text-xs text-gray-400">Aplicado a: {payment.allocations.map((a) => `${a.supplyName || 'compra'} (${formatMoney(a.amount)})`).join(', ')}</p>
+                        <div key={payment.id} className="text-sm px-3 py-2" style={{ border: `1px solid ${DS.border}`, borderRadius: '12px' }}>
+                          <p className="font-medium" style={{ color: DS.text }}>{formatMoney(payment.amount)} · {formatDate(payment.paidAt)}</p>
+                          {payment.notes && <p style={{ color: DS.textMuted }}>{payment.notes}</p>}
+                          <p className="text-xs" style={{ color: DS.textMuted }}>Aplicado a: {payment.allocations.map((a) => `${a.supplyName || 'compra'} (${formatMoney(a.amount)})`).join(', ')}</p>
                         </div>
                       ))}
                     </div>
@@ -301,29 +304,29 @@ export default function ProveedoresPage() {
       )}
 
       {paymentForm && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4">
-            <h2 className="font-bold text-gray-900">Pago parcial</h2>
-            <p className="text-sm text-gray-500">Pendiente de {paymentForm.purchase.supplyName}: {formatMoney(paymentForm.purchase.pendingAmount)}</p>
-            <input type="number" min="0.01" max={paymentForm.purchase.pendingAmount} step="0.01" value={paymentForm.amount} onChange={(e) => setPaymentForm((f) => f ? { ...f, amount: e.target.value } : f)} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Monto" />
-            {partialPaymentError && <p className="text-sm text-red-600">{partialPaymentError}</p>}
-            <input type="text" value={paymentForm.notes} onChange={(e) => setPaymentForm((f) => f ? { ...f, notes: e.target.value } : f)} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Notas opcionales" />
+        <div className="fixed inset-0 z-[60] flex items-center justify-center px-4" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}>
+          <div className="w-full max-w-sm p-6 space-y-4" style={{ backgroundColor: DS.surface, borderRadius: DS.radius, border: `1px solid ${DS.border}`, boxShadow: '0px 4px 12px rgba(67,20,7,0.08)' }}>
+            <h2 className="font-bold" style={{ color: DS.text }}>Pago parcial</h2>
+            <p className="text-sm" style={{ color: DS.textMuted }}>Pendiente de {paymentForm.purchase.supplyName}: {formatMoney(paymentForm.purchase.pendingAmount)}</p>
+            <input type="number" min="0.01" max={paymentForm.purchase.pendingAmount} step="0.01" value={paymentForm.amount} onChange={(e) => setPaymentForm((f) => f ? { ...f, amount: e.target.value } : f)} className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2" style={{ border: `1px solid ${DS.border}`, borderRadius: '12px', color: DS.text }} placeholder="Monto" />
+            {partialPaymentError && <p className="text-sm" style={{ color: DS.primary }}>{partialPaymentError}</p>}
+            <input type="text" value={paymentForm.notes} onChange={(e) => setPaymentForm((f) => f ? { ...f, notes: e.target.value } : f)} className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2" style={{ border: `1px solid ${DS.border}`, borderRadius: '12px', color: DS.text }} placeholder="Notas opcionales" />
             <div className="flex gap-3 pt-2">
-              <button onClick={() => setPaymentForm(null)} className="flex-1 py-2.5 border border-gray-300 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50">Cancelar</button>
-              <button onClick={submitPartialPayment} disabled={paying || !paymentForm.amount || !!partialPaymentError} className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white text-sm font-medium rounded-lg">Pagar</button>
+              <button onClick={() => setPaymentForm(null)} className="flex-1 py-2.5 text-sm font-medium" style={{ border: `1px solid ${DS.border}`, borderRadius: '12px', color: DS.textMuted }}>Cancelar</button>
+              <button onClick={submitPartialPayment} disabled={paying || !paymentForm.amount || !!partialPaymentError} className="flex-1 py-2.5 text-white text-sm font-medium" style={{ backgroundColor: DS.primary, borderRadius: '12px', opacity: paying || !paymentForm.amount || !!partialPaymentError ? 0.5 : 1 }}>Pagar</button>
             </div>
           </div>
         </div>
       )}
 
       {confirmDialog.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4">
-            <h2 className="font-bold text-gray-900 text-lg">¿Eliminar proveedor?</h2>
-            <p className="text-gray-600">Estás a punto de eliminar el proveedor &quot;{confirmDialog.name}&quot;. Esta acción no se puede deshacer.</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}>
+          <div className="w-full max-w-sm p-6 space-y-4" style={{ backgroundColor: DS.surface, borderRadius: DS.radius, border: `1px solid ${DS.border}`, boxShadow: '0px 4px 12px rgba(67,20,7,0.08)' }}>
+            <h2 className="font-bold text-lg" style={{ color: DS.text }}>¿Eliminar proveedor?</h2>
+            <p style={{ color: DS.textMuted }}>Estás a punto de eliminar el proveedor &quot;{confirmDialog.name}&quot;. Esta acción no se puede deshacer.</p>
             <div className="flex gap-3 pt-2">
-              <button onClick={() => setConfirmDialog({ open: false, id: '', name: '' })} className="flex-1 py-2.5 border border-gray-300 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50">Cancelar</button>
-              <button onClick={confirmDelete} className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg">Eliminar</button>
+              <button onClick={() => setConfirmDialog({ open: false, id: '', name: '' })} className="flex-1 py-2.5 text-sm font-medium" style={{ border: `1px solid ${DS.border}`, borderRadius: '12px', color: DS.textMuted }}>Cancelar</button>
+              <button onClick={confirmDelete} className="flex-1 py-2.5 text-white text-sm font-medium rounded-lg" style={{ backgroundColor: DS.primary, borderRadius: '12px' }}>Eliminar</button>
             </div>
           </div>
         </div>

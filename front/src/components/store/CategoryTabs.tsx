@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { Category } from '@/types/store'
+import { STITCH } from '@/lib/stitch-theme'
 
 type Props = {
   categories: Category[]
@@ -62,7 +63,7 @@ export function CategoryTabs({ categories }: Props) {
   }, [activeId])
 
   return (
-    <div className="sticky top-16 z-20 bg-white border-b border-zinc-100 shadow-sm md:hidden">
+    <div className="sticky top-16 z-20 md:hidden" style={{ backgroundColor: STITCH.surface, borderBottom: `1px solid ${STITCH.border}` }}>
       <div
         ref={tabsRef}
         className="flex gap-2 px-4 py-2.5 overflow-x-auto hide-scrollbar max-w-[520px] mx-auto"
@@ -77,9 +78,10 @@ export function CategoryTabs({ categories }: Props) {
               onClick={() => scrollTo(cat.id)}
               className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 ${
                 isActive
-                  ? 'bg-primary text-white shadow-sm scale-[1.03]'
-                  : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
+                ? 'text-white shadow-sm scale-[1.03]'
+                : 'hover:bg-gray-100'
               }`}
+              style={{ backgroundColor: isActive ? STITCH.primary : '#F4F2FD', color: isActive ? '#FFFFFF' : STITCH.muted }}
             >
               <span className="text-base leading-none">{cat.emoji}</span>
               <span>{cat.name}</span>

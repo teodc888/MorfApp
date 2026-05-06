@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { Category } from '@/types/store'
+import { STITCH } from '@/lib/stitch-theme'
 
 type Props = {
   categories: Category[]
@@ -39,7 +40,7 @@ export function CategorySidebar({ categories }: Props) {
   }
 
   return (
-    <nav className="bg-white border border-zinc-200 rounded-2xl p-2 flex flex-col gap-0.5">
+    <nav className="rounded-2xl p-2 flex flex-col gap-0.5" style={{ backgroundColor: STITCH.surface, border: `1px solid ${STITCH.border}`, boxShadow: STITCH.shadow }}>
       {categories.map((cat) => {
         const isActive = cat.id === activeId
         return (
@@ -48,15 +49,14 @@ export function CategorySidebar({ categories }: Props) {
             onClick={() => scrollTo(cat.id)}
             className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm transition-all text-left ${
               isActive
-                ? 'bg-orange-50 text-primary font-semibold'
-                : 'text-zinc-500 font-medium hover:bg-zinc-50 hover:text-zinc-800'
-            }`}
-          >
+                ? 'font-semibold'
+                : 'font-medium'
+              }`}
+              style={{ backgroundColor: isActive ? '#FFF1E8' : 'transparent', color: isActive ? STITCH.primary : STITCH.muted }}
+            >
             <span className="text-lg w-7 text-center flex-shrink-0">{cat.emoji}</span>
             <span className="flex-1 truncate">{cat.name}</span>
-            <span className={`text-[11px] rounded-full px-2 py-0.5 flex-shrink-0 ${
-              isActive ? 'bg-orange-100 text-orange-700' : 'bg-zinc-100 text-zinc-400'
-            }`}>
+            <span className="text-[11px] rounded-full px-2 py-0.5 flex-shrink-0" style={{ backgroundColor: isActive ? '#FED7AA' : '#F4F2FD', color: isActive ? STITCH.tertiary : STITCH.muted }}>
               {cat.products.length}
             </span>
           </button>

@@ -18,13 +18,13 @@ public class OrdersController(IAppDbContext db) : ControllerBase
         ?? throw new UnauthorizedAccessException();
 
     // GET /api/admin/orders
-    // Devuelve pedidos pendientes del tenant, ordenados por fecha desc.
-    // Query param opcional ?status=pending|confirmed (default: pending)
+    // Devuelve pedidos del tenant por estado, ordenados por fecha desc.
+    // Query param ?status=pending|confirmed|cancelled (default: pending)
     [HttpGet]
     public async Task<ActionResult<List<OrderAdminDto>>> GetOrders([FromQuery] string status = "pending")
     {
         if (!Enum.TryParse<OrderStatus>(status, ignoreCase: true, out var orderStatus))
-            return BadRequest(new { message = "Estado inválido. Usar 'pending' o 'confirmed'." });
+            return BadRequest(new { message = "Estado inválido. Usar 'pending', 'confirmed' o 'cancelled'." });
 
         var orders = await db.Orders
             .Where(o => o.TenantId == TenantId && o.Status == orderStatus)
@@ -77,6 +77,27 @@ public class OrdersController(IAppDbContext db) : ControllerBase
                 });
             }
         }
+
+        await db.SaveChangesAsync();
+
+        return Ok(MapOrder(order));
+    }
+
+    // POST /api/admin/orders/{id}/cancel
+    // Cancela un pedido pendiente del tenant.
+    [HttpPost("{id}/cancel")]
+    public async Task<ActionResult<OrderAdminDto>> CancelOrder(string id)
+    {
+        var order = await db.Orders
+            .FirstOrDefaultAsync(o => o.Id == id && o.TenantId == TenantId);
+
+        if (order is null)
+            return NotFound(new { message = "Pedido no encontrado." });
+
+        if (order.Status == OrderStatus.Cancelled)
+            return BadRequest(new { message = "El pedido ya fue cancelado." });
+
+        order.Status = OrderStatus.Cancelled;
 
         await db.SaveChangesAsync();
 

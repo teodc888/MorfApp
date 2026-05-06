@@ -2,6 +2,7 @@
 
 import { useCartStore } from '@/store/cart'
 import { formatPrice } from '@/lib/utils'
+import { STITCH } from '@/lib/stitch-theme'
 
 type Props = {
   onCartOpen: () => void
@@ -18,7 +19,8 @@ export function BottomBar({ onCartOpen }: Props) {
       <div className="max-w-[520px] mx-auto pointer-events-auto">
         <button
           onClick={onCartOpen}
-          className="w-full flex items-center justify-between px-4 py-3 bg-primary text-white rounded-2xl shadow-lg font-semibold"
+          className="w-full flex items-center justify-between px-4 py-3 text-white rounded-2xl shadow-lg font-semibold"
+          style={{ backgroundColor: STITCH.primary }}
         >
           <span className="bg-white/25 rounded-full px-2 py-0.5 text-sm font-bold">
             {itemCount}
