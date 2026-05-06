@@ -225,389 +225,345 @@ export default function InsumosPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full animate-spin" />
+      <div style={{ fontFamily: 'var(--sans)', minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid var(--primary)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
       </div>
     )
   }
 
+  const lowStockCount = supplies.filter(s => s.currentStock > 0 && s.currentStock < 5).length
+  const outOfStockCount = supplies.filter(s => s.currentStock <= 0).length
+
   return (
-    <div className="max-w-4xl mx-auto min-h-screen" style={{ backgroundColor: STITCH.bg }}>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold" style={{ color: STITCH.text }}>Insumos</h1>
+    <div style={{ fontFamily: 'var(--sans)', minHeight: '100vh', background: 'var(--bg)' }}>
+      <div style={{ padding: '4px 22px 18px' }}>
+        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>Stock & Compras</div>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16 }}>
+          <h1 className="serif" style={{ margin: 0, fontSize: 32, lineHeight: 1.05, color: 'var(--text)', flex: 1, fontWeight: 700 }}>Insumos</h1>
+          <button className="btn btn-primary btn-sm" onClick={openNewSupply} style={{ flexShrink: 0 }}>
+            Nuevo
+          </button>
+        </div>
       </div>
 
       {error && (
-        <p className="mb-4 text-sm px-3 py-2 rounded-lg" style={{ backgroundColor: '#FEE2E2', color: '#EF4444' }}>{error}</p>
+        <div style={{ padding: '0 22px 12px' }}>
+          <div className="card" style={{ padding: 10, background: 'rgba(186,26,26,0.06)', border: '1px solid var(--error)', borderRadius: 8, fontSize: 13, color: 'var(--error)' }}>{error}</div>
+        </div>
       )}
 
-          <div className="flex gap-1 mb-6 p-1 w-fit" style={{ backgroundColor: STITCH.surface, borderRadius: STITCH.radius, border: `1px solid ${STITCH.border}` }}>
-        {(['insumos', 'compras', 'movimientos'] as Tab[]).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className="px-4 py-2 text-sm font-medium rounded-full transition-colors capitalize"
-            style={{
-                backgroundColor: tab === t ? STITCH.primary : 'transparent',
-                color: tab === t ? '#FFFFFF' : STITCH.muted,
+      <div style={{ padding: '0 22px 16px', display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 10 }}>
+        <div className="card" style={{ padding: '14px 16px' }}>
+          <div className="text-xs muted" style={{ fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Stock Total</div>
+          <div className="serif" style={{ fontSize: 26, fontWeight: 700, color: 'var(--text)', marginTop: 6, lineHeight: 1 }}>{supplies.length}</div>
+          <div className="text-xs muted" style={{ marginTop: 6 }}>insumos activos</div>
+        </div>
+        <div className="card" style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--warning)', fontSize: 18, fontWeight: 700 }}>⚠</div>
+            <div>
+              <div className="text-lg fw-700" style={{ color: 'var(--warning)', lineHeight: 1 }}>{lowStockCount}</div>
+              <div className="text-xs muted">Stock bajo</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+            <div style={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--error)', fontSize: 18, fontWeight: 700 }}>✕</div>
+            <div>
+              <div className="text-lg fw-700" style={{ color: 'var(--error)', lineHeight: 1 }}>{outOfStockCount}</div>
+              <div className="text-xs muted">Sin stock</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ padding: '0 22px 14px' }}>
+        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
+          {(['insumos', 'compras', 'movimientos'] as Tab[]).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              style={{
+                padding: '7px 13px',
+                borderRadius: 999,
+                fontSize: 12,
+                fontWeight: 600,
+                background: tab === t ? 'var(--text)' : 'var(--surface-container)',
+                color: tab === t ? 'white' : 'var(--muted)',
+                whiteSpace: 'nowrap',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
               }}
-          >
-            {t.charAt(0).toUpperCase() + t.slice(1)}
-          </button>
-        ))}
+            >
+              {t.charAt(0).toUpperCase() + t.slice(1)}
+            </button>
+          ))}
+        </div>
       </div>
 
       {tab === 'insumos' && (
         <>
-          <div className="flex justify-end mb-4">
-            <button
-              onClick={openNewSupply}
-              className="px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors"
-              style={{ backgroundColor: '#EF4444', boxShadow: '0px 4px 12px rgba(67,20,7,0.08)' }}
-            >
-              + Añadir insumo
-            </button>
+          <div style={{ padding: '0 22px 12px' }}>
+            <div style={{ position: 'relative', marginBottom: 10 }}>
+              <input
+                className="input"
+                style={{ paddingLeft: 38 }}
+                placeholder="Buscar insumo..."
+              />
+            </div>
           </div>
 
-          {supplies.length === 0 ? (
-            <div className="text-center py-16" style={{ color: '#584237' }}>
-              <p className="text-4xl mb-3">📦</p>
-              <p>No hay insumos todavía</p>
-            </div>
-          ) : (
-            <div className="overflow-hidden" style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', border: '1px solid #E5E7EB', boxShadow: '0px 4px 12px rgba(67,20,7,0.08)' }}>
-              <table className="w-full text-sm">
-                <thead>
-                  <tr style={{ backgroundColor: '#FAF9F6', borderBottom: '1px solid #E5E7EB' }}>
-                    <th className="text-left px-4 py-3 font-semibold" style={{ color: '#1A1B22' }}>Nombre</th>
-                    {/* keep simple table cells */}
-                    <th className="text-left px-4 py-3 font-semibold" style={{ color: '#1A1B22' }}>Stock</th>
-                    <th className="text-left px-4 py-3 font-semibold" style={{ color: '#1A1B22' }}>Proveedor</th>
-                    <th className="text-right px-4 py-3 font-semibold" style={{ color: '#1A1B22' }}>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y" style={{ borderColor: '#E5E7EB' }}>
-                  {supplies.map((s) => (
-                    <tr key={s.id} className="transition-colors" style={{ borderBottom: '1px solid #E5E7EB' }}>
-                      <td className="px-4 py-3 font-medium" style={{ color: '#1A1B22' }}>{s.name}</td>
-                      <td className="px-4 py-3" style={{ color: '#584237' }}>{s.unit ?? '—'}</td>
-                      <td className="px-4 py-3">
-                        <span className={stockColor(s.currentStock)}>{s.currentStock}</span>
-                      </td>
-                      <td className="px-4 py-3" style={{ color: '#584237' }}>{s.supplierName ?? '—'}</td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <button
-                            onClick={() => openEditSupply(s)}
-                            className="text-xs px-2 py-1.5 rounded-lg transition-colors"
-                            style={{ color: '#584237' }}
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            onClick={() => openResetDialog(s.id, s.name)}
-                            className="text-xs px-2 py-1.5 rounded-lg transition-colors"
-                            style={{ color: '#EF4444' }}
-                          >
-                            🗑️ Vaciar
-                          </button>
-                          <button
-                            onClick={() => openDeleteDialog(s.id, s.name)}
-                            className="text-xs px-2 py-1.5 rounded-lg transition-colors"
-                            style={{ color: '#EF4444' }}
-                          >
-                            Eliminar
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <div style={{ padding: '0 22px 24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {supplies.length === 0 ? (
+              <div className="card" style={{ padding: 28, textAlign: 'center', color: 'var(--muted)' }}>
+                <div style={{ fontSize: 28, marginBottom: 8 }}>📦</div>
+                <div className="text-sm">No hay insumos todavía</div>
+              </div>
+            ) : (
+              supplies.map((s) => (
+                <button
+                  key={s.id}
+                  className="card tap"
+                  onClick={() => openEditSupply(s)}
+                  style={{
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: '14px 16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 10,
+                    border: 'none',
+                    background: 'var(--surface)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="serif" style={{ fontSize: 17, fontWeight: 600, color: 'var(--text)', lineHeight: 1.2 }}>{s.name}</div>
+                      <div className="text-xs muted" style={{ marginTop: 4 }}>{s.supplierName || '—'}</div>
+                    </div>
+                    <span className="chip" style={{
+                      background: s.currentStock <= 0 ? 'var(--error-bg)' : s.currentStock < 5 ? 'var(--warning-bg)' : 'var(--success-bg)',
+                      color: s.currentStock <= 0 ? 'var(--error)' : s.currentStock < 5 ? 'var(--warning)' : 'var(--success)',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      padding: '4px 10px',
+                      borderRadius: 6,
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {s.currentStock <= 0 ? 'Sin stock' : s.currentStock < 5 ? 'Stock bajo' : 'OK'}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
+                    <div>
+                      <span className="serif" style={{ color: 'var(--text)', fontWeight: 700, fontSize: 16 }}>{s.currentStock}</span>
+                      <span className="text-xs muted" style={{ marginLeft: 4 }}>{s.unit}</span>
+                    </div>
+                  </div>
+                  <div style={{ height: 6, background: 'var(--surface-container)', borderRadius: 4, overflow: 'hidden' }}>
+                    <div style={{
+                      width: `${Math.min(100, (s.currentStock / (s.currentStock + 10)) * 100)}%`,
+                      height: '100%',
+                      background: s.currentStock <= 0 ? 'var(--error)' : s.currentStock < 5 ? 'var(--warning)' : 'var(--success)',
+                      transition: 'width 0.3s ease',
+                    }} />
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
         </>
       )}
 
       {tab === 'compras' && (
-        <div className="space-y-6">
-          <div className="p-6" style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', border: '1px solid #E5E7EB', boxShadow: '0px 4px 12px rgba(67,20,7,0.08)' }}>
-            <h2 className="font-semibold mb-4" style={{ color: '#1A1B22' }}>Registrar compra</h2>
-            <form onSubmit={savePurchase} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: '#1A1B22' }}>Insumo *</label>
-                  <select
-                    value={purchaseForm.supplyId}
-                    onChange={(e) => setPurchaseForm((f) => ({ ...f, supplyId: e.target.value }))}
-                    required
-                    className="w-full px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2"
-                    style={{ border: '1px solid #E5E7EB', color: '#1A1B22' }}
-                  >
+        <div style={{ padding: '0 22px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div className="card" style={{ padding: '16px' }}>
+            <h2 className="serif" style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', margin: '0 0 12px 0' }}>Registrar compra</h2>
+            <form onSubmit={savePurchase} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div className="field">
+                  <label>Insumo</label>
+                  <select className="select" value={purchaseForm.supplyId} onChange={(e) => setPurchaseForm((f) => ({ ...f, supplyId: e.target.value }))}>
                     <option value="">Seleccionar insumo</option>
-                    {supplies.map((s) => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
+                    {supplies.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: '#1A1B22' }}>Proveedor *</label>
-                  <select
-                    value={purchaseForm.supplierId}
-                    onChange={(e) => setPurchaseForm((f) => ({ ...f, supplierId: e.target.value }))}
-                    required
-                    className="w-full px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2"
-                    style={{ border: '1px solid #E5E7EB', color: '#1A1B22' }}
-                  >
+                <div className="field">
+                  <label>Proveedor</label>
+                  <select className="select" value={purchaseForm.supplierId} onChange={(e) => setPurchaseForm((f) => ({ ...f, supplierId: e.target.value }))}>
                     <option value="">Seleccionar proveedor</option>
-                    {suppliers.map((s) => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
+                    {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: '#1A1B22' }}>Cantidad *</label>
-                  <input
-                    type="number"
-                    step="0.001"
-                    min="0.001"
-                    value={purchaseForm.quantity}
-                    onChange={(e) => setPurchaseForm((f) => ({ ...f, quantity: e.target.value }))}
-                    required
-                    className="w-full px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2"
-                    style={{ border: '1px solid #E5E7EB', color: '#1A1B22' }}
-                    placeholder="0"
-                  />
+                <div className="field">
+                  <label>Cantidad</label>
+                  <input className="input" type="number" step="0.001" placeholder="0" value={purchaseForm.quantity} onChange={(e) => setPurchaseForm((f) => ({ ...f, quantity: e.target.value }))} />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: '#1A1B22' }}>Precio total $</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    value={purchaseForm.totalPrice}
-                    onChange={(e) => setPurchaseForm((f) => ({ ...f, totalPrice: e.target.value }))}
-                    required
-                    className="w-full px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2"
-                    style={{ border: '1px solid #E5E7EB', color: '#1A1B22' }}
-                    placeholder="0"
-                  />
+                <div className="field">
+                  <label>Precio total</label>
+                  <input className="input" type="number" step="0.01" placeholder="0" value={purchaseForm.totalPrice} onChange={(e) => setPurchaseForm((f) => ({ ...f, totalPrice: e.target.value }))} />
                 </div>
               </div>
-
               {pricePerUnit && (
-                <div className="px-3 py-2 text-sm rounded-lg" style={{ backgroundColor: '#FAF9F6', border: '1px solid #E5E7EB', color: '#1A1B22' }}>
-                  Precio por unidad: <span className="font-semibold">${pricePerUnit}</span>
+                <div style={{ background: 'var(--surface-container)', padding: '10px 14px', borderRadius: 10, fontSize: 13 }}>
+                  <span className="muted">Precio por unidad: </span>
+                  <span className="fw-700" style={{ color: 'var(--primary-dark)' }}>${pricePerUnit}</span>
                 </div>
               )}
-
-              <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: '#1A1B22' }}>Notas</label>
-                <input
-                  type="text"
-                  value={purchaseForm.notes}
-                  onChange={(e) => setPurchaseForm((f) => ({ ...f, notes: e.target.value }))}
-                  className="w-full px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2"
-                  style={{ border: '1px solid #E5E7EB', color: '#1A1B22' }}
-                  placeholder="Notas opcionales"
-                />
+              <div className="field">
+                <label>Notas</label>
+                <input className="input" type="text" placeholder="Notas opcionales" value={purchaseForm.notes} onChange={(e) => setPurchaseForm((f) => ({ ...f, notes: e.target.value }))} />
               </div>
-
-              <button
-                type="submit"
-                disabled={purchaseSaving || !purchaseForm.supplyId || !purchaseForm.supplierId || !purchaseForm.quantity || !purchaseForm.totalPrice || !pricePerUnit}
-                className="px-6 py-2.5 text-white text-sm font-medium rounded-lg transition-colors"
-                style={{ backgroundColor: '#EF4444' }}
-              >
+              <button className="btn btn-primary btn-block" type="submit" disabled={purchaseSaving || !purchaseForm.supplyId || !purchaseForm.supplierId || !purchaseForm.quantity || !purchaseForm.totalPrice || !pricePerUnit}>
                 {purchaseSaving ? 'Registrando...' : 'Registrar compra'}
               </button>
             </form>
           </div>
 
           {purchases.length > 0 && (
-            <div className="overflow-hidden" style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', border: '1px solid #E5E7EB', boxShadow: '0px 4px 12px rgba(67,20,7,0.08)' }}>
-              <h2 className="font-semibold px-4 py-3 border-b" style={{ color: '#1A1B22', borderColor: '#E5E7EB' }}>Historial de compras</h2>
-              <table className="w-full text-sm">
-                <thead>
-                  <tr style={{ backgroundColor: '#FAF9F6', borderBottom: '1px solid #E5E7EB' }}>
-                    <th className="text-left px-4 py-3 font-semibold" style={{ color: '#1A1B22' }}>Proveedor</th>
-                    <th className="text-left px-4 py-3 font-semibold" style={{ color: '#1A1B22' }}>Cantidad</th>
-                    <th className="text-left px-4 py-3 font-semibold" style={{ color: '#1A1B22' }}>Total</th>
-                    <th className="text-left px-4 py-3 font-semibold" style={{ color: '#1A1B22' }}>Precio/u</th>
-                    <th className="text-left px-4 py-3 font-semibold" style={{ color: '#1A1B22' }}>Fecha</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y" style={{ borderColor: '#E5E7EB' }}>
-                  {purchases.map((p) => (
-                    <tr key={p.id} className="transition-colors" style={{ borderBottom: '1px solid #E5E7EB' }}>
-                      <td className="px-4 py-3 font-medium" style={{ color: '#1A1B22' }}>{p.supplyName}</td>
-                      <td className="px-4 py-3" style={{ color: '#584237' }}>{p.supplierName ?? '—'}</td>
-                      <td className="px-4 py-3" style={{ color: '#1A1B22' }}>{p.quantityPurchased}</td>
-                      <td className="px-4 py-3" style={{ color: '#1A1B22' }}>${p.totalPrice.toLocaleString('es-AR')}</td>
-                      <td className="px-4 py-3" style={{ color: '#584237' }}>${p.pricePerUnit.toFixed(2)}</td>
-                      <td className="px-4 py-3" style={{ color: '#584237' }}>{formatDate(p.purchaseDate)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className="text-xs muted" style={{ fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Historial reciente</div>
+              {purchases.map((p) => (
+                <div key={p.id} className="card" style={{ padding: '14px 16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                    <div style={{ flex: 1 }}>
+                      <div className="serif" style={{ fontSize: 16, fontWeight: 600 }}>{p.supplyName || '—'}</div>
+                      <div className="text-xs muted" style={{ marginTop: 2 }}>{p.supplierName || '—'} · {formatDate(p.purchaseDate)}</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div className="serif" style={{ fontSize: 18, fontWeight: 700, color: 'var(--primary-dark)' }}>{p.totalPrice.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })}</div>
+                      <div className="text-xs muted">{p.quantityPurchased} · {p.pricePerUnit.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })}/u</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
       )}
 
       {tab === 'movimientos' && (
-        <>
+        <div style={{ padding: '0 22px 24px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div className="text-xs muted" style={{ fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '4px 4px 8px' }}>Últimos movimientos</div>
           {movementsLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="w-7 h-7 border-4 border-orange-600 border-t-transparent rounded-full animate-spin" />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 0' }}>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid var(--primary)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
             </div>
           ) : movements.length === 0 ? (
-            <div className="text-center py-16" style={{ color: '#584237' }}>
-              <p className="text-4xl mb-3">📊</p>
-              <p>No hay movimientos todavía</p>
+            <div className="card" style={{ padding: 28, textAlign: 'center', color: 'var(--muted)' }}>
+              <div style={{ fontSize: 28, marginBottom: 8 }}>📈</div>
+              <div className="text-sm">No hay movimientos todavía</div>
             </div>
           ) : (
-            <div className="overflow-hidden" style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', border: '1px solid #E5E7EB', boxShadow: '0px 4px 12px rgba(67,20,7,0.08)' }}>
-              <table className="w-full text-sm">
-                <thead>
-                  <tr style={{ backgroundColor: '#FAF9F6', borderBottom: '1px solid #E5E7EB' }}>
-                    <th className="text-left px-4 py-3 font-semibold" style={{ color: '#1A1B22' }}>Insumo</th>
-                    <th className="text-left px-4 py-3 font-semibold" style={{ color: '#1A1B22' }}>Cambio</th>
-                    <th className="text-left px-4 py-3 font-semibold" style={{ color: '#1A1B22' }}>Motivo</th>
-                    <th className="text-left px-4 py-3 font-semibold" style={{ color: '#1A1B22' }}>Fecha</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y" style={{ borderColor: '#E5E7EB' }}>
-                  {movements.map((m) => (
-                    <tr key={m.id} className="transition-colors" style={{ borderBottom: '1px solid #E5E7EB' }}>
-                      <td className="px-4 py-3 font-medium" style={{ color: '#1A1B22' }}>{m.supplyName}</td>
-                      <td className="px-4 py-3">
-                        <span className="font-semibold" style={{ color: m.quantityChange >= 0 ? '#22C55E' : '#EF4444' }}>
-                          {m.quantityChange >= 0 ? '+' : ''}{m.quantityChange}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3" style={{ color: '#584237' }}>{REASON_LABELS[m.reason] ?? m.reason}</td>
-                      <td className="px-4 py-3" style={{ color: '#584237' }}>{formatDate(m.createdAt)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              {movements.map((m, i) => {
+                const positive = m.quantityChange >= 0
+                return (
+                  <div key={m.id} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    padding: '14px 16px',
+                    borderTop: i ? '1px solid var(--outline-soft)' : 'none',
+                  }}>
+                    <div style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 18,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: positive ? 'rgba(46,125,50,0.1)' : 'rgba(186,26,26,0.1)',
+                      color: positive ? 'var(--success)' : 'var(--error)',
+                      fontSize: 18,
+                      fontWeight: 700,
+                      flexShrink: 0,
+                    }}>
+                      {positive ? '↑' : '↓'}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="text-sm fw-600" style={{ color: 'var(--text)' }}>Insumo</div>
+                      <div className="text-xs muted">{REASON_LABELS[m.reason] || m.reason} · {formatDate(m.createdAt)}</div>
+                    </div>
+                    <div className="serif" style={{ fontWeight: 700, color: positive ? 'var(--success)' : 'var(--error)' }}>
+                      {positive ? '+' : ''}{m.quantityChange}
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           )}
-        </>
+        </div>
       )}
 
       {supplyModal.open && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 px-4 pb-0">
-          <div className="w-full max-w-md p-6 space-y-4" style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', boxShadow: '0px 4px 12px rgba(67,20,7,0.08)' }}>
-            <h2 className="font-bold" style={{ color: '#1A1B22' }}>
-              {supplyModal.editing ? 'Editar insumo' : 'Nuevo insumo'}
-            </h2>
-
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: '#1A1B22' }}>Nombre *</label>
-                <input
-                  type="text"
-                  value={supplyForm.name}
-                  onChange={(e) => setSupplyForm((f) => ({ ...f, name: e.target.value }))}
-                  className="w-full px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2"
-                  style={{ border: '1px solid #E5E7EB', color: '#1A1B22' }}
-                  placeholder="Nombre del insumo"
-                />
+        <div className="modal-backdrop" onClick={() => setSupplyModal({ open: false, editing: null })}>
+          <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="grabber" />
+            <div style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <h2 className="serif" style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
+                {supplyModal.editing ? 'Editar insumo' : 'Nuevo insumo'}
+              </h2>
+              <div className="field">
+                <label>Nombre</label>
+                <input className="input" value={supplyForm.name} onChange={(e) => setSupplyForm((f) => ({ ...f, name: e.target.value }))} placeholder="Nombre del insumo" />
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: '#1A1B22' }}>Unidad</label>
-                <div className="space-y-2">
-                  <select
-                    value={supplyForm.unit}
-                    onChange={(e) => setSupplyForm((f) => ({ ...f, unit: e.target.value }))}
-                    className="w-full px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2"
-                    style={{ border: '1px solid #E5E7EB', color: '#1A1B22' }}
-                  >
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div className="field">
+                  <label>Unidad</label>
+                  <select className="select" value={supplyForm.unit} onChange={(e) => setSupplyForm((f) => ({ ...f, unit: e.target.value }))}>
                     <option value="">Sin unidad</option>
-                    {UNIT_OPTIONS.map((u) => <option key={u} value={u}>{u}</option>)}
+                    {UNIT_OPTIONS.map((u) => <option key={u}>{u}</option>)}
                     <option value={CUSTOM_UNIT_VALUE}>Otro</option>
                   </select>
                   {supplyForm.unit === CUSTOM_UNIT_VALUE && (
-                  <input
-                    type="text"
-                    value={customUnit}
-                    onChange={(e) => setCustomUnit(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2"
-                    style={{ border: '1px solid #E5E7EB', color: '#1A1B22' }}
-                    placeholder="Escribir unidad personalizada"
-                  />
+                    <input className="input" style={{ marginTop: 8 }} type="text" value={customUnit} onChange={(e) => setCustomUnit(e.target.value)} placeholder="Escribir unidad" />
                   )}
                 </div>
+                <div className="field">
+                  <label>Proveedor</label>
+                  <select className="select" value={supplyForm.supplierId} onChange={(e) => setSupplyForm((f) => ({ ...f, supplierId: e.target.value }))}>
+                    <option value="">Sin proveedor</option>
+                    {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: '#1A1B22' }}>Proveedor</label>
-                <select
-                  value={supplyForm.supplierId}
-                  onChange={(e) => setSupplyForm((f) => ({ ...f, supplierId: e.target.value }))}
-                  className="w-full px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2"
-                  style={{ border: '1px solid #E5E7EB', color: '#1A1B22' }}
-                >
-                  <option value="">Sin proveedor</option>
-                  {suppliers.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
+              <div style={{ display: 'flex', gap: 10, paddingTop: 6 }}>
+                <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => setSupplyModal({ open: false, editing: null })}>Cancelar</button>
+                <button className="btn btn-primary" style={{ flex: 1 }} disabled={supplySaving || !supplyForm.name.trim()} onClick={saveSupply}>
+                  {supplySaving ? 'Guardando...' : 'Guardar'}
+                </button>
               </div>
-            </div>
-
-            <div className="flex gap-3 pt-2">
-              <button
-                onClick={() => setSupplyModal({ open: false, editing: null })}
-                className="flex-1 py-2.5 text-sm font-medium rounded-lg transition-colors"
-                style={{ border: '1px solid #E5E7EB', color: '#584237' }}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={saveSupply}
-                disabled={supplySaving || !supplyForm.name.trim()}
-                className="flex-1 py-2.5 text-white text-sm font-medium rounded-lg transition-colors"
-                style={{ backgroundColor: '#EF4444' }}
-              >
-                {supplySaving ? 'Guardando...' : 'Guardar'}
-              </button>
             </div>
           </div>
         </div>
       )}
 
       {confirmDialog.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-sm p-6 space-y-4" style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', boxShadow: '0px 4px 12px rgba(67,20,7,0.08)' }}>
-            <h2 className="font-bold text-lg" style={{ color: '#1A1B22' }}>
-              {confirmDialog.type === 'delete' ? '¿Eliminar insumo?' : '¿Vaciar stock?'}
-            </h2>
-            <p style={{ color: '#584237' }}>
-              {confirmDialog.type === 'delete'
-                ? `Estás a punto de eliminar el insumo "${confirmDialog.name}". Esta acción no se puede deshacer.`
-                : `Estás a punto de vaciar el stock de "${confirmDialog.name}". El stock quedarán en 0.`}
-            </p>
-            <div className="flex gap-3 pt-2">
-              <button
-                onClick={() => setConfirmDialog({ open: false, type: 'delete', id: '', name: '' })}
-                className="flex-1 py-2.5 text-sm font-medium rounded-lg transition-colors"
-                style={{ border: '1px solid #E5E7EB', color: '#584237' }}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={confirmAction}
-                className="flex-1 py-2.5 text-white text-sm font-medium rounded-lg transition-colors"
-                style={{ backgroundColor: '#EF4444' }}
-              >
-                {confirmDialog.type === 'delete' ? 'Eliminar' : 'Vaciar'}
-              </button>
+        <div className="modal-backdrop" onClick={() => setConfirmDialog({ open: false, type: 'delete', id: '', name: '' })}>
+          <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="grabber" />
+            <div style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <h2 className="serif" style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
+                {confirmDialog.type === 'delete' ? '¿Eliminar insumo?' : '¿Vaciar stock?'}
+              </h2>
+              <p style={{ color: 'var(--muted)', margin: 0, fontSize: 14 }}>
+                {confirmDialog.type === 'delete'
+                  ? `Estás a punto de eliminar "${confirmDialog.name}". Esta acción no se puede deshacer.`
+                  : `Se vaciará el stock de "${confirmDialog.name}" a 0 unidades.`}
+              </p>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => setConfirmDialog({ open: false, type: 'delete', id: '', name: '' })}>Cancelar</button>
+                <button className="btn btn-danger" style={{ flex: 1 }} onClick={confirmAction}>
+                  {confirmDialog.type === 'delete' ? 'Eliminar' : 'Vaciar'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
+
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 }

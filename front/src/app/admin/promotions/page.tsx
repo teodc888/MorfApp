@@ -215,172 +215,231 @@ export default function PromotionsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full animate-spin" />
+      <div style={{ fontFamily: 'var(--sans)', minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid var(--primary)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
       </div>
     )
   }
 
+  const activeCount = promotions.filter(p => p.isActive).length
+
   return (
-    <div className="max-w-4xl mx-auto p-4 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Promociones</h1>
-          <p className="text-sm text-gray-600 mt-1">Crea bundles de productos con descuentos especiales</p>
+    <div style={{ fontFamily: 'var(--sans)', minHeight: '100vh', background: 'var(--bg)' }}>
+      {/* Page header */}
+      <div style={{ padding: '4px 22px 18px' }}>
+        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>
+          DESCUENTOS Y CÓDIGOS
         </div>
-        <button
-          onClick={openNew}
-          className="text-sm px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors"
-        >
-          + Nueva promo
-        </button>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+          <h1 className="serif" style={{ margin: 0, fontSize: 32, lineHeight: 1.05, color: 'var(--text)', flex: 1, fontWeight: 700 }}>
+            Promos
+          </h1>
+          <button className="btn btn-primary btn-sm" onClick={openNew} style={{ marginTop: 4 }}>
+            <span className="mat sm">add</span> Nueva
+          </button>
+        </div>
+        <p style={{ margin: '8px 0 0', fontSize: 13, color: 'var(--muted)', lineHeight: 1.4 }}>
+          {activeCount} promos activas · Crea bundles de productos con descuentos especiales
+        </p>
       </div>
 
-      {error && (
-        <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>
-      )}
+      {/* Content */}
+      <div style={{ padding: '0 22px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {error && (
+          <div style={{ padding: '12px 14px', background: 'var(--error-bg)', borderRadius: 8, fontSize: 13, color: 'var(--error)' }}>
+            {error}
+          </div>
+        )}
 
-      {promotions.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          <p className="text-4xl mb-3">🎁</p>
-          <p className="font-medium">Sin promociones aún</p>
-          <p className="text-sm mt-1">Crea una para empezar a ofrecer descuentos</p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {promotions.map(promo => (
-            <div key={promo.id} className="bg-white rounded-xl border border-gray-200">
-              <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <span className="text-lg flex-shrink-0">{promo.emoji}</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-gray-800 truncate">{promo.name}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {formatPrice(promo.originalPrice)} → {formatPrice(promo.originalPrice - (promo.originalPrice * promo.discountPercent / 100))} ({promo.discountPercent}% desc)
-                    </p>
-                  </div>
-                  {!promo.isActive && (
-                    <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full flex-shrink-0">inactiva</span>
-                  )}
+        {promotions.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '48px 22px', color: 'var(--muted)' }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>🎁</div>
+            <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>Sin promociones aún</div>
+            <p style={{ fontSize: 13, margin: 0 }}>Crea una para empezar a ofrecer descuentos</p>
+          </div>
+        ) : (
+          promotions.map(promo => (
+            <div key={promo.id} className="card" style={{ overflow: 'hidden', opacity: promo.isActive ? 1 : 0.7 }}>
+              <button
+                className="tap"
+                onClick={() => openEdit(promo)}
+                style={{
+                  width: '100%',
+                  padding: 16,
+                  textAlign: 'left',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 14,
+                  border: 'none',
+                  background: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                <div
+                  style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: 12,
+                    background: promo.isActive ? 'var(--primary)' : 'var(--surface-container)',
+                    color: promo.isActive ? 'var(--on-primary)' : 'var(--muted)',
+                    display: 'grid',
+                    placeItems: 'center',
+                    flexShrink: 0,
+                    boxShadow: promo.isActive ? '0 4px 12px rgba(249,115,22,0.3)' : 'none',
+                  }}
+                >
+                  <span className="serif" style={{ fontSize: 20, fontWeight: 800, lineHeight: 1 }}>
+                    {promo.discountPercent}%
+                  </span>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="serif" style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>
+                    {promo.name}
+                  </div>
+                  <div style={{ marginTop: 2, lineHeight: 1.4, fontSize: 12, color: 'var(--muted)' }}>
+                    {promo.description || formatPrice(promo.originalPrice) + ' → ' + formatPrice(finalPrice)}
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                    <span className="chip primary">{promo.productIds.length} productos</span>
+                    <span className="chip">{promo.modifierGroupIds.length} opciones</span>
+                  </div>
+                </div>
+              </button>
+
+              <div style={{
+                padding: '12px 16px',
+                borderTop: '1px solid var(--outline-soft)',
+                background: 'rgba(240,238,248,0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+              }}>
+                <div style={{ flex: 1 }}>
                   <button
                     onClick={() => openEdit(promo)}
-                    className="text-xs px-3 py-1.5 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+                    className="btn btn-ghost btn-sm"
+                    style={{ marginRight: 8 }}
                   >
-                    Editar
+                    <span className="mat sm">edit</span> Editar
                   </button>
                   <button
                     onClick={() => openDeleteDialog(promo.id, promo.name)}
-                    className="text-xs px-3 py-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    className="btn btn-danger btn-sm"
                   >
-                    Eliminar
+                    <span className="mat sm">delete</span>
                   </button>
                 </div>
               </div>
-              <div className="px-4 py-2 text-xs text-gray-500">
-                {promo.productIds.length} productos • {promo.modifierGroupIds.length} opciones
-              </div>
             </div>
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </div>
 
+      {/* Modal */}
       {modal.open && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40">
-          <div className="bg-white rounded-t-2xl md:rounded-2xl w-full md:max-w-xl max-h-[90dvh] overflow-y-auto">
-            <div className="sticky top-0 bg-gray-50 border-b border-gray-200 px-4 py-3">
-              <h2 className="text-lg font-bold text-gray-900">
-                {modal.editing ? '✏️ Editar promoción' : '✨ Nueva promoción'}
-              </h2>
-              <p className="text-sm text-gray-600 mt-1">Completa todos los campos para guardar</p>
-            </div>
+        <div className="modal-backdrop" onClick={() => setModal({ open: false, editing: null })}>
+          <div
+            className="modal-sheet"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxHeight: '90dvh', overflowY: 'auto', padding: '24px 22px' }}
+          >
+            <div className="grabber" />
+            <h2 className="serif" style={{ margin: '0 0 16px', fontSize: 22, color: 'var(--primary-dark)' }}>
+              {modal.editing ? 'Editar promo' : 'Nueva promo'}
+            </h2>
 
-            <div className="p-4 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-2">Nombre *</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div className="field">
+                <label>Nombre</label>
                 <input
+                  className="input"
                   type="text"
                   placeholder="Ej: Combo especial"
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  className="w-full border border-gray-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-2">Descripción</label>
+              <div className="field">
+                <label>Descripción</label>
                 <textarea
+                  className="input"
                   placeholder="Descripción opcional"
+                  style={{ minHeight: 60 }}
                   value={form.description}
                   onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                  className="w-full border border-gray-300 px-3 py-2 rounded-lg text-sm h-16 focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-2">Emoji</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="field">
+                  <label>Emoji</label>
                   <input
+                    className="input"
                     type="text"
                     placeholder="🎁"
                     maxLength={2}
+                    style={{ textAlign: 'center', fontSize: 24 }}
                     value={form.emoji}
                     onChange={e => setForm(f => ({ ...f, emoji: e.target.value }))}
-                    className="w-full border border-gray-300 px-3 py-2 rounded-lg text-center text-2xl focus:outline-none focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-2">Orden</label>
+                <div className="field">
+                  <label>Orden</label>
                   <input
+                    className="input"
                     type="number"
                     placeholder="0"
                     value={form.sortOrder}
                     onChange={e => setForm(f => ({ ...f, sortOrder: parseInt(e.target.value) || 0 }))}
-                    className="w-full border border-gray-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-2">% de descuento *</label>
-                <div className="space-y-2">
+              <div className="field">
+                <label>% de descuento</label>
+                <input
+                  className="input"
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={form.discountPercent}
+                  onChange={e => setForm(f => ({ ...f, discountPercent: parseInt(e.target.value) }))}
+                  style={{ width: '100%' }}
+                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
                   <input
-                    type="range"
+                    className="input"
+                    type="number"
                     min="0"
                     max="100"
                     value={form.discountPercent}
-                    onChange={e => setForm(f => ({ ...f, discountPercent: parseInt(e.target.value) }))}
-                    className="w-full accent-orange-600"
+                    onChange={e => setForm(f => ({ ...f, discountPercent: parseInt(e.target.value) || 0 }))}
+                    style={{ width: 60 }}
                   />
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={form.discountPercent}
-                      onChange={e => setForm(f => ({ ...f, discountPercent: parseInt(e.target.value) || 0 }))}
-                      className="w-16 border border-gray-300 px-2 py-1 rounded text-center text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    />
-                    <span className="text-sm font-medium text-gray-600">% de descuento</span>
-                  </div>
+                  <span style={{ fontSize: 13, color: 'var(--muted)' }}>% de descuento</span>
                 </div>
               </div>
 
               {Object.values(selectedProducts).reduce((sum, qty) => sum + qty, 0) > 0 && (
-                <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 space-y-1">
-                  <p className="text-xs text-gray-600">
-                    Precio original: <strong className="text-gray-900">{formatPrice(originalPrice)}</strong>
-                  </p>
-                  <p className="text-sm font-bold text-orange-700">
-                    💰 Precio final: {formatPrice(finalPrice)}
-                  </p>
+                <div style={{
+                  padding: '12px 14px',
+                  background: 'var(--primary)',
+                  borderRadius: 8,
+                  color: 'var(--on-primary)',
+                }}>
+                  <div style={{ fontSize: 12, marginBottom: 4 }}>
+                    Precio original: <strong>{formatPrice(originalPrice)}</strong>
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 600 }}>
+                    Precio final: {formatPrice(finalPrice)}
+                  </div>
                 </div>
               )}
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-2">Límite por usuario</label>
-                <div className="grid grid-cols-2 gap-2">
+              <div className="field">
+                <label>Límite por usuario</label>
+                <div className="seg">
                   {(['none', 'limited'] as const).map(mode => (
                     <button
                       key={mode}
@@ -389,11 +448,17 @@ export default function PromotionsPage() {
                         limitMode: mode,
                         maxPerUser: mode === 'none' ? null : f.maxPerUser ?? 1,
                       }))}
-                      className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-                        form.limitMode === mode
-                          ? 'bg-orange-600 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
+                      style={{
+                        flex: 1,
+                        padding: '10px 16px',
+                        borderRadius: 8,
+                        border: 'none',
+                        background: form.limitMode === mode ? 'var(--primary)' : 'var(--surface-container)',
+                        color: form.limitMode === mode ? 'var(--on-primary)' : 'var(--text)',
+                        fontSize: 13,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
                     >
                       {mode === 'none' ? 'Sin límite' : 'Con límite'}
                     </button>
@@ -402,22 +467,31 @@ export default function PromotionsPage() {
               </div>
 
               {form.limitMode === 'limited' && (
-                <input
-                  type="number"
-                  placeholder="Máximo por usuario"
-                  min="1"
-                  value={form.maxPerUser || 1}
-                  onChange={e => setForm(f => ({ ...f, maxPerUser: parseInt(e.target.value) || 1 }))}
-                  className="w-full border border-gray-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-                />
+                <div className="field">
+                  <label>Máximo por usuario</label>
+                  <input
+                    className="input"
+                    type="number"
+                    min="1"
+                    value={form.maxPerUser || 1}
+                    onChange={e => setForm(f => ({ ...f, maxPerUser: parseInt(e.target.value) || 1 }))}
+                  />
+                </div>
               )}
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-2">Imagen</label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-orange-300 transition">
+              <div className="field">
+                <label>Imagen</label>
+                <div
+                  style={{
+                    border: '2px dashed var(--outline)',
+                    borderRadius: 10,
+                    padding: 16,
+                    textAlign: 'center',
+                  }}
+                >
                   {form.imageUrl ? (
-                    <div className="space-y-2">
-                      <img src={form.imageUrl} alt="promo" className="w-16 h-16 mx-auto rounded-lg" />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center' }}>
+                      <img src={form.imageUrl} alt="promo" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover' }} />
                       <input
                         type="file"
                         accept="image/*"
@@ -426,12 +500,12 @@ export default function PromotionsPage() {
                         className="hidden"
                         id="image-upload"
                       />
-                      <label htmlFor="image-upload" className="text-orange-600 text-xs cursor-pointer font-medium">
-                        {uploading ? 'Subiendo...' : 'Cambiar imagen'}
+                      <label htmlFor="image-upload" className="btn btn-outline btn-sm" style={{ cursor: 'pointer', width: '100%' }}>
+                        <span className="mat sm">image</span> {uploading ? 'Subiendo...' : 'Cambiar'}
                       </label>
                     </div>
                   ) : (
-                    <label htmlFor="image-upload" className="cursor-pointer block">
+                    <label htmlFor="image-upload" style={{ cursor: 'pointer', display: 'block' }}>
                       <input
                         id="image-upload"
                         type="file"
@@ -440,8 +514,8 @@ export default function PromotionsPage() {
                         disabled={uploading}
                         className="hidden"
                       />
-                      <p className="text-sm text-gray-500">
-                        {uploading ? 'Subiendo...' : '📸 Arrastra o haz click para subir'}
+                      <p style={{ margin: 0, fontSize: 13, color: 'var(--muted)' }}>
+                        {uploading ? 'Subiendo...' : '📸 Haz click para subir'}
                       </p>
                     </label>
                   )}
@@ -449,16 +523,23 @@ export default function PromotionsPage() {
               </div>
 
               {categories.length > 0 && (
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-2">Filtrar por categoría</label>
-                  <div className="flex gap-2 overflow-x-auto pb-2">
+                <div className="field">
+                  <label>Filtrar por categoría</label>
+                  <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
                     <button
                       onClick={() => setSelectedCategoryId(null)}
-                      className={`px-3 py-2 text-xs rounded-lg whitespace-nowrap font-medium transition-colors ${
-                        selectedCategoryId === null
-                          ? 'bg-orange-600 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
+                      style={{
+                        padding: '8px 12px',
+                        fontSize: 12,
+                        borderRadius: 8,
+                        border: 'none',
+                        background: selectedCategoryId === null ? 'var(--primary)' : 'var(--surface-container)',
+                        color: selectedCategoryId === null ? 'var(--on-primary)' : 'var(--text)',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0,
+                      }}
                     >
                       Todas
                     </button>
@@ -466,11 +547,18 @@ export default function PromotionsPage() {
                       <button
                         key={cat.id}
                         onClick={() => setSelectedCategoryId(cat.id)}
-                        className={`px-3 py-2 text-xs rounded-lg whitespace-nowrap font-medium transition-colors ${
-                          selectedCategoryId === cat.id
-                            ? 'bg-orange-600 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
+                        style={{
+                          padding: '8px 12px',
+                          fontSize: 12,
+                          borderRadius: 8,
+                          border: 'none',
+                          background: selectedCategoryId === cat.id ? 'var(--primary)' : 'var(--surface-container)',
+                          color: selectedCategoryId === cat.id ? 'var(--on-primary)' : 'var(--text)',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0,
+                        }}
                       >
                         {cat.name}
                       </button>
@@ -479,59 +567,107 @@ export default function PromotionsPage() {
                 </div>
               )}
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-2">
-                  Productos * ({Object.values(selectedProducts).reduce((sum, qty) => sum + qty, 0)})
-                </label>
-                <div className="max-h-56 overflow-y-auto border border-gray-300 rounded-lg">
+              <div className="field">
+                <label>Productos ({Object.values(selectedProducts).reduce((sum, qty) => sum + qty, 0)})</label>
+                <div style={{ maxHeight: 200, overflowY: 'auto', border: '1px solid var(--outline)', borderRadius: 10 }}>
                   {filteredProducts.length === 0 ? (
-                    <p className="text-sm text-gray-500 p-3">No hay productos en esta categoría</p>
+                    <p style={{ fontSize: 13, color: 'var(--muted)', padding: 12, margin: 0 }}>No hay productos</p>
                   ) : (
-                    <div className="divide-y divide-gray-100">
-                      {filteredProducts.map(prod => (
-                        <div key={prod.id} className="flex items-center justify-between px-3 py-2 text-sm hover:bg-gray-50">
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-gray-900 truncate">{prod.name}</p>
-                            <p className="text-xs text-gray-500">{formatPrice(prod.price)}</p>
-                          </div>
-                          <div className="flex items-center gap-1 ml-2 flex-shrink-0">
-                            <button
-                              onClick={() => setSelectedProducts(sp => ({
-                                ...sp,
-                                [prod.id]: Math.max(0, (sp[prod.id] || 0) - 1)
-                              }))}
-                              className="w-6 h-6 flex items-center justify-center border border-gray-300 rounded hover:bg-gray-100 text-gray-600 text-sm"
-                            >
-                              −
-                            </button>
-                            <span className="w-6 text-center font-semibold text-gray-900">{selectedProducts[prod.id] || 0}</span>
-                            <button
-                              onClick={() => setSelectedProducts(sp => ({
-                                ...sp,
-                                [prod.id]: (sp[prod.id] || 0) + 1
-                              }))}
-                              className="w-6 h-6 flex items-center justify-center border border-gray-300 rounded hover:bg-orange-100 text-orange-600 text-sm font-bold"
-                            >
-                              +
-                            </button>
-                          </div>
+                    filteredProducts.map(prod => (
+                      <div
+                        key={prod.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '10px 12px',
+                          borderBottom: '1px solid var(--outline-soft)',
+                          fontSize: 13,
+                        }}
+                      >
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 600, color: 'var(--text)', marginBottom: 2 }}>{prod.name}</div>
+                          <div style={{ fontSize: 11, color: 'var(--muted)' }}>{formatPrice(prod.price)}</div>
                         </div>
-                      ))}
-                    </div>
+                        <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginLeft: 12 }}>
+                          <button
+                            onClick={() => setSelectedProducts(sp => ({
+                              ...sp,
+                              [prod.id]: Math.max(0, (sp[prod.id] || 0) - 1)
+                            }))}
+                            className="tap"
+                            style={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: 6,
+                              border: '1px solid var(--outline)',
+                              background: 'var(--surface)',
+                              color: 'var(--text)',
+                              cursor: 'pointer',
+                              fontSize: 12,
+                              fontWeight: 600,
+                            }}
+                          >
+                            −
+                          </button>
+                          <span style={{ width: 20, textAlign: 'center', fontWeight: 600 }}>
+                            {selectedProducts[prod.id] || 0}
+                          </span>
+                          <button
+                            onClick={() => setSelectedProducts(sp => ({
+                              ...sp,
+                              [prod.id]: (sp[prod.id] || 0) + 1
+                            }))}
+                            className="tap"
+                            style={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: 6,
+                              border: 'none',
+                              background: 'var(--primary)',
+                              color: 'var(--on-primary)',
+                              cursor: 'pointer',
+                              fontSize: 12,
+                              fontWeight: 600,
+                            }}
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    ))
                   )}
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-2">Opciones Adicionales ({selectedModifierGroupIds.length})</label>
+              <div className="field">
+                <label>Opciones Adicionales ({selectedModifierGroupIds.length})</label>
                 {modifierGroups.length === 0 ? (
-                  <p className="text-sm text-gray-500 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                    No hay opciones adicionales disponibles. Crea algunos en la sección de modificadores.
+                  <p style={{
+                    fontSize: 13,
+                    color: 'var(--muted)',
+                    padding: 12,
+                    margin: 0,
+                    background: 'var(--surface-container)',
+                    borderRadius: 8,
+                  }}>
+                    No hay opciones. Crea algunas en Opciones.
                   </p>
                 ) : (
-                  <div className="max-h-40 overflow-y-auto border border-gray-300 rounded-lg divide-y divide-gray-100">
+                  <div style={{ maxHeight: 160, overflowY: 'auto', border: '1px solid var(--outline)', borderRadius: 10 }}>
                     {modifierGroups.map(group => (
-                      <label key={group.id} className="flex items-center gap-2 cursor-pointer text-sm px-3 py-2 hover:bg-gray-50">
+                      <label
+                        key={group.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 10,
+                          padding: '10px 12px',
+                          borderBottom: '1px solid var(--outline-soft)',
+                          cursor: 'pointer',
+                          fontSize: 13,
+                        }}
+                      >
                         <input
                           type="checkbox"
                           checked={selectedModifierGroupIds.includes(group.id)}
@@ -542,62 +678,107 @@ export default function PromotionsPage() {
                               setSelectedModifierGroupIds(ids => ids.filter(id => id !== group.id))
                             }
                           }}
-                          className="accent-orange-600"
+                          style={{
+                            width: 18,
+                            height: 18,
+                            accentColor: 'var(--primary)',
+                            cursor: 'pointer',
+                          }}
                         />
-                        <span className="font-medium text-gray-900">{group.name}</span>
+                        <span style={{ fontWeight: 600, color: 'var(--text)' }}>{group.name}</span>
                       </label>
                     ))}
                   </div>
                 )}
               </div>
 
-              <label className="flex items-center gap-2 cursor-pointer text-sm px-3 py-2 bg-gray-50 rounded-lg">
+              <label
+                className="tap"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '12px 14px',
+                  background: 'var(--surface-container)',
+                  borderRadius: 10,
+                  cursor: 'pointer',
+                }}
+              >
                 <input
                   type="checkbox"
                   checked={form.isActive}
                   onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))}
-                  className="accent-orange-600"
+                  style={{ width: 18, height: 18, accentColor: 'var(--primary)', cursor: 'pointer' }}
                 />
-                <span className="font-medium text-gray-700">Promoción activa</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>Promoción activa</div>
+                </div>
               </label>
-
-              <div className="border-t border-gray-200 pt-4 mt-4 flex gap-2">
-                <button
-                  onClick={() => setModal({ open: false, editing: null })}
-                  className="flex-1 border border-gray-300 px-4 py-2 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={save}
-                  disabled={saving || !form.name.trim() || Object.values(selectedProducts).reduce((sum, qty) => sum + qty, 0) === 0}
-                  className="flex-1 bg-orange-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {saving ? '⏳ Guardando...' : '✓ Guardar'}
-                </button>
-              </div>
             </div>
-          </div>
-        </div>
-      )}
 
-      {confirmDelete.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 space-y-4">
-            <h3 className="text-lg font-bold text-gray-900">⚠️ ¿Eliminar promoción?</h3>
-            <p className="text-gray-600 text-sm">
-              Estás a punto de eliminar <strong className="text-gray-900">{confirmDelete.name}</strong>. Esta acción no se puede deshacer.
-            </p>
-            <div className="flex gap-3 pt-2">
+            <div style={{ display: 'flex', gap: 12, paddingTop: 16, marginTop: 16, borderTop: '1px solid var(--outline-soft)' }}>
               <button
-                onClick={() => setConfirmDelete({ open: false, id: null, name: '' })}
-                className="flex-1 border border-gray-300 px-4 py-2 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                className="btn btn-outline"
+                onClick={() => setModal({ open: false, editing: null })}
+                style={{ flex: 1 }}
               >
                 Cancelar
               </button>
               <button
+                className="btn btn-primary"
+                onClick={save}
+                disabled={saving || !form.name.trim() || Object.values(selectedProducts).reduce((sum, qty) => sum + qty, 0) === 0}
+                style={{
+                  flex: 1,
+                  opacity: saving || !form.name.trim() || Object.values(selectedProducts).reduce((sum, qty) => sum + qty, 0) === 0 ? 0.5 : 1,
+                }}
+              >
+                {saving ? 'Guardando...' : modal.editing ? 'Guardar cambios' : 'Crear promo'}
+              </button>
+            </div>
+
+            {modal.editing && (
+              <button
+                className="btn btn-danger btn-block"
+                onClick={() => {
+                  openDeleteDialog(modal.editing!.id, modal.editing!.name)
+                  setModal({ open: false, editing: null })
+                }}
+                style={{ marginTop: 12 }}
+              >
+                <span className="mat sm">delete</span> Eliminar promo
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation */}
+      {confirmDelete.open && (
+        <div className="modal-backdrop" onClick={() => setConfirmDelete({ open: false, id: null, name: '' })}>
+          <div
+            className="modal-sheet"
+            onClick={(e) => e.stopPropagation()}
+            style={{ padding: '24px 22px', maxWidth: 320 }}
+          >
+            <h2 className="serif" style={{ margin: '0 0 16px', fontSize: 20, color: 'var(--error)' }}>
+              ⚠️ ¿Eliminar promo?
+            </h2>
+            <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--muted)', lineHeight: 1.4 }}>
+              Estás a punto de eliminar <strong style={{ color: 'var(--text)' }}>{confirmDelete.name}</strong>. Esta acción no se puede deshacer.
+            </p>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button
+                className="btn btn-outline"
+                onClick={() => setConfirmDelete({ open: false, id: null, name: '' })}
+                style={{ flex: 1 }}
+              >
+                Cancelar
+              </button>
+              <button
+                className="btn btn-danger"
                 onClick={confirmRemove}
-                className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors"
+                style={{ flex: 1 }}
               >
                 Eliminar
               </button>
