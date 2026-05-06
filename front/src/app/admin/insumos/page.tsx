@@ -497,13 +497,17 @@ export default function InsumosPage() {
       )}
 
       {supplyModal.open && (
-        <div className="modal-backdrop" onClick={() => setSupplyModal({ open: false, editing: null })}>
-          <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
-            <div className="grabber" />
-            <div style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <h2 className="serif" style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
+        <div className="modal-backdrop modal-center" onClick={() => setSupplyModal({ open: false, editing: null })}>
+          <div className="modal-sheet" onClick={(e) => e.stopPropagation()} style={{ maxHeight: '90dvh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <h2 className="serif" style={{ fontSize: 24, fontWeight: 700, color: 'var(--primary-dark)', margin: 0 }}>
                 {supplyModal.editing ? 'Editar insumo' : 'Nuevo insumo'}
               </h2>
+              <button onClick={() => setSupplyModal({ open: false, editing: null })} className="tap" style={{ width: 32, height: 32, borderRadius: 16, display: 'grid', placeItems: 'center', color: 'var(--muted)', fontSize: 20 }}>
+                ✕
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div className="field">
                 <label>Nombre</label>
                 <input className="input" value={supplyForm.name} onChange={(e) => setSupplyForm((f) => ({ ...f, name: e.target.value }))} placeholder="Nombre del insumo" />
@@ -540,24 +544,21 @@ export default function InsumosPage() {
       )}
 
       {confirmDialog.open && (
-        <div className="modal-backdrop" onClick={() => setConfirmDialog({ open: false, type: 'delete', id: '', name: '' })}>
-          <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
-            <div className="grabber" />
-            <div style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <h2 className="serif" style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
-                {confirmDialog.type === 'delete' ? '¿Eliminar insumo?' : '¿Vaciar stock?'}
-              </h2>
-              <p style={{ color: 'var(--muted)', margin: 0, fontSize: 14 }}>
-                {confirmDialog.type === 'delete'
-                  ? `Estás a punto de eliminar "${confirmDialog.name}". Esta acción no se puede deshacer.`
-                  : `Se vaciará el stock de "${confirmDialog.name}" a 0 unidades.`}
-              </p>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => setConfirmDialog({ open: false, type: 'delete', id: '', name: '' })}>Cancelar</button>
-                <button className="btn btn-danger" style={{ flex: 1 }} onClick={confirmAction}>
-                  {confirmDialog.type === 'delete' ? 'Eliminar' : 'Vaciar'}
-                </button>
-              </div>
+        <div className="modal-backdrop modal-center" onClick={() => setConfirmDialog({ open: false, type: 'delete', id: '', name: '' })}>
+          <div className="modal-sheet" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 380 }}>
+            <h2 className="serif" style={{ fontSize: 20, fontWeight: 700, color: 'var(--error)', margin: '0 0 16px' }}>
+              {confirmDialog.type === 'delete' ? '⚠️ ¿Eliminar insumo?' : '⚠️ ¿Vaciar stock?'}
+            </h2>
+            <p style={{ color: 'var(--muted)', margin: '0 0 16px', fontSize: 14 }}>
+              {confirmDialog.type === 'delete'
+                ? `Estás a punto de eliminar "${confirmDialog.name}". Esta acción no se puede deshacer.`
+                : `Se vaciará el stock de "${confirmDialog.name}" a 0 unidades.`}
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => setConfirmDialog({ open: false, type: 'delete', id: '', name: '' })}>Cancelar</button>
+              <button className="btn btn-danger" style={{ flex: 1 }} onClick={confirmAction}>
+                {confirmDialog.type === 'delete' ? 'Eliminar' : 'Vaciar'}
+              </button>
             </div>
           </div>
         </div>

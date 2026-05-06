@@ -146,16 +146,14 @@ function DetailSheet({
   const isPending = order.status === 'pending'
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-sheet" onClick={e => e.stopPropagation()}>
-        <div className="grabber" />
-
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <h2 className="serif" style={{ margin: 0, fontSize: 22, color: 'var(--primary-dark)' }}>
+    <div className="modal-backdrop modal-center" onClick={onClose}>
+      <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ maxHeight: '90dvh', overflowY: 'auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <h2 className="serif" style={{ margin: 0, fontSize: 24, color: 'var(--primary-dark)', fontWeight: 700 }}>
             Pedido #{order.id.slice(-6).toUpperCase()}
           </h2>
-          <button onClick={onClose} className="tap" style={{ width: 36, height: 36, borderRadius: 18, display: 'grid', placeItems: 'center', color: 'var(--muted)' }}>
-            <span className="mat">close</span>
+          <button onClick={onClose} className="tap" style={{ width: 32, height: 32, borderRadius: 16, display: 'grid', placeItems: 'center', color: 'var(--muted)', fontSize: 20 }}>
+            ✕
           </button>
         </div>
 

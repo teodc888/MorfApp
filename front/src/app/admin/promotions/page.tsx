@@ -337,16 +337,20 @@ export default function PromotionsPage() {
 
       {/* Modal */}
       {modal.open && (
-        <div className="modal-backdrop" onClick={() => setModal({ open: false, editing: null })}>
+        <div className="modal-backdrop modal-center" onClick={() => setModal({ open: false, editing: null })}>
           <div
             className="modal-sheet"
             onClick={(e) => e.stopPropagation()}
-            style={{ maxHeight: '90dvh', overflowY: 'auto', padding: '24px 22px' }}
+            style={{ maxHeight: '90dvh', overflowY: 'auto' }}
           >
-            <div className="grabber" />
-            <h2 className="serif" style={{ margin: '0 0 16px', fontSize: 22, color: 'var(--primary-dark)' }}>
-              {modal.editing ? 'Editar promo' : 'Nueva promo'}
-            </h2>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <h2 className="serif" style={{ margin: 0, fontSize: 24, color: 'var(--primary-dark)', fontWeight: 700 }}>
+                {modal.editing ? 'Editar promo' : 'Nueva promo'}
+              </h2>
+              <button onClick={() => setModal({ open: false, editing: null })} className="tap" style={{ width: 32, height: 32, borderRadius: 16, display: 'grid', placeItems: 'center', color: 'var(--muted)', fontSize: 20 }}>
+                ✕
+              </button>
+            </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div className="field">
@@ -755,11 +759,11 @@ export default function PromotionsPage() {
 
       {/* Delete confirmation */}
       {confirmDelete.open && (
-        <div className="modal-backdrop" onClick={() => setConfirmDelete({ open: false, id: null, name: '' })}>
+        <div className="modal-backdrop modal-center" onClick={() => setConfirmDelete({ open: false, id: null, name: '' })}>
           <div
             className="modal-sheet"
             onClick={(e) => e.stopPropagation()}
-            style={{ padding: '24px 22px', maxWidth: 320 }}
+            style={{ maxWidth: 380 }}
           >
             <h2 className="serif" style={{ margin: '0 0 16px', fontSize: 20, color: 'var(--error)' }}>
               ⚠️ ¿Eliminar promo?
