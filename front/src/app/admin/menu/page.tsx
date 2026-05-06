@@ -438,15 +438,14 @@ export default function MenuPage() {
 
       {/* ── Product sheet ──────────────────────────────────────────── */}
       {prodModal.open && (
-        <div className="modal-backdrop" onClick={() => setProdModal({ open: false, editing: null, defaultCategoryId: '' })}>
-          <div className="modal-sheet" onClick={e => e.stopPropagation()}>
-            <div className="grabber" />
+        <div className="modal-backdrop modal-center" onClick={() => setProdModal({ open: false, editing: null, defaultCategoryId: '' })}>
+          <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ maxHeight: '90dvh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-              <h2 className="serif" style={{ margin: 0, fontSize: 22, color: 'var(--primary-dark)' }}>
+              <h2 className="serif" style={{ margin: 0, fontSize: 24, color: 'var(--primary-dark)', fontWeight: 700 }}>
                 {prodModal.editing ? 'Editar producto' : 'Nuevo producto'}
               </h2>
-              <button onClick={() => setProdModal({ open: false, editing: null, defaultCategoryId: '' })} className="tap" style={{ width: 36, height: 36, borderRadius: 18, display: 'grid', placeItems: 'center', color: 'var(--muted)' }}>
-                <span className="mat">close</span>
+              <button onClick={() => setProdModal({ open: false, editing: null, defaultCategoryId: '' })} className="tap" style={{ width: 32, height: 32, borderRadius: 16, display: 'grid', placeItems: 'center', color: 'var(--muted)', fontSize: 20 }}>
+                ✕
               </button>
             </div>
 
@@ -578,11 +577,10 @@ export default function MenuPage() {
 
       {/* ── Confirm delete sheet ───────────────────────────────────── */}
       {confirmDialog.open && (
-        <div className="modal-backdrop" onClick={() => setConfirmDialog({ open: false, type: null, id: '', name: '' })}>
-          <div className="modal-sheet" onClick={e => e.stopPropagation()}>
-            <div className="grabber" />
-            <h2 className="serif" style={{ margin: '0 0 10px', fontSize: 22, color: 'var(--error)' }}>
-              ¿Eliminar {confirmDialog.type === 'category' ? 'categoría' : 'producto'}?
+        <div className="modal-backdrop modal-center" onClick={() => setConfirmDialog({ open: false, type: null, id: '', name: '' })}>
+          <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ maxWidth: 380 }}>
+            <h2 className="serif" style={{ margin: '0 0 16px', fontSize: 20, color: 'var(--error)' }}>
+              ⚠️ ¿Eliminar {confirmDialog.type === 'category' ? 'categoría' : 'producto'}?
             </h2>
             <p style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 20, lineHeight: 1.5 }}>
               Vas a eliminar <strong style={{ color: 'var(--text)' }}>{confirmDialog.name}</strong>. Esta acción no se puede deshacer.
@@ -601,11 +599,17 @@ export default function MenuPage() {
 
       {/* ── Discount sheet ─────────────────────────────────────────── */}
       {discountModal && (
-        <div className="modal-backdrop" onClick={() => setDiscountModal(null)}>
-          <div className="modal-sheet" onClick={e => e.stopPropagation()}>
-            <div className="grabber" />
-            <h2 className="serif" style={{ margin: '0 0 4px', fontSize: 22, color: 'var(--primary-dark)' }}>Descuento</h2>
-            <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20 }}>{discountModal.prodName}</p>
+        <div className="modal-backdrop modal-center" onClick={() => setDiscountModal(null)}>
+          <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ maxWidth: 380 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <div>
+                <h2 className="serif" style={{ margin: 0, fontSize: 24, color: 'var(--primary-dark)', fontWeight: 700 }}>Descuento</h2>
+                <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 0, marginTop: 4 }}>{discountModal.prodName}</p>
+              </div>
+              <button onClick={() => setDiscountModal(null)} className="tap" style={{ width: 32, height: 32, borderRadius: 16, display: 'grid', placeItems: 'center', color: 'var(--muted)', fontSize: 20 }}>
+                ✕
+              </button>
+            </div>
             <div className="field" style={{ marginBottom: 16 }}>
               <label>Porcentaje (%)</label>
               <input className="input" type="number" min="0" max="100" value={discountInput} onChange={e => setDiscountInput(e.target.value)} placeholder="Ej: 20" />
