@@ -32,20 +32,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter()
   const pathname = usePathname()
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const base = '/admin'
 
   const isLoginPage = pathname.endsWith('/login')
-  const authenticated = isLoginPage || isAuthenticated()
-  const tenant = getTenantFromToken() || 'Mi negocio'
 
   useEffect(() => {
+    setMounted(true)
     if (isLoginPage) return
     if (!isAuthenticated()) router.replace(`${base}/login`)
   }, [base, isLoginPage, router])
 
   if (isLoginPage) return <>{children}</>
 
-  if (!authenticated) {
+  if (!mounted) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'var(--bg)' }}>
         <div style={{ width: 32, height: 32, border: '4px solid var(--primary)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
@@ -53,6 +53,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </div>
     )
   }
+
+  const tenant = getTenantFromToken() || 'Mi negocio'
 
   const isActive = (href: string) => pathname.includes(`${base}/${href}`)
 
