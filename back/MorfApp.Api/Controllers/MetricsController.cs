@@ -21,6 +21,10 @@ public class MetricsController(IAppDbContext db) : ControllerBase
     [HttpGet("daily")]
     public async Task<ActionResult<MetricsDto>> GetDaily([FromQuery] DateOnly? date)
     {
+        var tenant = await db.Tenants.FirstOrDefaultAsync(t => t.Id == TenantId);
+        if (tenant == null)
+            return Unauthorized();
+
         var day = date ?? DateOnly.FromDateTime(DateTime.UtcNow);
         var from = day.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
         var to   = day.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
@@ -31,6 +35,8 @@ public class MetricsController(IAppDbContext db) : ControllerBase
                      && o.CreatedAt >= from
                      && o.CreatedAt <= to)
             .ToListAsync();
+
+        var tz = TimeZoneInfo.FindSystemTimeZoneById(tenant.Timezone);
 
         var topProducts = orders
             .SelectMany(o => o.Items)
@@ -46,7 +52,7 @@ public class MetricsController(IAppDbContext db) : ControllerBase
             .ToList();
 
         var revenueOverTime = orders
-            .GroupBy(o => o.CreatedAt.Hour)
+            .GroupBy(o => TimeZoneInfo.ConvertTimeFromUtc(o.CreatedAt, tz).Hour)
             .Select(g => new RevenuePointDto(
                 $"{g.Key:D2}:00",
                 g.Sum(o => o.TotalPrice),
@@ -56,7 +62,7 @@ public class MetricsController(IAppDbContext db) : ControllerBase
             .ToList();
 
         var ordersByHour = orders
-            .GroupBy(o => o.CreatedAt.Hour)
+            .GroupBy(o => TimeZoneInfo.ConvertTimeFromUtc(o.CreatedAt, tz).Hour)
             .Select(g => new OrdersByHourDto(g.Key, g.Count()))
             .OrderBy(h => h.Hour)
             .ToList();
@@ -78,6 +84,11 @@ public class MetricsController(IAppDbContext db) : ControllerBase
     [HttpGet("weekly")]
     public async Task<ActionResult<MetricsDto>> GetWeekly([FromQuery] DateOnly? date)
     {
+        var tenant = await db.Tenants.FirstOrDefaultAsync(t => t.Id == TenantId);
+        if (tenant == null)
+            return Unauthorized();
+
+        var tz = TimeZoneInfo.FindSystemTimeZoneById(tenant.Timezone);
         var refDay = date ?? DateOnly.FromDateTime(DateTime.UtcNow);
 
         // Semana que empieza el lunes
@@ -108,7 +119,7 @@ public class MetricsController(IAppDbContext db) : ControllerBase
             .ToList();
 
         var revenueOverTime = orders
-            .GroupBy(o => o.CreatedAt.Date)
+            .GroupBy(o => TimeZoneInfo.ConvertTimeFromUtc(o.CreatedAt, tz).Date)
             .Select(g => new RevenuePointDto(
                 g.Key.ToString("ddd dd"),
                 g.Sum(o => o.TotalPrice),
@@ -136,6 +147,11 @@ public class MetricsController(IAppDbContext db) : ControllerBase
         [FromQuery] int? month,
         [FromQuery] int? year)
     {
+        var tenant = await db.Tenants.FirstOrDefaultAsync(t => t.Id == TenantId);
+        if (tenant == null)
+            return Unauthorized();
+
+        var tz = TimeZoneInfo.FindSystemTimeZoneById(tenant.Timezone);
         var now = DateTime.UtcNow;
         var m = month ?? now.Month;
         var y = year  ?? now.Year;
@@ -167,7 +183,7 @@ public class MetricsController(IAppDbContext db) : ControllerBase
             .ToList();
 
         var revenueOverTime = orders
-            .GroupBy(o => o.CreatedAt.Date)
+            .GroupBy(o => TimeZoneInfo.ConvertTimeFromUtc(o.CreatedAt, tz).Date)
             .Select(g => new RevenuePointDto(
                 g.Key.ToString("dd"),
                 g.Sum(o => o.TotalPrice),
@@ -193,6 +209,11 @@ public class MetricsController(IAppDbContext db) : ControllerBase
     [HttpGet("yearly")]
     public async Task<ActionResult<MetricsDto>> GetYearly([FromQuery] int? year)
     {
+        var tenant = await db.Tenants.FirstOrDefaultAsync(t => t.Id == TenantId);
+        if (tenant == null)
+            return Unauthorized();
+
+        var tz = TimeZoneInfo.FindSystemTimeZoneById(tenant.Timezone);
         var y    = year ?? DateTime.UtcNow.Year;
         var from = new DateTime(y, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         var to   = new DateTime(y, 12, 31, 23, 59, 59, 999, DateTimeKind.Utc);
@@ -218,7 +239,7 @@ public class MetricsController(IAppDbContext db) : ControllerBase
             .ToList();
 
         var revenueOverTime = orders
-            .GroupBy(o => o.CreatedAt.Month)
+            .GroupBy(o => TimeZoneInfo.ConvertTimeFromUtc(o.CreatedAt, tz).Month)
             .Select(g => new RevenuePointDto(
                 CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(g.Key),
                 g.Sum(o => o.TotalPrice),

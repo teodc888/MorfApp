@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useWebSocket } from '@/lib/useWebSocket'
 import {
   getOrders,
   confirmOrder,
@@ -10,7 +11,9 @@ import {
   type OrderItemFromApi,
 } from '@/lib/admin-api'
 import { formatPrice } from '@/lib/utils'
-type StatusFilter = 'pending' | 'confirmed' | 'cancelled'
+
+type StatusFilter = 'pending' | 'history'
+type HistoryStatus = 'confirmed' | 'cancelled'
 
 const STATUS_LABELS: Record<OrderAdmin['status'], string> = {
   pending: 'Pendiente',
@@ -230,18 +233,64 @@ function OrderCard({
 /* ------------------------------------------------------------------ */
 /* Page                                                                  */
 /* ------------------------------------------------------------------ */
+type SortField = 'date' | 'total'
+type SortOrder = 'asc' | 'desc'
+
 export default function OrdersPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('pending')
+  const [historyStatus, setHistoryStatus] = useState<HistoryStatus>('confirmed')
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [cancellingId, setCancellingId] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [currentPage, setCurrentPage] = useState(0)
+  const [sortField, setSortField] = useState<SortField>('date')
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
+  const pageSize = 10
 
   const queryClient = useQueryClient()
 
-  const { data: orders = [], isLoading, error, refetch } = useQuery<OrderAdmin[], Error>({
-    queryKey: ['orders', statusFilter],
-    queryFn: () => getOrders(statusFilter),
-    refetchInterval: 30_000, // refresca cada 30s automáticamente
+  // Log cuando el componente se monta y desmonta
+  useEffect(() => {
+    console.log('[OrdersPage] Mounted with statusFilter:', statusFilter)
+    return () => console.log('[OrdersPage] Unmounted')
+  }, [statusFilter])
+
+  useWebSocket()
+
+  const apiStatus = statusFilter === 'pending' ? 'pending' : historyStatus
+  const { data: response = { items: [], total: 0, limit: 10, offset: 0 }, isLoading, error, refetch } = useQuery<{ items: OrderAdmin[], total: number, limit: number, offset: number }, Error>({
+    queryKey: ['orders', apiStatus, searchQuery, currentPage],
+    queryFn: async () => {
+      console.log('[Orders Query] Fetching orders with status:', apiStatus, 'search:', searchQuery, 'page:', currentPage)
+      const result = await getOrders(apiStatus, searchQuery, pageSize, currentPage * pageSize)
+      return result
+    },
   })
+
+  const sortedOrders = (() => {
+    const sorted = [...response.items]
+    if (sortField === 'date') {
+      sorted.sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime()
+        const dateB = new Date(b.createdAt).getTime()
+        return sortOrder === 'desc' ? dateB - dateA : dateA - dateB
+      })
+    } else if (sortField === 'total') {
+      sorted.sort((a, b) => {
+        return sortOrder === 'desc' ? b.totalPrice - a.totalPrice : a.totalPrice - b.totalPrice
+      })
+    }
+    return sorted
+  })()
+
+  const orders = sortedOrders
+  const totalOrders = response.total
+  const totalPages = Math.ceil(totalOrders / pageSize)
+
+  // Log cuando los datos cambian
+  useEffect(() => {
+    console.log('[OrdersPage] Data updated - orders count:', orders.length, 'isLoading:', isLoading)
+  }, [orders, isLoading])
 
   const confirmMutation = useMutation({
     mutationFn: (id: string) => confirmOrder(id),
@@ -273,12 +322,7 @@ export default function OrdersPage() {
 
   const mutationError = confirmMutation.error?.message ?? cancelMutation.error?.message ?? null
 
-  const STATUS_TABS: StatusFilter[] = ['pending', 'confirmed', 'cancelled']
-  const TAB_LABELS: Record<StatusFilter, string> = {
-    pending: 'Pendientes',
-    confirmed: 'Confirmados',
-    cancelled: 'Cancelados',
-  }
+  const HISTORY_STATUSES: HistoryStatus[] = ['confirmed', 'cancelled']
 
   return (
     <div className="min-h-screen bg-[#FAF9F6] max-w-6xl mx-auto space-y-6 p-6">
@@ -299,6 +343,7 @@ export default function OrdersPage() {
       </div>
 
       {/* Filtro por status */}
+<<<<<<< HEAD
       <div className="flex gap-2 border-b border-[#E5E7EB] overflow-x-auto">
         {STATUS_TABS.map((tab) => (
           <button
@@ -313,7 +358,132 @@ export default function OrdersPage() {
             {TAB_LABELS[tab]}
           </button>
         ))}
+=======
+      <div className="flex gap-2 border-b border-gray-200 overflow-x-auto">
+        <button
+          onClick={() => {
+            setStatusFilter('pending')
+            setCurrentPage(0)
+            setSearchQuery('')
+          }}
+          className={`pb-2.5 px-1 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+            statusFilter === 'pending'
+              ? 'border-orange-600 text-orange-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          Pendientes
+        </button>
+        <button
+          onClick={() => {
+            setStatusFilter('history')
+            setCurrentPage(0)
+            setSearchQuery('')
+          }}
+          className={`pb-2.5 px-1 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+            statusFilter === 'history'
+              ? 'border-orange-600 text-orange-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          Historial
+        </button>
+>>>>>>> master
       </div>
+
+      {/* Filtros y búsqueda solo en historial */}
+      {statusFilter === 'history' && (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+            {/* Estado */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Estado</label>
+              <select
+                value={historyStatus}
+                onChange={(e) => {
+                  setHistoryStatus(e.target.value as HistoryStatus)
+                  setCurrentPage(0)
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-600"
+              >
+                <option value="confirmed">Confirmados</option>
+                <option value="cancelled">Cancelados</option>
+              </select>
+            </div>
+
+            {/* Búsqueda */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Buscar cliente</label>
+              <input
+                type="text"
+                placeholder="Nombre o teléfono..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value)
+                  setCurrentPage(0)
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-600"
+              />
+            </div>
+
+            {/* Ordenar por */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Ordenar por</label>
+              <select
+                value={sortField}
+                onChange={(e) => setSortField(e.target.value as SortField)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-600"
+              >
+                <option value="date">Fecha</option>
+                <option value="total">Monto</option>
+              </select>
+            </div>
+
+            {/* Orden */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Orden</label>
+              <select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-600"
+              >
+                {sortField === 'date' ? (
+                  <>
+                    <option value="desc">Más recientes</option>
+                    <option value="asc">Más antiguos</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="desc">Mayor a menor</option>
+                    <option value="asc">Menor a mayor</option>
+                  </>
+                )}
+              </select>
+            </div>
+          </div>
+
+          {/* Paginación */}
+          <div className="flex items-center justify-between text-xs text-gray-600">
+            <span>Mostrando {orders.length === 0 ? 0 : currentPage * pageSize + 1}-{Math.min((currentPage + 1) * pageSize, totalOrders)} de {totalOrders}</span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
+                disabled={currentPage === 0 || isLoading}
+                className="px-3 py-1.5 text-xs border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                ← Anterior
+              </button>
+              <button
+                onClick={() => setCurrentPage(p => p + 1)}
+                disabled={currentPage >= totalPages - 1 || isLoading}
+                className="px-3 py-1.5 text-xs border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Siguiente →
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Errores */}
       {(error || mutationError) && (
@@ -333,9 +503,15 @@ export default function OrdersPage() {
       {!isLoading && orders.length === 0 && (
         <div className="text-center py-16 text-[#584237]">
           <p className="text-4xl mb-3">
-            {statusFilter === 'pending' ? '🟡' : statusFilter === 'confirmed' ? '✅' : '❌'}
+            {statusFilter === 'pending' ? '🟡' : historyStatus === 'confirmed' ? '✅' : '❌'}
           </p>
-          <p className="font-medium">Sin pedidos {TAB_LABELS[statusFilter].toLowerCase()}</p>
+          <p className="font-medium">
+            {statusFilter === 'pending'
+              ? 'Sin pedidos pendientes'
+              : historyStatus === 'confirmed'
+              ? 'Sin pedidos confirmados'
+              : 'Sin pedidos cancelados'}
+          </p>
           <p className="text-sm mt-1">
             {statusFilter === 'pending'
               ? 'Los nuevos pedidos aparecerán aquí'
