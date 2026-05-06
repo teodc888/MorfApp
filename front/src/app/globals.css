@@ -194,6 +194,9 @@ input, textarea, select { font-size: 16px; }
   z-index: 90; display: flex; align-items: flex-end; justify-content: center;
   animation: adFadeIn .18s ease;
 }
+.modal-backdrop.modal-center {
+  align-items: center; padding: 20px;
+}
 .modal-sheet {
   width: 100%; background: var(--surface);
   border-top-left-radius: var(--radius-modal);
@@ -201,9 +204,18 @@ input, textarea, select { font-size: 16px; }
   padding: 8px 20px 36px; max-height: 90%; overflow-y: auto;
   animation: adSlideUp .24s cubic-bezier(.2,.8,.2,1);
 }
+.modal-backdrop.modal-center .modal-sheet {
+  width: 100%; max-width: 420px;
+  border-radius: var(--radius-modal);
+  animation: adFadeIn .18s ease;
+  padding: 24px 20px;
+}
 .modal-sheet .grabber {
   width: 38px; height: 4px; background: var(--outline);
   border-radius: 2px; margin: 6px auto 14px;
+}
+.modal-backdrop.modal-center .modal-sheet .grabber {
+  display: none;
 }
 
 /* Toast */

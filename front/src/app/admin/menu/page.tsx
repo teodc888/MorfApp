@@ -23,7 +23,7 @@ import type { Category, Product, SupplyDto, ProductSupplyDto } from '@/types/sto
 type CategoryAdmin = Category & { isActive: boolean }
 type ProductAdmin = Product & { categoryId: string; sortOrder: number; isActive: boolean; discountPercent?: number | null }
 
-type CategoryForm = { name: string; emoji: string; sortOrder: number }
+type CategoryForm = { name: string; emoji: string; sortOrder: number; isActive?: boolean }
 type ProductForm = {
   categoryId: string
   name: string
@@ -37,7 +37,9 @@ type ProductForm = {
 
 type ConfirmDialog = { open: boolean; type: 'category' | 'product' | null; id: string; name: string }
 
-const EMPTY_CAT: CategoryForm = { name: '', emoji: '🍽️', sortOrder: 0 }
+const EMOJI_OPTIONS = ['🍽️', '🍔', '🍕', '🌮', '🍜', '🥗', '🍱', '🥙', '🍲', '🥘']
+
+const EMPTY_CAT: CategoryForm = { name: '', emoji: '🍽️', sortOrder: 0, isActive: true }
 const EMPTY_PROD: ProductForm = {
   categoryId: '', name: '', description: '', price: '',
   emoji: '🍔', imageUrl: '', sortOrder: 0, isActive: true,
@@ -91,16 +93,16 @@ export default function MenuPage() {
     setCatModal({ open: true, editing: null })
   }
   function openEditCat(cat: CategoryAdmin) {
-    setCatForm({ name: cat.name, emoji: cat.emoji, sortOrder: cat.sortOrder })
+    setCatForm({ name: cat.name, emoji: cat.emoji, sortOrder: cat.sortOrder, isActive: cat.isActive })
     setCatModal({ open: true, editing: cat })
   }
   async function saveCat() {
     setCatSaving(true)
     try {
       if (catModal.editing) {
-        await updateCategory(catModal.editing.id, { ...catForm, isActive: catModal.editing.isActive })
+        await updateCategory(catModal.editing.id, { ...catForm, isActive: catForm.isActive ?? true })
       } else {
-        await createCategory(catForm)
+        await createCategory({ name: catForm.name, emoji: catForm.emoji, sortOrder: catForm.sortOrder })
       }
       setCatModal({ open: false, editing: null })
       await load()
@@ -364,37 +366,61 @@ export default function MenuPage() {
         ))}
       </div>
 
-      {/* ── Category sheet ─────────────────────────────────────────── */}
+      {/* ── Category modal (centered) ────────────────────────────────── */}
       {catModal.open && (
-        <div className="modal-backdrop" onClick={() => setCatModal({ open: false, editing: null })}>
-          <div className="modal-sheet" onClick={e => e.stopPropagation()}>
-            <div className="grabber" />
+        <div className="modal-backdrop modal-center" onClick={() => setCatModal({ open: false, editing: null })}>
+          <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-              <h2 className="serif" style={{ margin: 0, fontSize: 22, color: 'var(--primary-dark)' }}>
+              <h2 className="serif" style={{ margin: 0, fontSize: 24, color: 'var(--primary-dark)', fontWeight: 700 }}>
                 {catModal.editing ? 'Editar categoría' : 'Nueva categoría'}
               </h2>
-              <button onClick={() => setCatModal({ open: false, editing: null })} className="tap" style={{ width: 36, height: 36, borderRadius: 18, display: 'grid', placeItems: 'center', color: 'var(--muted)' }}>
-                <span className="mat">close</span>
+              <button onClick={() => setCatModal({ open: false, editing: null })} className="tap" style={{ width: 32, height: 32, borderRadius: 16, display: 'grid', placeItems: 'center', color: 'var(--muted)', fontSize: 20 }}>
+                ✕
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* Nombre */}
               <div className="field">
                 <label>Nombre</label>
                 <input className="input" value={catForm.name} onChange={e => setCatForm(f => ({ ...f, name: e.target.value }))} placeholder="Ej: Entradas" />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <div className="field">
-                  <label>Emoji</label>
-                  <input className="input" value={catForm.emoji} onChange={e => setCatForm(f => ({ ...f, emoji: e.target.value }))} placeholder="🍔" />
-                </div>
-                <div className="field">
-                  <label>Orden</label>
-                  <input className="input" type="number" value={catForm.sortOrder} onChange={e => setCatForm(f => ({ ...f, sortOrder: parseInt(e.target.value) || 0 }))} />
+
+              {/* Icono selector visual */}
+              <div>
+                <label style={{ display: 'block', marginBottom: 8 }}>Icono</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
+                  {EMOJI_OPTIONS.map(emoji => (
+                    <button key={emoji} onClick={() => setCatForm(f => ({ ...f, emoji }))} className="tap"
+                      style={{
+                        aspectRatio: '1',
+                        borderRadius: 12,
+                        background: catForm.emoji === emoji ? 'var(--primary)' : 'var(--surface-container)',
+                        color: catForm.emoji === emoji ? 'var(--on-primary)' : 'var(--text)',
+                        border: catForm.emoji === emoji ? '2px solid var(--primary)' : '2px solid transparent',
+                        fontSize: 28,
+                        display: 'grid',
+                        placeItems: 'center',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}>
+                      {emoji}
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              <button className="btn btn-primary btn-block" disabled={catSaving || !catForm.name} onClick={saveCat}>
+              {/* Visible en la carta */}
+              <label className="tap" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'var(--surface-container)', borderRadius: 10, cursor: 'pointer' }}>
+                <input type="checkbox" checked={catForm.isActive ?? true} onChange={e => setCatForm(f => ({ ...f, isActive: e.target.checked }))} style={{ width: 18, height: 18, accentColor: 'var(--primary)' }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>Visible en la carta</div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>Los clientes pueden ver y pedir productos.</div>
+                </div>
+              </label>
+
+              {/* Botones */}
+              <button className="btn btn-primary btn-block" disabled={catSaving || !catForm.name} onClick={saveCat} style={{ marginTop: 8 }}>
                 {catSaving ? 'Guardando...' : catModal.editing ? 'Guardar cambios' : 'Crear categoría'}
               </button>
               {catModal.editing && (
