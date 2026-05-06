@@ -265,7 +265,7 @@ export default function ModifiersPage() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div className="field">
-                <label>Nombre del grupo</label>
+                <label>Nombre del grupo <span style={{ color: 'var(--error)', fontSize: 12, fontWeight: 600 }}>(Obligatorio)</span></label>
                 <input
                   type="text"
                   className="input"

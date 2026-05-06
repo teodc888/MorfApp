@@ -104,6 +104,8 @@ export default function PromotionsPage() {
     return category?.products || []
   }, [selectedCategoryId, categories, products])
 
+  const promoFormValid = form.name.trim() !== '' && form.discountPercent > 0 && Object.values(selectedProducts).reduce((sum, qty) => sum + qty, 0) > 0
+
   const openNew = () => {
     setForm(EMPTY_FORM)
     setSelectedProducts({})
@@ -354,7 +356,7 @@ export default function PromotionsPage() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div className="field">
-                <label>Nombre</label>
+                <label>Nombre <span style={{ color: 'var(--error)', fontSize: 12, fontWeight: 600 }}>(Obligatorio)</span></label>
                 <input
                   className="input"
                   type="text"
@@ -401,7 +403,7 @@ export default function PromotionsPage() {
               </div>
 
               <div className="field">
-                <label>% de descuento</label>
+                <label>% de descuento <span style={{ color: 'var(--error)', fontSize: 12, fontWeight: 600 }}>(Obligatorio)</span></label>
                 <input
                   className="input"
                   type="range"
@@ -415,7 +417,7 @@ export default function PromotionsPage() {
                   <input
                     className="input"
                     type="number"
-                    min="0"
+                    min="1"
                     max="100"
                     value={form.discountPercent}
                     onChange={e => setForm(f => ({ ...f, discountPercent: parseInt(e.target.value) || 0 }))}
@@ -572,7 +574,7 @@ export default function PromotionsPage() {
               )}
 
               <div className="field">
-                <label>Productos ({Object.values(selectedProducts).reduce((sum, qty) => sum + qty, 0)})</label>
+                <label>Productos ({Object.values(selectedProducts).reduce((sum, qty) => sum + qty, 0)}) <span style={{ color: 'var(--error)', fontSize: 12, fontWeight: 600 }}>(Obligatorio)</span></label>
                 <div style={{ maxHeight: 200, overflowY: 'auto', border: '1px solid var(--outline)', borderRadius: 10 }}>
                   {filteredProducts.length === 0 ? (
                     <p style={{ fontSize: 13, color: 'var(--muted)', padding: 12, margin: 0 }}>No hay productos</p>
@@ -731,10 +733,10 @@ export default function PromotionsPage() {
               <button
                 className="btn btn-primary"
                 onClick={save}
-                disabled={saving || !form.name.trim() || Object.values(selectedProducts).reduce((sum, qty) => sum + qty, 0) === 0}
+                disabled={saving || !promoFormValid}
                 style={{
                   flex: 1,
-                  opacity: saving || !form.name.trim() || Object.values(selectedProducts).reduce((sum, qty) => sum + qty, 0) === 0 ? 0.5 : 1,
+                  opacity: saving || !promoFormValid ? 0.5 : 1,
                 }}
               >
                 {saving ? 'Guardando...' : modal.editing ? 'Guardar cambios' : 'Crear promo'}

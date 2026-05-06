@@ -248,6 +248,9 @@ export default function MenuPage() {
   const totalProducts = categories.reduce((acc, c) => acc + c.products.length, 0)
   const activeCategories = categories.filter(c => c.isActive).length
 
+  const catFormValid = catForm.name.trim() !== '' && catForm.emoji.trim() !== ''
+  const prodFormValid = prodForm.name.trim() !== '' && prodForm.categoryId.trim() !== '' && prodForm.price.trim() !== '' && !isNaN(parseFloat(prodForm.price)) && parseFloat(prodForm.price) > 0
+
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', padding: 64 }}>
@@ -382,13 +385,13 @@ export default function MenuPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {/* Nombre */}
               <div className="field">
-                <label>Nombre</label>
+                <label>Nombre <span style={{ color: 'var(--error)', fontSize: 12, fontWeight: 600 }}>(Obligatorio)</span></label>
                 <input className="input" value={catForm.name} onChange={e => setCatForm(f => ({ ...f, name: e.target.value }))} placeholder="Ej: Entradas" />
               </div>
 
               {/* Icono selector visual */}
               <div>
-                <label style={{ display: 'block', marginBottom: 8 }}>Icono</label>
+                <label style={{ display: 'block', marginBottom: 8 }}>Icono <span style={{ color: 'var(--error)', fontSize: 12, fontWeight: 600 }}>(Obligatorio)</span></label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
                   {EMOJI_OPTIONS.map(emoji => (
                     <button key={emoji} onClick={() => setCatForm(f => ({ ...f, emoji }))} className="tap"
@@ -420,7 +423,7 @@ export default function MenuPage() {
               </label>
 
               {/* Botones */}
-              <button className="btn btn-primary btn-block" disabled={catSaving || !catForm.name} onClick={saveCat} style={{ marginTop: 8 }}>
+              <button className="btn btn-primary btn-block" disabled={catSaving || !catFormValid} onClick={saveCat} style={{ marginTop: 8 }}>
                 {catSaving ? 'Guardando...' : catModal.editing ? 'Guardar cambios' : 'Crear categoría'}
               </button>
               {catModal.editing && (
@@ -451,7 +454,7 @@ export default function MenuPage() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div className="field">
-                <label>Nombre</label>
+                <label>Nombre <span style={{ color: 'var(--error)', fontSize: 12, fontWeight: 600 }}>(Obligatorio)</span></label>
                 <input className="input" value={prodForm.name} onChange={e => setProdForm(f => ({ ...f, name: e.target.value }))} placeholder="Ej: Risotto de hongos" />
               </div>
               <div className="field">
@@ -460,13 +463,14 @@ export default function MenuPage() {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <div className="field">
-                  <label>Categoría</label>
+                  <label>Categoría <span style={{ color: 'var(--error)', fontSize: 12, fontWeight: 600 }}>(Obligatorio)</span></label>
                   <select className="select" value={prodForm.categoryId} onChange={e => setProdForm(f => ({ ...f, categoryId: e.target.value }))}>
+                    <option value="">Seleccionar...</option>
                     {categories.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
                   </select>
                 </div>
                 <div className="field">
-                  <label>Precio</label>
+                  <label>Precio <span style={{ color: 'var(--error)', fontSize: 12, fontWeight: 600 }}>(Obligatorio)</span></label>
                   <input className="input" type="number" min="0" step="0.01" value={prodForm.price} onChange={e => setProdForm(f => ({ ...f, price: e.target.value }))} placeholder="0" />
                 </div>
               </div>
@@ -551,7 +555,7 @@ export default function MenuPage() {
                 </div>
               )}
 
-              <button className="btn btn-primary btn-block" disabled={prodSaving || !prodForm.name || !prodForm.price} onClick={saveProd}>
+              <button className="btn btn-primary btn-block" disabled={prodSaving || !prodFormValid} onClick={saveProd}>
                 {prodSaving ? 'Guardando...' : prodModal.editing ? 'Guardar cambios' : 'Crear producto'}
               </button>
               {prodModal.editing && (

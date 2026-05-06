@@ -213,6 +213,9 @@ export default function InsumosPage() {
       ? (purchaseTotalPrice / purchaseQuantity).toFixed(2)
       : null
 
+  const supplyFormValid = supplyForm.name.trim() !== '' && supplyForm.unit.trim() !== '' && supplyForm.supplierId.trim() !== ''
+  const purchaseFormValid = purchaseForm.supplyId.trim() !== '' && purchaseForm.supplierId.trim() !== '' && parseFloat(purchaseForm.quantity) > 0 && parseFloat(purchaseForm.totalPrice) > 0
+
   function stockColor(stock: number) {
     if (stock <= 0) return 'text-red-600 font-semibold'
     if (stock < 5) return 'text-yellow-600 font-semibold'
@@ -382,25 +385,25 @@ export default function InsumosPage() {
             <form onSubmit={savePurchase} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <div className="field">
-                  <label>Insumo</label>
+                  <label>Insumo <span style={{ color: 'var(--error)', fontSize: 12, fontWeight: 600 }}>(Obligatorio)</span></label>
                   <select className="select" value={purchaseForm.supplyId} onChange={(e) => setPurchaseForm((f) => ({ ...f, supplyId: e.target.value }))}>
                     <option value="">Seleccionar insumo</option>
                     {supplies.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </div>
                 <div className="field">
-                  <label>Proveedor</label>
+                  <label>Proveedor <span style={{ color: 'var(--error)', fontSize: 12, fontWeight: 600 }}>(Obligatorio)</span></label>
                   <select className="select" value={purchaseForm.supplierId} onChange={(e) => setPurchaseForm((f) => ({ ...f, supplierId: e.target.value }))}>
                     <option value="">Seleccionar proveedor</option>
                     {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </div>
                 <div className="field">
-                  <label>Cantidad</label>
+                  <label>Cantidad <span style={{ color: 'var(--error)', fontSize: 12, fontWeight: 600 }}>(Obligatorio)</span></label>
                   <input className="input" type="number" step="0.001" placeholder="0" value={purchaseForm.quantity} onChange={(e) => setPurchaseForm((f) => ({ ...f, quantity: e.target.value }))} />
                 </div>
                 <div className="field">
-                  <label>Precio total</label>
+                  <label>Precio total <span style={{ color: 'var(--error)', fontSize: 12, fontWeight: 600 }}>(Obligatorio)</span></label>
                   <input className="input" type="number" step="0.01" placeholder="0" value={purchaseForm.totalPrice} onChange={(e) => setPurchaseForm((f) => ({ ...f, totalPrice: e.target.value }))} />
                 </div>
               </div>
@@ -414,7 +417,7 @@ export default function InsumosPage() {
                 <label>Notas</label>
                 <input className="input" type="text" placeholder="Notas opcionales" value={purchaseForm.notes} onChange={(e) => setPurchaseForm((f) => ({ ...f, notes: e.target.value }))} />
               </div>
-              <button className="btn btn-primary btn-block" type="submit" disabled={purchaseSaving || !purchaseForm.supplyId || !purchaseForm.supplierId || !purchaseForm.quantity || !purchaseForm.totalPrice || !pricePerUnit}>
+              <button className="btn btn-primary btn-block" type="submit" disabled={purchaseSaving || !purchaseFormValid}>
                 {purchaseSaving ? 'Registrando...' : 'Registrar compra'}
               </button>
             </form>
@@ -509,14 +512,14 @@ export default function InsumosPage() {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div className="field">
-                <label>Nombre</label>
+                <label>Nombre <span style={{ color: 'var(--error)', fontSize: 12, fontWeight: 600 }}>(Obligatorio)</span></label>
                 <input className="input" value={supplyForm.name} onChange={(e) => setSupplyForm((f) => ({ ...f, name: e.target.value }))} placeholder="Nombre del insumo" />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <div className="field">
-                  <label>Unidad</label>
+                  <label>Unidad <span style={{ color: 'var(--error)', fontSize: 12, fontWeight: 600 }}>(Obligatorio)</span></label>
                   <select className="select" value={supplyForm.unit} onChange={(e) => setSupplyForm((f) => ({ ...f, unit: e.target.value }))}>
-                    <option value="">Sin unidad</option>
+                    <option value="">Seleccionar...</option>
                     {UNIT_OPTIONS.map((u) => <option key={u}>{u}</option>)}
                     <option value={CUSTOM_UNIT_VALUE}>Otro</option>
                   </select>
@@ -525,16 +528,16 @@ export default function InsumosPage() {
                   )}
                 </div>
                 <div className="field">
-                  <label>Proveedor</label>
+                  <label>Proveedor <span style={{ color: 'var(--error)', fontSize: 12, fontWeight: 600 }}>(Obligatorio)</span></label>
                   <select className="select" value={supplyForm.supplierId} onChange={(e) => setSupplyForm((f) => ({ ...f, supplierId: e.target.value }))}>
-                    <option value="">Sin proveedor</option>
+                    <option value="">Seleccionar...</option>
                     {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 10, paddingTop: 6 }}>
                 <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => setSupplyModal({ open: false, editing: null })}>Cancelar</button>
-                <button className="btn btn-primary" style={{ flex: 1 }} disabled={supplySaving || !supplyForm.name.trim()} onClick={saveSupply}>
+                <button className="btn btn-primary" style={{ flex: 1 }} disabled={supplySaving || !supplyFormValid} onClick={saveSupply}>
                   {supplySaving ? 'Guardando...' : 'Guardar'}
                 </button>
               </div>

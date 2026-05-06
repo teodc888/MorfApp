@@ -196,35 +196,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </header>
 
         {/* Page content */}
-        <main style={{ flex: 1, padding: '0 0 88px' }} className="md:p-8 md:pb-8">
+        <main style={{ flex: 1, padding: '24px 16px 24px' }} className="md:p-8 md:pt-8 md:pb-8">
           {children}
         </main>
       </div>
 
-      {/* ── Mobile BottomNav (3 tabs) ─────────────────────────────── */}
-      <nav className="md:hidden" style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 20,
-        display: 'flex', justifyContent: 'space-around',
-        padding: '10px 16px 18px',
-        background: 'var(--surface)', borderTop: '1px solid var(--outline-soft)',
-      }}>
-        {NAV_BOTTOM.map(tab => {
-          const active = isActive(tab.href)
-          return (
-            <Link key={tab.href} href={`${base}/${tab.href}`} style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-              padding: '6px 18px', borderRadius: 12, minWidth: 78, textDecoration: 'none',
-              background: active ? 'var(--surface-container-high)' : 'transparent',
-              color: active ? 'var(--primary-dark)' : 'var(--muted)',
-              fontWeight: active ? 700 : 500, fontSize: 11,
-              transition: 'background .15s ease, color .15s ease',
-            }}>
-              <span className={`mat${active ? ' fill' : ''}`} style={{ fontSize: 22 }}>{tab.icon}</span>
-              {tab.label}
-            </Link>
-          )
-        })}
-      </nav>
     </div>
   )
 }
