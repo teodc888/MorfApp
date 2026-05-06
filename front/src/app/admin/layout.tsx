@@ -160,10 +160,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh' }} className="md:ml-[260px]">
 
         {/* Mobile TopBar */}
-        <header className="md:hidden" style={{
+        <header className="md:hidden flex" style={{
           position: 'sticky', top: 0, zIndex: 20,
           background: 'var(--bg)',
-          display: 'flex', alignItems: 'center', padding: '14px 18px 10px',
+          alignItems: 'center', padding: '14px 18px 10px',
         }}>
           {/* Hamburger */}
           <button onClick={() => setDrawerOpen(true)} className="tap" style={{
