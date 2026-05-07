@@ -14,7 +14,7 @@ export function MenuHeader({ tenant, onCartOpen }: Props) {
   const itemCount = useCartStore((s) => s.itemCount())
 
   return (
-    <header className="sticky top-0 z-30" style={{ backgroundColor: STITCH.surface, borderBottom: `1px solid ${STITCH.border}` }}>
+    <header className="sticky top-0 z-30" style={{ backgroundColor: STITCH.primary, borderBottom: `1px solid ${STITCH.border}` }}>
       <div className="flex items-center justify-between px-4 md:px-6 h-16 max-w-[1200px] mx-auto w-full gap-4">
         <div className="flex items-center gap-3 min-w-0">
           {tenant.branding.logoUrl ? (
@@ -24,7 +24,7 @@ export function MenuHeader({ tenant, onCartOpen }: Props) {
               width={40}
               height={40}
               className="rounded-full object-cover flex-shrink-0 border"
-              style={{ borderColor: STITCH.border }}
+              style={{ borderColor: '#FFFFFF50' }}
             />
           ) : (
             <span className="text-2xl flex-shrink-0 leading-none">
@@ -32,10 +32,10 @@ export function MenuHeader({ tenant, onCartOpen }: Props) {
             </span>
           )}
           <div className="min-w-0">
-            <h1 className="font-bold text-base leading-tight truncate" style={{ color: STITCH.text }}>
+            <h1 className="font-bold text-base leading-tight truncate text-white">
               {tenant.name}
             </h1>
-            {tenant.branding.tagline && <p className="text-xs truncate" style={{ color: STITCH.muted }}>{tenant.branding.tagline}</p>}
+            {tenant.branding.tagline && <p className="text-xs truncate text-white/80">{tenant.branding.tagline}</p>}
           </div>
         </div>
 

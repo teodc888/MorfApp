@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { isAuthenticated, getTenantFromToken } from '@/lib/auth'
 
-const NAV_ALL = [
+const NAV_ADMIN = [
   { href: 'orders',      label: 'Pedidos',       icon: 'receipt_long'    },
   { href: 'metrics',     label: 'Métricas',      icon: 'bar_chart'       },
   { href: 'menu',        label: 'Carta',          icon: 'restaurant_menu' },
@@ -13,15 +13,12 @@ const NAV_ALL = [
   { href: 'promotions',  label: 'Promos',         icon: 'redeem'          },
   { href: 'proveedores', label: 'Proveedores',    icon: 'local_shipping'  },
   { href: 'insumos',     label: 'Insumos',        icon: 'inventory_2'     },
+]
+
+const NAV_CONFIG = [
   { href: 'branding',    label: 'Apariencia',     icon: 'palette'         },
   { href: 'whatsapp',    label: 'WhatsApp',       icon: 'chat'            },
   { href: 'config',      label: 'Configuración',  icon: 'settings'        },
-]
-
-const NAV_BOTTOM = [
-  { href: 'orders',  label: 'Pedidos',  icon: 'receipt_long' },
-  { href: 'metrics', label: 'Métricas', icon: 'bar_chart'    },
-  { href: 'insumos', label: 'Insumos',  icon: 'inventory_2'  },
 ]
 
 function initials(name: string) {
@@ -77,23 +74,53 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Nav */}
         <nav style={{ flex: 1, overflowY: 'auto', padding: '0 12px 16px' }}>
-          {NAV_ALL.map(item => {
-            const active = isActive(item.href)
-            return (
-              <Link key={item.href} href={`${base}/${item.href}`} style={{
-                display: 'flex', alignItems: 'center', gap: 14,
-                padding: '11px 14px', borderRadius: 12, marginBottom: 2,
-                textDecoration: 'none', fontWeight: active ? 600 : 500, fontSize: 14,
-                background: active ? 'var(--primary)' : 'transparent',
-                color: active ? 'var(--on-primary)' : 'var(--text)',
-                boxShadow: active ? '0 4px 14px rgba(249,115,22,.35)' : 'none',
-                transition: 'background .15s ease, color .15s ease',
-              }}>
-                <span className={`mat${active ? ' fill' : ''}`} style={{ fontSize: 22 }}>{item.icon}</span>
-                {item.label}
-              </Link>
-            )
-          })}
+          {/* Administración section */}
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ paddingLeft: 14, marginBottom: 10, fontSize: 12, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Administración
+            </div>
+            {NAV_ADMIN.map(item => {
+              const active = isActive(item.href)
+              return (
+                <Link key={item.href} href={`${base}/${item.href}`} style={{
+                  display: 'flex', alignItems: 'center', gap: 14,
+                  padding: '11px 14px', borderRadius: 12, marginBottom: 2,
+                  textDecoration: 'none', fontWeight: active ? 600 : 500, fontSize: 14,
+                  background: active ? 'var(--primary)' : 'transparent',
+                  color: active ? 'var(--on-primary)' : 'var(--text)',
+                  boxShadow: active ? '0 4px 14px rgba(249,115,22,.35)' : 'none',
+                  transition: 'background .15s ease, color .15s ease',
+                }}>
+                  <span className={`mat${active ? ' fill' : ''}`} style={{ fontSize: 22 }}>{item.icon}</span>
+                  {item.label}
+                </Link>
+              )
+            })}
+          </div>
+
+          {/* Configuración section */}
+          <div>
+            <div style={{ paddingLeft: 14, marginBottom: 10, fontSize: 12, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Configuración
+            </div>
+            {NAV_CONFIG.map(item => {
+              const active = isActive(item.href)
+              return (
+                <Link key={item.href} href={`${base}/${item.href}`} style={{
+                  display: 'flex', alignItems: 'center', gap: 14,
+                  padding: '11px 14px', borderRadius: 12, marginBottom: 2,
+                  textDecoration: 'none', fontWeight: active ? 600 : 500, fontSize: 14,
+                  background: active ? 'var(--primary)' : 'transparent',
+                  color: active ? 'var(--on-primary)' : 'var(--text)',
+                  boxShadow: active ? '0 4px 14px rgba(249,115,22,.35)' : 'none',
+                  transition: 'background .15s ease, color .15s ease',
+                }}>
+                  <span className={`mat${active ? ' fill' : ''}`} style={{ fontSize: 22 }}>{item.icon}</span>
+                  {item.label}
+                </Link>
+              )
+            })}
+          </div>
         </nav>
 
         {/* Footer */}
@@ -124,22 +151,51 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
             <div className="divider" style={{ margin: '0 22px 12px' }} />
             <nav style={{ flex: 1, overflowY: 'auto', padding: '0 12px 16px' }}>
-              {NAV_ALL.map(item => {
-                const active = isActive(item.href)
-                return (
-                  <Link key={item.href} href={`${base}/${item.href}`} onClick={() => setDrawerOpen(false)} style={{
-                    display: 'flex', alignItems: 'center', gap: 14,
-                    padding: '12px 14px', borderRadius: 12, marginBottom: 2,
-                    textDecoration: 'none', fontWeight: active ? 600 : 500, fontSize: 14,
-                    background: active ? 'var(--primary)' : 'transparent',
-                    color: active ? 'var(--on-primary)' : 'var(--text)',
-                    boxShadow: active ? '0 4px 14px rgba(249,115,22,.35)' : 'none',
-                  }}>
-                    <span className={`mat${active ? ' fill' : ''}`} style={{ fontSize: 22 }}>{item.icon}</span>
-                    {item.label}
-                  </Link>
-                )
-              })}
+              {/* Administración section */}
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ paddingLeft: 14, marginBottom: 10, fontSize: 12, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Administración
+                </div>
+                {NAV_ADMIN.map(item => {
+                  const active = isActive(item.href)
+                  return (
+                    <Link key={item.href} href={`${base}/${item.href}`} onClick={() => setDrawerOpen(false)} style={{
+                      display: 'flex', alignItems: 'center', gap: 14,
+                      padding: '12px 14px', borderRadius: 12, marginBottom: 2,
+                      textDecoration: 'none', fontWeight: active ? 600 : 500, fontSize: 14,
+                      background: active ? 'var(--primary)' : 'transparent',
+                      color: active ? 'var(--on-primary)' : 'var(--text)',
+                      boxShadow: active ? '0 4px 14px rgba(249,115,22,.35)' : 'none',
+                    }}>
+                      <span className={`mat${active ? ' fill' : ''}`} style={{ fontSize: 22 }}>{item.icon}</span>
+                      {item.label}
+                    </Link>
+                  )
+                })}
+              </div>
+
+              {/* Configuración section */}
+              <div>
+                <div style={{ paddingLeft: 14, marginBottom: 10, fontSize: 12, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Configuración
+                </div>
+                {NAV_CONFIG.map(item => {
+                  const active = isActive(item.href)
+                  return (
+                    <Link key={item.href} href={`${base}/${item.href}`} onClick={() => setDrawerOpen(false)} style={{
+                      display: 'flex', alignItems: 'center', gap: 14,
+                      padding: '12px 14px', borderRadius: 12, marginBottom: 2,
+                      textDecoration: 'none', fontWeight: active ? 600 : 500, fontSize: 14,
+                      background: active ? 'var(--primary)' : 'transparent',
+                      color: active ? 'var(--on-primary)' : 'var(--text)',
+                      boxShadow: active ? '0 4px 14px rgba(249,115,22,.35)' : 'none',
+                    }}>
+                      <span className={`mat${active ? ' fill' : ''}`} style={{ fontSize: 22 }}>{item.icon}</span>
+                      {item.label}
+                    </Link>
+                  )
+                })}
+              </div>
             </nav>
             <div style={{ padding: '12px 22px 20px', borderTop: '1px solid var(--outline-soft)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

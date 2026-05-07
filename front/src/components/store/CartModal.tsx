@@ -241,7 +241,7 @@ export function CartModal({ tenant, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end" style={{ backgroundColor: DS.bg }}>
+    <div className="fixed inset-0 z-50 flex flex-col justify-end" style={{ backgroundColor: 'transparent' }}>
       <div
         className={`absolute inset-0 transition-opacity duration-300 ${isClosing ? 'opacity-0' : 'opacity-100'}`}
         style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}

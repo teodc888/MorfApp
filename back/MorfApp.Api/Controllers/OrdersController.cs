@@ -12,26 +12,58 @@ namespace MorfApp.Api.Controllers;
 [ApiController]
 [Route("api/admin/orders")]
 [Authorize]
-public class OrdersController(IAppDbContext db) : ControllerBase
+public class OrdersController(
+    IAppDbContext db,
+    MorfApp.Api.WebSocket.WebSocketConnectionManager wsManager) : ControllerBase
 {
     private string TenantId => User.FindFirstValue("tenant_id")
         ?? throw new UnauthorizedAccessException();
 
     // GET /api/admin/orders
-    // Devuelve pedidos del tenant por estado, ordenados por fecha desc.
-    // Query param ?status=pending|confirmed|cancelled (default: pending)
+    // Devuelve pedidos del tenant con paginación y búsqueda opcional.
+    // Query params:
+    //   ?status=pending|confirmed|cancelled (default: pending)
+    //   ?q=search_term (busca en nombre o teléfono del cliente)
+    //   ?limit=10 (cantidad de resultados, default: 10)
+    //   ?offset=0 (offset de paginación, default: 0)
     [HttpGet]
-    public async Task<ActionResult<List<OrderAdminDto>>> GetOrders([FromQuery] string status = "pending")
+    public async Task<ActionResult<object>> GetOrders(
+        [FromQuery] string status = "pending",
+        [FromQuery] string? q = null,
+        [FromQuery] int limit = 10,
+        [FromQuery] int offset = 0)
     {
         if (!Enum.TryParse<OrderStatus>(status, ignoreCase: true, out var orderStatus))
             return BadRequest(new { message = "Estado inválido. Usar 'pending', 'confirmed' o 'cancelled'." });
 
-        var orders = await db.Orders
-            .Where(o => o.TenantId == TenantId && o.Status == orderStatus)
+        var query = db.Orders
+            .Where(o => o.TenantId == TenantId && o.Status == orderStatus);
+
+        // Aplicar búsqueda si se proporciona
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var searchTerm = q.ToLower();
+            query = query.Where(o =>
+                o.CustomerName != null && o.CustomerName.ToLower().Contains(searchTerm) ||
+                o.CustomerPhone.ToLower().Contains(searchTerm)
+            );
+        }
+
+        var total = await query.CountAsync();
+
+        var orders = await query
             .OrderByDescending(o => o.CreatedAt)
+            .Skip(offset)
+            .Take(limit)
             .ToListAsync();
 
-        return Ok(orders.Select(MapOrder).ToList());
+        return Ok(new
+        {
+            items = orders.Select(MapOrder).ToList(),
+            total,
+            limit,
+            offset
+        });
     }
 
     // POST /api/admin/orders/{id}/confirm
@@ -98,8 +130,14 @@ public class OrdersController(IAppDbContext db) : ControllerBase
             return BadRequest(new { message = "El pedido ya fue cancelado." });
 
         order.Status = OrderStatus.Cancelled;
-
         await db.SaveChangesAsync();
+
+        // Emitir evento WebSocket
+        await wsManager.BroadcastToTenantAsync(TenantId, new MorfApp.Api.WebSocket.WebSocketEvent
+        {
+            Type = "order_cancelled",
+            Data = new { orderId = order.Id, status = order.Status.ToString().ToLower() }
+        });
 
         return Ok(MapOrder(order));
     }
