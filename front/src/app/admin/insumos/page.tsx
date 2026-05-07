@@ -13,7 +13,6 @@ import {
   createSupplyPurchase,
 } from '@/lib/admin-api'
 import type { SupplyDto, SupplierDto, SupplyPurchaseDto, InventoryMovementDto } from '@/types/store'
-import { STITCH } from '@/lib/stitch-theme'
 
 type Tab = 'insumos' | 'compras' | 'movimientos'
 
@@ -151,14 +150,6 @@ export default function InsumosPage() {
     }
   }
 
-  function openDeleteDialog(id: string, name: string) {
-    setConfirmDialog({ open: true, type: 'delete', id, name })
-  }
-
-  function openResetDialog(id: string, name: string) {
-    setConfirmDialog({ open: true, type: 'reset', id, name })
-  }
-
   async function confirmAction() {
     try {
       if (confirmDialog.type === 'delete') {
@@ -215,12 +206,6 @@ export default function InsumosPage() {
 
   const supplyFormValid = supplyForm.name.trim() !== '' && supplyForm.unit.trim() !== '' && supplyForm.supplierId.trim() !== ''
   const purchaseFormValid = purchaseForm.supplyId.trim() !== '' && purchaseForm.supplierId.trim() !== '' && parseFloat(purchaseForm.quantity) > 0 && parseFloat(purchaseForm.totalPrice) > 0
-
-  function stockColor(stock: number) {
-    if (stock <= 0) return 'text-red-600 font-semibold'
-    if (stock < 5) return 'text-yellow-600 font-semibold'
-    return 'text-green-600 font-semibold'
-  }
 
   function formatDate(dateStr: string) {
     return new Date(dateStr).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })

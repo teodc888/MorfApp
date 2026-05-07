@@ -22,7 +22,6 @@ export default function SuccessPage() {
   
   const orderId = searchParams.get('orderId') || '—'
   const total = searchParams.get('total') || '0'
-  const customerName = searchParams.get('name') || '—'
   const estimatedTime = searchParams.get('time') || '30-45 min'
 
   return (

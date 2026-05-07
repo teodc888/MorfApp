@@ -14,6 +14,7 @@ import {
   type PromotionAdmin,
   type ModifierGroupAdmin,
 } from '@/lib/admin-api'
+import Image from 'next/image'
 import { formatPrice } from '@/lib/utils'
 
 type PromotionForm = {
@@ -498,7 +499,7 @@ export default function PromotionsPage() {
                 >
                   {form.imageUrl ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center' }}>
-                      <img src={form.imageUrl} alt="promo" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover' }} />
+                      <Image src={form.imageUrl} alt="promo" width={48} height={48} style={{ borderRadius: 8, objectFit: 'cover' }} unoptimized />
                       <input
                         type="file"
                         accept="image/*"

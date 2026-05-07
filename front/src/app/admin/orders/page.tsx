@@ -322,8 +322,6 @@ export default function OrdersPage() {
 
   const mutationError = confirmMutation.error?.message ?? cancelMutation.error?.message ?? null
 
-  const HISTORY_STATUSES: HistoryStatus[] = ['confirmed', 'cancelled']
-
   return (
     <div className="min-h-screen bg-[#FAF9F6] max-w-6xl mx-auto space-y-6 p-6">
       {/* Header */}

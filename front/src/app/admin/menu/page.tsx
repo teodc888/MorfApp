@@ -67,7 +67,7 @@ export default function MenuPage() {
   const [discountInput, setDiscountInput] = useState('')
   const [discountSaving, setDiscountSaving] = useState(false)
 
-  const [productSupplies, setProductSupplies] = useState<ProductSupplyDto[]>([])
+  const [, setProductSupplies] = useState<ProductSupplyDto[]>([])
   const [selectedSupplyIds, setSelectedSupplyIds] = useState<string[]>([])
   const [supplyQuantities, setSupplyQuantities] = useState<Record<string, string>>({})
   const [supplyUnknownQty, setSupplyUnknownQty] = useState<Record<string, boolean>>({})

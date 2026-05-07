@@ -48,19 +48,20 @@ export default async function TenantLayout({ children, params }: Props) {
     return `${parseInt(c.slice(0, 2) || '0', 16)} ${parseInt(c.slice(2, 4) || '0', 16)} ${parseInt(c.slice(4, 6) || '0', 16)}`
   }
 
-  const themeScript = `
-    document.documentElement.style.setProperty('--color-primary','${colorPrimary}');
-    document.documentElement.style.setProperty('--color-accent','${colorAccent}');
-    document.documentElement.style.setProperty('--color-primary-rgb','${hexToRgb(colorPrimary)}');
-    document.documentElement.style.setProperty('--color-accent-rgb','${hexToRgb(colorAccent)}');
-  `.trim()
+  const cssVars = [
+    `--color-primary:${colorPrimary}`,
+    `--color-accent:${colorAccent}`,
+    `--color-primary-rgb:${hexToRgb(colorPrimary)}`,
+    `--color-accent-rgb:${hexToRgb(colorAccent)}`,
+  ].join(';')
 
   return (
     <>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      {/* eslint-disable-next-line @next/next/no-page-custom-font */}
       <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-      <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      <style>{`:root{${cssVars}}`}</style>
       <StoreProviders tenant={tenant}>{children}</StoreProviders>
     </>
   )

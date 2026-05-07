@@ -12,7 +12,6 @@ import {
   paySupplierAllDebt,
 } from '@/lib/admin-api'
 import type { SupplierDebtDetailDto, SupplierDebtPurchaseDto, SupplierDto } from '@/types/store'
-import { STITCH } from '@/lib/stitch-theme'
 
 type SupplierForm = { name: string; phone: string; address: string; notes: string }
 type ConfirmDialog = { open: boolean; id: string; name: string }
@@ -147,18 +146,6 @@ export default function ProveedoresPage() {
 
   function formatDate(dateStr: string) {
     return new Date(dateStr).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-  }
-
-  function statusClass(status: SupplierDebtPurchaseDto['status']) {
-    if (status === 'paid') return '#22C55E'
-    if (status === 'partial') return '#F97316'
-    return '#EF4444'
-  }
-
-  function statusLabel(status: SupplierDebtPurchaseDto['status']) {
-    if (status === 'paid') return 'Pagado'
-    if (status === 'partial') return 'Parcial'
-    return 'Pendiente'
   }
 
   const partialPaymentAmount = paymentForm ? Number(paymentForm.amount) : 0

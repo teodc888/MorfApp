@@ -35,11 +35,9 @@ export function formatPrice(amount: number, locale = 'es-AR'): string {
 
 function buildProductsBlock(items: CartItem[]): string {
   const lines: string[] = []
-  let total = 0
 
   items.forEach((item, index) => {
     const itemTotal = ((item.product.finalPrice ?? item.product.price) + item.extraPrice) * item.qty
-    total += itemTotal
 
     lines.push(`*${index + 1}. ${item.product.emoji} ${item.product.name}* x${item.qty}`)
 

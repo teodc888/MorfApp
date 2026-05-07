@@ -13,9 +13,11 @@ export function PromotionsSection({ promotions }: Props) {
         <span>Promociones</span>
       </h2>
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-        {promotions.map(promo => (
-          <PromoCardClient key={promo.id} promo={promo} />
-        ))}
+        {promotions
+          .filter(promo => promo.price > 0 && promo.products.length > 0)
+          .map(promo => (
+            <PromoCardClient key={promo.id} promo={promo} />
+          ))}
       </div>
     </section>
   )

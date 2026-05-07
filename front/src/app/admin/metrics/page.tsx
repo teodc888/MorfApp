@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { useWebSocket } from '@/lib/useWebSocket'
 import {
   LineChart,
@@ -307,8 +307,6 @@ function HourlyChart({ data }: { data: MetricsData['ordersByHour'] }) {
 
 export default function MetricsPage() {
   const [period, setPeriod] = useState<MetricsPeriod>('today')
-  const queryClient = useQueryClient()
-
   useWebSocket()
 
   const {

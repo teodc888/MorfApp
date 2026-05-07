@@ -137,7 +137,9 @@ public class StoreController(
                 .Cast<Product>()
                 .ToList();
             return MapPromotionPublic(promo, products);
-        }).ToList();
+        })
+        .Where(dto => dto.Price > 0 && dto.Products.Count > 0)
+        .ToList();
     }
 
     [HttpPost("{slug}/promotions/{promoId}/redemptions")]

@@ -4,9 +4,6 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { getSuperAdminTenants, updateTenant, type SuperAdminTenant } from '@/lib/superadmin-api'
 
-const PLANS = ['Basico', 'Pro', 'Negocio']
-const PLAN_LABELS: Record<string, string> = { Basico: 'Básico', Pro: 'Pro', Negocio: 'Negocio' }
-
 export default function EditTenantPage() {
   const router = useRouter()
   const params = useParams()

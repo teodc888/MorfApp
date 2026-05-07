@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import { useParams } from 'next/navigation'
 import { getAdminMe, updateWhatsAppTemplate } from '@/lib/admin-api'
 import { buildWhatsAppMessage, type CustomerForm } from '@/lib/utils'
 import type { TenantPublic, CartItem } from '@/types/store'
@@ -74,7 +73,6 @@ const DEMO_CUSTOMER: CustomerForm = {
 }
 
 export default function WhatsAppPage() {
-  const params = useParams<{ tenant: string }>()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [template, setTemplate] = useState<string | null>(null)
@@ -208,7 +206,7 @@ export default function WhatsAppPage() {
             <div className="mt-4">
               <h3 className="text-sm font-semibold text-gray-700 mb-2">Variables disponibles</h3>
               <div className="flex flex-wrap gap-2">
-                {VARIABLES.map(({ var: variable, label }) => (
+                {VARIABLES.map(({ var: variable }) => (
                   <button
                     key={variable}
                     onClick={() => insertVariable(variable)}
