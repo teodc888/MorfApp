@@ -566,10 +566,20 @@ export type OrderAdmin = {
   confirmedAt: string | null
 }
 
-export async function getOrders(status?: string): Promise<OrderAdmin[]> {
-  const query = status ? `?status=${encodeURIComponent(status)}` : ''
+export async function getOrders(
+  status?: string,
+  search?: string,
+  limit: number = 10,
+  offset: number = 0
+): Promise<{ items: OrderAdmin[], total: number, limit: number, offset: number }> {
+  const params = new URLSearchParams()
+  if (status) params.append('status', status)
+  if (search) params.append('q', search)
+  params.append('limit', limit.toString())
+  params.append('offset', offset.toString())
+  const query = params.toString() ? `?${params.toString()}` : ''
   const res = await adminFetch(`/api/admin/orders${query}`)
-  return parseJson<OrderAdmin[]>(res)
+  return parseJson<{ items: OrderAdmin[], total: number, limit: number, offset: number }>(res)
 }
 
 export async function confirmOrder(id: string): Promise<void> {

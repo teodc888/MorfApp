@@ -1,22 +1,31 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace MorfApp.Application.DTOs.Store;
 
-public record CreateOrderRequest(
-    [property: Required] List<CreateOrderItemRequest> Items,
-    [property: Required, MinLength(2), MaxLength(200)] string CustomerName,
-    [property: Required, MinLength(6), MaxLength(50)] string CustomerPhone,
-    [property: Required] string DeliveryMode,
-    [property: MaxLength(500)] string? Address,
-    [property: MaxLength(1000)] string? Notes,
-    [property: MaxLength(50)] string? PaymentMethod,
-    [property: Range(0, 9999999)] decimal Total
-);
+public class CreateOrderRequest
+{
+    public string? CustomerName { get; set; }
+    public string? CustomerPhone { get; set; }
+    public string? DeliveryMode { get; set; }
+    public string? Address { get; set; }
+    public string? Notes { get; set; }
+    public string? PaymentMethod { get; set; }
+    public decimal Total { get; set; }
+    public List<CreateOrderItemRequest>? Items { get; set; }
+}
 
-public record CreateOrderItemRequest(
-    [property: Required] string ProductId,
-    [property: Required] string ProductName,
-    [property: Range(1, 999)] int Quantity,
-    [property: Range(0, 9999999)] decimal Price,
-    [property: Range(0, 9999999)] decimal ExtraPrice
-);
+public class CreateOrderItemRequest
+{
+    [System.Text.Json.Serialization.JsonPropertyName("productId")]
+    public string? ProductId { get; set; }
+
+    [System.Text.Json.Serialization.JsonPropertyName("productName")]
+    public string? ProductName { get; set; }
+
+    [System.Text.Json.Serialization.JsonPropertyName("qty")]
+    public int Quantity { get; set; }
+
+    [System.Text.Json.Serialization.JsonPropertyName("unitPrice")]
+    public decimal Price { get; set; }
+
+    [System.Text.Json.Serialization.JsonPropertyName("extraPrice")]
+    public decimal ExtraPrice { get; set; }
+}

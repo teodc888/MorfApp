@@ -9,7 +9,9 @@ namespace MorfApp.Api.Controllers;
 
 [ApiController]
 [Route("api/store")]
-public class StoreController(IAppDbContext db) : ControllerBase
+public class StoreController(
+    IAppDbContext db,
+    MorfApp.Api.WebSocket.WebSocketConnectionManager wsManager) : ControllerBase
 {
     [HttpGet("{slug}")]
     public async Task<ActionResult<TenantPublicDto>> GetTenant(string slug)
@@ -299,6 +301,13 @@ public class StoreController(IAppDbContext db) : ControllerBase
         {
             db.Orders.Add(order);
             await db.SaveChangesAsync();
+
+            // Emitir evento WebSocket
+            await wsManager.BroadcastToTenantAsync(tenant.Id, new MorfApp.Api.WebSocket.WebSocketEvent
+            {
+                Type = "new_order",
+                Data = new { orderId = order.Id, customerName = order.CustomerName, totalPrice = order.TotalPrice }
+            });
         }
         catch (Exception)
         {
