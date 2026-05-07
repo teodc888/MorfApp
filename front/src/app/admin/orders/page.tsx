@@ -22,9 +22,9 @@ const STATUS_LABELS: Record<OrderAdmin['status'], string> = {
 }
 
 const STATUS_STYLES: Record<OrderAdmin['status'], string> = {
-  pending: 'bg-yellow-100 text-yellow-800',
-  confirmed: 'bg-green-100 text-green-800',
-  cancelled: 'bg-red-100 text-red-800',
+  pending: 'bg-orange-100 text-orange-700',
+  confirmed: 'bg-green-100 text-green-700',
+  cancelled: 'bg-red-100 text-red-700',
 }
 
 function formatDate(iso: string): string {
@@ -43,15 +43,15 @@ function parseItems(raw: unknown): OrderItemFromApi[] {
 
 function ItemsSummary({ items }: { items: OrderItemFromApi[] }) {
   const parsed = parseItems(items)
-  if (parsed.length === 0) return <span className="text-gray-400 italic">Sin items</span>
+  if (parsed.length === 0) return <span className="text-[#584237] italic">Sin items</span>
 
   return (
     <ul className="space-y-1">
       {parsed.map((item, i) => (
-        <li key={i} className="text-xs text-gray-700">
+        <li key={i} className="text-xs text-[#1A1B22]">
           <div className="font-semibold">{item.quantity}x {item.productName}</div>
           {item.modifiers && item.modifiers.length > 0 && (
-            <ul className="ml-3 text-gray-500 space-y-0.5">
+            <ul className="ml-3 text-[#584237] space-y-0.5">
               {item.modifiers.map((mod, j) => (
                 <li key={j}>
                   • {mod.optionName}{mod.extraPrice > 0 && ` +$${mod.extraPrice}`}
@@ -83,20 +83,20 @@ function OrderRow({
   const isBusy = isConfirming || isCancelling
 
   return (
-    <tr className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+    <tr className="border-b border-[#E5E7EB] hover:bg-[#FAF9F6] transition-colors">
       {/* ID pedido */}
       <td className="px-4 py-3 whitespace-nowrap">
-        <span className="text-xs font-mono text-gray-500">
+        <span className="text-xs font-mono text-[#584237]">
           #{order.id.slice(-6).toUpperCase()}
         </span>
       </td>
 
       {/* Cliente */}
       <td className="px-4 py-3">
-        <p className="text-sm font-medium text-gray-900">
+        <p className="text-sm font-medium text-[#1A1B22]">
           {order.customerName || '—'}
         </p>
-        <p className="text-xs text-gray-500">{order.customerPhone}</p>
+        <p className="text-xs text-[#584237]">{order.customerPhone}</p>
       </td>
 
       {/* Items */}
@@ -106,7 +106,7 @@ function OrderRow({
 
       {/* Total */}
       <td className="px-4 py-3 whitespace-nowrap">
-        <span className="text-sm font-semibold text-gray-900">
+        <span className="text-sm font-semibold text-[#1A1B22]">
           {formatPrice(order.totalPrice)}
         </span>
       </td>
@@ -121,7 +121,7 @@ function OrderRow({
       </td>
 
       {/* Fecha */}
-      <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-500">
+      <td className="px-4 py-3 whitespace-nowrap text-xs text-[#584237]">
         {formatDate(order.createdAt)}
       </td>
 
@@ -133,21 +133,21 @@ function OrderRow({
               <button
                 onClick={() => onConfirm(order.id)}
                 disabled={isBusy}
-                className="text-xs px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="text-xs px-3 py-1.5 bg-[#EF4444] hover:bg-red-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isConfirming ? 'Confirmando...' : 'Confirmar'}
               </button>
               <button
                 onClick={() => onCancel(order.id)}
                 disabled={isBusy}
-                className="text-xs px-3 py-1.5 text-red-600 hover:bg-red-50 border border-red-200 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="text-xs px-3 py-1.5 text-[#EF4444] hover:bg-red-50 border border-red-200 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isCancelling ? 'Cancelando...' : 'Cancelar'}
               </button>
             </>
           )}
           {order.status !== 'pending' && (
-            <span className="text-xs text-gray-400">—</span>
+            <span className="text-xs text-[#584237]">—</span>
           )}
         </div>
       </td>
@@ -176,14 +176,14 @@ function OrderCard({
   const isBusy = isConfirming || isCancelling
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+    <div className="bg-[#FFFFFF] rounded-[16px] border border-[#E5E7EB] p-4 space-y-3 shadow-[0px_4px_12px_rgba(67,20,7,0.08)]">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="font-semibold text-gray-900 text-sm">
+          <p className="font-semibold text-[#1A1B22] text-sm">
             {order.customerName || order.customerPhone}
           </p>
           {order.customerName && (
-            <p className="text-xs text-gray-500">{order.customerPhone}</p>
+            <p className="text-xs text-[#584237]">{order.customerPhone}</p>
           )}
         </div>
         <div className="flex flex-col items-end gap-1 flex-shrink-0">
@@ -192,34 +192,34 @@ function OrderCard({
           >
             {STATUS_LABELS[order.status]}
           </span>
-          <span className="text-xs text-gray-400">{formatDate(order.createdAt)}</span>
+          <span className="text-xs text-[#584237]">{formatDate(order.createdAt)}</span>
         </div>
       </div>
 
-      <div className="text-xs text-gray-500 font-mono">
+      <div className="text-xs text-[#584237] font-mono">
         #{order.id.slice(-6).toUpperCase()}
       </div>
 
-      <div className="border-t border-gray-100 pt-2">
+      <div className="border-t border-[#E5E7EB] pt-2">
         <ItemsSummary items={order.items} />
       </div>
 
       <div className="flex items-center justify-between pt-1">
-        <span className="text-sm font-bold text-gray-900">{formatPrice(order.totalPrice)}</span>
+        <span className="text-sm font-bold text-[#1A1B22]">{formatPrice(order.totalPrice)}</span>
 
         {order.status === 'pending' && (
           <div className="flex gap-2">
             <button
               onClick={() => onCancel(order.id)}
               disabled={isBusy}
-              className="text-xs px-3 py-1.5 text-red-600 hover:bg-red-50 border border-red-200 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="text-xs px-3 py-1.5 text-[#EF4444] hover:bg-red-50 border border-red-200 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isCancelling ? 'Cancelando...' : 'Cancelar'}
             </button>
             <button
               onClick={() => onConfirm(order.id)}
               disabled={isBusy}
-              className="text-xs px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="text-xs px-3 py-1.5 bg-[#EF4444] hover:bg-red-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isConfirming ? 'Confirmando...' : 'Confirmar'}
             </button>
@@ -325,24 +325,40 @@ export default function OrdersPage() {
   const HISTORY_STATUSES: HistoryStatus[] = ['confirmed', 'cancelled']
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="min-h-screen bg-[#FAF9F6] max-w-6xl mx-auto space-y-6 p-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Pedidos</h1>
-          <p className="text-sm text-gray-600 mt-1">
+          <h1 className="text-2xl font-bold text-[#1A1B22]">Pedidos</h1>
+          <p className="text-sm text-[#584237] mt-1">
             Gestioná y confirmá los pedidos de tus clientes
           </p>
         </div>
         <button
           onClick={() => refetch()}
-          className="self-start sm:self-auto text-sm px-4 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg font-medium transition-colors"
+          className="self-start sm:self-auto text-sm px-4 py-2 border border-[#E5E7EB] hover:bg-[#FFFFFF] text-[#1A1B22] rounded-lg font-medium transition-colors"
         >
           Actualizar
         </button>
       </div>
 
       {/* Filtro por status */}
+<<<<<<< HEAD
+      <div className="flex gap-2 border-b border-[#E5E7EB] overflow-x-auto">
+        {STATUS_TABS.map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setStatusFilter(tab)}
+            className={`pb-2.5 px-1 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+              statusFilter === tab
+                ? 'border-[#EF4444] text-[#EF4444]'
+                : 'border-transparent text-[#584237] hover:text-[#1A1B22]'
+            }`}
+          >
+            {TAB_LABELS[tab]}
+          </button>
+        ))}
+=======
       <div className="flex gap-2 border-b border-gray-200 overflow-x-auto">
         <button
           onClick={() => {
@@ -372,6 +388,7 @@ export default function OrdersPage() {
         >
           Historial
         </button>
+>>>>>>> master
       </div>
 
       {/* Filtros y búsqueda solo en historial */}
@@ -470,7 +487,7 @@ export default function OrdersPage() {
 
       {/* Errores */}
       {(error || mutationError) && (
-        <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
+        <p className="text-sm text-[#EF4444] bg-red-50 px-3 py-2 rounded-lg">
           {error?.message ?? mutationError}
         </p>
       )}
@@ -478,13 +495,13 @@ export default function OrdersPage() {
       {/* Loading */}
       {isLoading && (
         <div className="flex items-center justify-center py-20">
-          <div className="w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-[#EF4444] border-t-transparent rounded-full animate-spin" />
         </div>
       )}
 
       {/* Empty state */}
       {!isLoading && orders.length === 0 && (
-        <div className="text-center py-16 text-gray-400">
+        <div className="text-center py-16 text-[#584237]">
           <p className="text-4xl mb-3">
             {statusFilter === 'pending' ? '🟡' : historyStatus === 'confirmed' ? '✅' : '❌'}
           </p>
@@ -506,29 +523,29 @@ export default function OrdersPage() {
       {/* Tabla — desktop */}
       {!isLoading && orders.length > 0 && (
         <>
-          <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="hidden md:block bg-[#FFFFFF] rounded-[16px] border border-[#E5E7EB] overflow-hidden shadow-[0px_4px_12px_rgba(67,20,7,0.08)]">
             <table className="w-full text-left">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-[#FAF9F6] border-b border-[#E5E7EB] sticky top-0">
                 <tr>
-                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  <th className="px-4 py-3 text-xs font-semibold text-[#584237] uppercase tracking-wide">
                     ID
                   </th>
-                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  <th className="px-4 py-3 text-xs font-semibold text-[#584237] uppercase tracking-wide">
                     Cliente
                   </th>
-                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  <th className="px-4 py-3 text-xs font-semibold text-[#584237] uppercase tracking-wide">
                     Items
                   </th>
-                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  <th className="px-4 py-3 text-xs font-semibold text-[#584237] uppercase tracking-wide">
                     Total
                   </th>
-                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  <th className="px-4 py-3 text-xs font-semibold text-[#584237] uppercase tracking-wide">
                     Estado
                   </th>
-                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  <th className="px-4 py-3 text-xs font-semibold text-[#584237] uppercase tracking-wide">
                     Fecha
                   </th>
-                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  <th className="px-4 py-3 text-xs font-semibold text-[#584237] uppercase tracking-wide">
                     Acciones
                   </th>
                 </tr>
