@@ -223,7 +223,7 @@ export function ProductModal({ product, categoryEmoji, onClose }: Props) {
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
       <div className={`absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${isClosing ? 'opacity-0' : 'opacity-100'}`} onClick={handleClose} />
 
-      <div className={`relative max-h-[90dvh] flex flex-col max-w-[520px] mx-auto w-full overflow-hidden transition-opacity duration-300 ${isClosing ? 'animate-slide-down opacity-0' : 'animate-slide-up opacity-100'}`} style={{ backgroundColor: STITCH.surface, borderTopLeftRadius: STITCH.radiusLg, borderTopRightRadius: STITCH.radiusLg, boxShadow: STITCH.shadowLg }}>
+      <div className={`relative max-h-[90dvh] flex flex-col max-w-[520px] mx-auto w-full overflow-hidden transition-opacity duration-300 ${isClosing ? 'animate-slide-down opacity-0' : 'animate-slide-up opacity-100'}`} style={{ backgroundColor: STITCH.surface, borderTopLeftRadius: STITCH.radiusLg, borderTopRightRadius: STITCH.radiusLg, boxShadow: STITCH.shadowElev }}>
         <div className="flex-shrink-0 flex justify-between items-center px-4 pt-3 pb-1" style={{ borderBottom: `1px solid ${STITCH.border}` }}>
           <div className="w-10" />
           <button

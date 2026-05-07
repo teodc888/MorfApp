@@ -161,8 +161,6 @@ export default function ProveedoresPage() {
     return 'Pendiente'
   }
 
-  const DS = { bg: STITCH.bg, surface: STITCH.surface, primary: STITCH.primary, secondary: STITCH.secondary, tertiary: STITCH.tertiary, text: STITCH.text, textMuted: STITCH.muted, border: STITCH.border, radius: STITCH.radius }
-
   const partialPaymentAmount = paymentForm ? Number(paymentForm.amount) : 0
   const partialPaymentError = paymentForm && paymentForm.amount
     ? !Number.isFinite(partialPaymentAmount)
@@ -175,108 +173,372 @@ export default function ProveedoresPage() {
     : null
 
   if (loading) {
-    return <div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderColor: DS.primary, borderTopColor: 'transparent' }} /></div>
+    return (
+      <div style={{ fontFamily: 'var(--sans)', minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid var(--primary)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+      </div>
+    )
   }
 
+  const totalDebt = suppliers.reduce((sum, s) => sum + s.totalDebt, 0)
+  const withDebt = suppliers.filter(s => s.totalDebt > 0).length
+
   return (
-    <div className="max-w-5xl mx-auto" style={{ backgroundColor: DS.bg, minHeight: '100vh', padding: '24px' }}>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold" style={{ color: DS.text }}>Proveedores</h1>
-        <button onClick={openNew} className="px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors" style={{ backgroundColor: DS.primary, borderRadius: DS.radius }}>+ Añadir proveedor</button>
+    <div style={{ fontFamily: 'var(--sans)', minHeight: '100vh', background: 'var(--bg)' }}>
+      {/* Page header */}
+      <div style={{ padding: '4px 22px 18px' }}>
+        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>
+          RED DE COMPRAS
+        </div>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+          <h1 className="serif" style={{ margin: 0, fontSize: 32, lineHeight: 1.05, color: 'var(--text)', flex: 1, fontWeight: 700 }}>
+            Proveedores
+          </h1>
+          <button className="btn btn-primary btn-sm" onClick={openNew} style={{ marginTop: 4 }}>
+            <span className="mat sm">add</span> Nuevo
+          </button>
+        </div>
+        <p style={{ margin: '8px 0 0', fontSize: 13, color: 'var(--muted)', lineHeight: 1.4 }}>
+          Contactos, deudas y registros de compra.
+        </p>
       </div>
 
-      {error && <p className="mb-4 text-sm px-3 py-2 rounded-lg" style={{ backgroundColor: '#FEF2F2', color: '#DC2626' }}>{error}</p>}
-
-      {suppliers.length === 0 ? (
-        <div className="text-center py-16" style={{ color: DS.textMuted }}><p className="text-4xl mb-3">🏭</p><p>No hay proveedores todavía</p></div>
-      ) : (
-        <div className="overflow-hidden" style={{ backgroundColor: DS.surface, border: `1px solid ${DS.border}`, borderRadius: DS.radius, boxShadow: '0px 4px 12px rgba(67,20,7,0.08)' }}>
-          <table className="w-full text-sm">
-            <thead>
-              <tr style={{ backgroundColor: '#FAFAFA' }}>
-                <th className="text-left px-4 py-3 font-semibold" style={{ color: DS.text }}>Nombre</th>
-                <th className="text-left px-4 py-3 font-semibold" style={{ color: DS.text }}>Teléfono</th>
-                <th className="text-left px-4 py-3 font-semibold" style={{ color: DS.text }}>Dirección</th>
-                <th className="text-left px-4 py-3 font-semibold" style={{ color: DS.text }}>Deuda total</th>
-                <th className="text-right px-4 py-3 font-semibold" style={{ color: DS.text }}>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {suppliers.map((s) => (
-                <tr key={s.id} className="transition-colors" style={{ borderTop: `1px solid ${DS.border}` }}>
-                  <td className="px-4 py-3 font-medium" style={{ color: DS.text }}>{s.name}</td>
-                  <td className="px-4 py-3" style={{ color: DS.textMuted }}>{s.phone ?? '—'}</td>
-                  <td className="px-4 py-3" style={{ color: DS.textMuted }}>{s.address ?? '—'}</td>
-                  <td className="px-4 py-3"><span style={{ color: s.totalDebt > 0 ? DS.primary : DS.secondary, fontWeight: 500 }}>{formatMoney(s.totalDebt)}</span></td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex flex-wrap items-center justify-end gap-2">
-                      <button onClick={() => openDebtDetail(s)} className="text-xs px-3 py-1.5 rounded-lg transition-colors" style={{ color: DS.primary, border: `1px solid ${DS.primary}`, backgroundColor: 'transparent' }}>👁️ Ver deuda</button>
-                      <button onClick={() => openEdit(s)} className="text-xs px-3 py-1.5 rounded-lg transition-colors" style={{ color: DS.textMuted, border: '1px solid #D1D5DB', backgroundColor: 'transparent' }}>✏️ Editar</button>
-                      <button onClick={() => setConfirmDialog({ open: true, id: s.id, name: s.name })} className="text-xs px-3 py-1.5 rounded-lg transition-colors" style={{ color: DS.primary, backgroundColor: '#FEE2E2' }}>🗑️</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Stats */}
+      <div style={{ padding: '0 22px 14px' }}>
+        <div className="card" style={{
+          padding: 16,
+          display: 'grid',
+          gridTemplateColumns: '1.4fr 1fr',
+          gap: 14,
+        }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)' }}>
+              Deuda total
+            </div>
+            <div className="serif" style={{
+              fontSize: 28,
+              fontWeight: 700,
+              color: 'var(--primary-dark)',
+              letterSpacing: '-0.02em',
+              fontVariantNumeric: 'tabular-nums',
+              lineHeight: 1.1,
+              marginTop: 6,
+            }}>
+              {formatMoney(totalDebt)}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
+              {withDebt} {withDebt === 1 ? 'proveedor' : 'proveedores'} con saldo
+            </div>
+          </div>
+          <div style={{ borderLeft: '1px solid var(--outline-soft)', paddingLeft: 14 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)' }}>
+              Activos
+            </div>
+            <div className="serif" style={{
+              fontSize: 28,
+              fontWeight: 700,
+              color: 'var(--text)',
+              letterSpacing: '-0.02em',
+              lineHeight: 1.1,
+              marginTop: 6,
+            }}>
+              {suppliers.length}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>contactos cargados</div>
+          </div>
         </div>
-      )}
+      </div>
 
+      {/* Content */}
+      <div style={{ padding: '0 22px 24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {error && (
+          <div style={{ padding: '12px 14px', background: 'var(--error-bg)', borderRadius: 8, fontSize: 13, color: 'var(--error)' }}>
+            {error}
+          </div>
+        )}
+
+        {suppliers.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '48px 22px', color: 'var(--muted)' }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>🏭</div>
+            <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>No hay proveedores todavía</div>
+            <p style={{ fontSize: 13, margin: 0 }}>Crea uno para empezar a registrar compras</p>
+          </div>
+        ) : (
+          suppliers.map((s) => (
+            <button
+              key={s.id}
+              className="card tap"
+              onClick={() => openDebtDetail(s)}
+              style={{
+                padding: 14,
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                border: 'none',
+                background: 'var(--surface)',
+                cursor: 'pointer',
+                width: '100%',
+              }}
+            >
+              <div
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
+                  background: 'var(--surface-container-high)',
+                  color: 'var(--primary-dark)',
+                  display: 'grid',
+                  placeItems: 'center',
+                  fontFamily: 'var(--serif)',
+                  fontWeight: 700,
+                  fontSize: 14,
+                  flexShrink: 0,
+                }}
+              >
+                {s.name
+                  .split(' ')
+                  .slice(0, 2)
+                  .map((w) => w[0])
+                  .join('')
+                  .toUpperCase()}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="serif" style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>
+                  {s.name}
+                </div>
+                <div style={{ marginTop: 2, fontSize: 12, color: 'var(--muted)' }}>
+                  {s.phone || '—'}
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div className="serif" style={{
+                  fontSize: 15,
+                  fontWeight: 700,
+                  color: s.totalDebt > 0 ? 'var(--error)' : 'var(--success)',
+                  fontVariantNumeric: 'tabular-nums',
+                }}>
+                  {formatMoney(s.totalDebt)}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                  {s.totalDebt > 0 ? 'deuda' : 'al día'}
+                </div>
+              </div>
+            </button>
+          ))
+        )}
+      </div>
+
+      {/* Edit/Create Modal */}
       {modal.open && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center px-4 pb-0" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}>
-          <div className="w-full max-w-md p-6 space-y-4" style={{ backgroundColor: DS.surface, borderRadius: DS.radius, border: `1px solid ${DS.border}`, boxShadow: '0px 4px 12px rgba(67,20,7,0.08)' }}>
-            <h2 className="font-bold" style={{ color: DS.text }}>{modal.editing ? 'Editar proveedor' : 'Nuevo proveedor'}</h2>
-            <div className="space-y-3">
-              <input type="text" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2" style={{ border: `1px solid ${DS.border}`, borderRadius: '12px', color: DS.text }} placeholder="Nombre del proveedor" />
-              <input type="text" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2" style={{ border: `1px solid ${DS.border}`, borderRadius: '12px', color: DS.text }} placeholder="Teléfono" />
-              <input type="text" value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2" style={{ border: `1px solid ${DS.border}`, borderRadius: '12px', color: DS.text }} placeholder="Dirección" />
-              <textarea value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={3} className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2 resize-none" style={{ border: `1px solid ${DS.border}`, borderRadius: '12px', color: DS.text }} placeholder="Notas adicionales" />
+        <div className="modal-backdrop modal-center" onClick={() => setModal({ open: false, editing: null })}>
+          <div
+            className="modal-sheet"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxHeight: '90dvh', overflowY: 'auto' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <h2 className="serif" style={{ margin: 0, fontSize: 24, color: 'var(--primary-dark)', fontWeight: 700 }}>
+                {modal.editing ? 'Editar proveedor' : 'Nuevo proveedor'}
+              </h2>
+              <button onClick={() => setModal({ open: false, editing: null })} className="tap" style={{ width: 32, height: 32, borderRadius: 16, display: 'grid', placeItems: 'center', color: 'var(--muted)', fontSize: 20 }}>
+                ✕
+              </button>
             </div>
-            <div className="flex gap-3 pt-2">
-              <button onClick={() => setModal({ open: false, editing: null })} className="flex-1 py-2.5 text-sm font-medium transition-colors" style={{ border: `1px solid ${DS.border}`, borderRadius: '12px', color: DS.textMuted }}>Cancelar</button>
-              <button onClick={save} disabled={saving || !form.name.trim()} className="flex-1 py-2.5 text-white text-sm font-medium transition-colors" style={{ backgroundColor: DS.primary, borderRadius: '12px', opacity: saving || !form.name.trim() ? 0.5 : 1 }}>{saving ? 'Guardando...' : 'Guardar'}</button>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div className="field">
+                <label>Nombre del proveedor <span style={{ color: 'var(--error)', fontSize: 12, fontWeight: 600 }}>(Obligatorio)</span></label>
+                <input
+                  className="input"
+                  type="text"
+                  value={form.name}
+                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                  placeholder="Ej: La Huerta Orgánica"
+                  disabled={!modal.editing}
+                />
+              </div>
+              <div className="field">
+                <label>Teléfono / WhatsApp</label>
+                <input
+                  className="input"
+                  type="text"
+                  value={form.phone}
+                  onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                  placeholder="+54 911 ..."
+                />
+              </div>
+              <div className="field">
+                <label>Dirección</label>
+                <input
+                  className="input"
+                  type="text"
+                  value={form.address}
+                  onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
+                  placeholder="Calle, número, ciudad"
+                />
+              </div>
+              <div className="field">
+                <label>Notas</label>
+                <textarea
+                  className="input"
+                  value={form.notes}
+                  onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+                  placeholder="Notas adicionales"
+                  style={{ minHeight: 80 }}
+                />
+              </div>
             </div>
+
+            <div style={{ display: 'flex', gap: 12, paddingTop: 16, marginTop: 16, borderTop: '1px solid var(--outline-soft)' }}>
+              <button
+                className="btn btn-outline"
+                onClick={() => setModal({ open: false, editing: null })}
+                style={{ flex: 1 }}
+              >
+                Cancelar
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={save}
+                disabled={saving || !form.name.trim()}
+                style={{
+                  flex: 1,
+                  opacity: saving || !form.name.trim() ? 0.5 : 1,
+                }}
+              >
+                {saving ? 'Guardando...' : modal.editing ? 'Guardar cambios' : 'Crear proveedor'}
+              </button>
+            </div>
+
+            {modal.editing && (
+              <button
+                className="btn btn-danger btn-block"
+                onClick={() => {
+                  setConfirmDialog({ open: true, id: modal.editing!.id, name: modal.editing!.name })
+                  setModal({ open: false, editing: null })
+                }}
+                style={{ marginTop: 12 }}
+              >
+                <span className="mat sm">delete</span> Eliminar proveedor
+              </button>
+            )}
           </div>
         </div>
       )}
 
+      {/* Debt Detail Modal */}
       {debtModal.open && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center px-4 pb-0" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}>
-          <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6 space-y-5" style={{ backgroundColor: DS.surface, borderRadius: DS.radius, border: `1px solid ${DS.border}`, boxShadow: '0px 4px 12px rgba(67,20,7,0.08)' }}>
-            <div className="flex items-start justify-between gap-4">
+        <div className="modal-backdrop modal-center" onClick={() => setDebtModal({ open: false, loading: false, detail: null })}>
+          <div
+            className="modal-sheet"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxHeight: '90dvh', overflowY: 'auto' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
               <div>
-                <h2 className="font-bold text-lg" style={{ color: DS.text }}>Detalle de deuda</h2>
-                {debtModal.detail && <p className="text-sm" style={{ color: DS.textMuted }}>{debtModal.detail.supplierName} · Deuda actual: <span style={{ color: debtModal.detail.totalDebt > 0 ? DS.primary : DS.secondary, fontWeight: 600 }}>{formatMoney(debtModal.detail.totalDebt)}</span></p>}
+                <h2 className="serif" style={{ margin: 0, fontSize: 22, color: 'var(--primary-dark)', marginBottom: 4 }}>
+                  Detalle de deuda
+                </h2>
+                {debtModal.detail && (
+                  <p style={{ margin: 0, fontSize: 13, color: 'var(--muted)' }}>
+                    {debtModal.detail.supplierName} · Deuda actual:{' '}
+                    <span style={{ color: debtModal.detail.totalDebt > 0 ? 'var(--error)' : 'var(--success)', fontWeight: 600 }}>
+                      {formatMoney(debtModal.detail.totalDebt)}
+                    </span>
+                  </p>
+                )}
               </div>
-              <button onClick={() => setDebtModal({ open: false, loading: false, detail: null })} style={{ color: DS.textMuted }}>✕</button>
+              <button
+                onClick={() => setDebtModal({ open: false, loading: false, detail: null })}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--muted)',
+                  fontSize: 20,
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                }}
+              >
+                ✕
+              </button>
             </div>
 
             {debtModal.loading || !debtModal.detail ? (
-              <div className="py-12 text-center" style={{ color: DS.textMuted }}>Cargando...</div>
+              <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--muted)' }}>Cargando...</div>
             ) : (
               <>
-                <div className="flex justify-end">
-                  <button onClick={payAllDebt} disabled={paying || debtModal.detail.totalDebt <= 0} className="px-4 py-2 text-white text-sm font-medium rounded-lg" style={{ backgroundColor: DS.secondary, borderRadius: DS.radius, opacity: paying || debtModal.detail.totalDebt <= 0 ? 0.5 : 1 }}>Pagar toda la deuda del proveedor</button>
-                </div>
-                <div className="space-y-3">
+                {debtModal.detail.totalDebt > 0 && (
+                  <button
+                    className="btn btn-primary btn-block"
+                    onClick={payAllDebt}
+                    disabled={paying}
+                    style={{ marginBottom: 16, opacity: paying ? 0.5 : 1 }}
+                  >
+                    Pagar toda la deuda
+                  </button>
+                )}
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
                   {debtModal.detail.purchases.map((purchase) => (
-                    <div key={purchase.purchaseId} className="p-4 space-y-3" style={{ border: `1px solid ${DS.border}`, borderRadius: DS.radius }}>
-                      <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div key={purchase.purchaseId} className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                         <div>
-                          <p className="font-medium" style={{ color: DS.text }}>{purchase.supplyName || 'Compra'}</p>
-                          <p className="text-xs" style={{ color: DS.textMuted }}>{formatDate(purchase.purchaseDate)}</p>
+                          <div style={{ fontWeight: 600, color: 'var(--text)', fontSize: 14 }}>{purchase.supplyName || 'Compra'}</div>
+                          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{formatDate(purchase.purchaseDate)}</div>
                         </div>
-                        <span className="text-xs px-2.5 py-1 rounded-full" style={{ border: `1px solid ${statusClass(purchase.status)}`, color: statusClass(purchase.status) }}>{statusLabel(purchase.status)}</span>
+                        <span
+                          className="chip"
+                          style={{
+                            background:
+                              purchase.status === 'paid'
+                                ? 'var(--success)'
+                                : purchase.status === 'partial'
+                                ? 'var(--warning)'
+                                : 'var(--error)',
+                            color: 'white',
+                            fontSize: 11,
+                            fontWeight: 600,
+                          }}
+                        >
+                          {purchase.status === 'paid' ? 'Pagado' : purchase.status === 'partial' ? 'Parcial' : 'Pendiente'}
+                        </span>
                       </div>
-                      <div className="grid grid-cols-3 gap-3 text-sm">
-                        <p><span className="block" style={{ color: DS.textMuted }}>Total</span>{formatMoney(purchase.totalPrice)}</p>
-                        <p><span className="block" style={{ color: DS.textMuted }}>Pagado</span>{formatMoney(purchase.paidAmount)}</p>
-                        <p><span className="block" style={{ color: DS.textMuted }}>Pendiente</span>{formatMoney(purchase.pendingAmount)}</p>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+                        <div>
+                          <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>Total</div>
+                          <div style={{ fontWeight: 600, color: 'var(--text)' }}>{formatMoney(purchase.totalPrice)}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>Pagado</div>
+                          <div style={{ fontWeight: 600, color: 'var(--success)' }}>{formatMoney(purchase.paidAmount)}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>Pendiente</div>
+                          <div style={{ fontWeight: 600, color: purchase.pendingAmount > 0 ? 'var(--error)' : 'var(--success)' }}>
+                            {formatMoney(purchase.pendingAmount)}
+                          </div>
+                        </div>
                       </div>
+
                       {purchase.pendingAmount > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                          <button onClick={() => setPaymentForm({ purchase, amount: '', notes: '' })} className="text-xs px-3 py-1.5 rounded-lg" style={{ color: DS.primary, backgroundColor: '#FEE2E2' }}>Pago parcial</button>
-                          <button onClick={() => payPurchaseFull(purchase)} disabled={paying} className="text-xs px-3 py-1.5 rounded-lg" style={{ color: DS.secondary, backgroundColor: '#DCFCE7' }}>Pagar esta deuda completa</button>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button
+                            className="btn btn-outline btn-sm"
+                            onClick={() => setPaymentForm({ purchase, amount: '', notes: '' })}
+                            style={{ flex: 1 }}
+                          >
+                            Pago parcial
+                          </button>
+                          <button
+                            className="btn btn-primary btn-sm"
+                            onClick={() => payPurchaseFull(purchase)}
+                            disabled={paying}
+                            style={{ flex: 1, opacity: paying ? 0.5 : 1 }}
+                          >
+                            Pagar completo
+                          </button>
                         </div>
                       )}
                     </div>
@@ -285,13 +547,19 @@ export default function ProveedoresPage() {
 
                 {debtModal.detail.payments.length > 0 && (
                   <div>
-                    <h3 className="font-semibold mb-2" style={{ color: DS.text }}>Historial de pagos</h3>
-                    <div className="space-y-2">
+                    <h3 className="serif" style={{ margin: '0 0 12px', fontSize: 16, color: 'var(--text)', fontWeight: 600 }}>
+                      Historial de pagos
+                    </h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {debtModal.detail.payments.map((payment) => (
-                        <div key={payment.id} className="text-sm px-3 py-2" style={{ border: `1px solid ${DS.border}`, borderRadius: '12px' }}>
-                          <p className="font-medium" style={{ color: DS.text }}>{formatMoney(payment.amount)} · {formatDate(payment.paidAt)}</p>
-                          {payment.notes && <p style={{ color: DS.textMuted }}>{payment.notes}</p>}
-                          <p className="text-xs" style={{ color: DS.textMuted }}>Aplicado a: {payment.allocations.map((a) => `${a.supplyName || 'compra'} (${formatMoney(a.amount)})`).join(', ')}</p>
+                        <div key={payment.id} className="card" style={{ padding: 12, background: 'var(--surface-container)' }}>
+                          <div style={{ fontWeight: 600, color: 'var(--text)', fontSize: 13, marginBottom: 4 }}>
+                            {formatMoney(payment.amount)} · {formatDate(payment.paidAt)}
+                          </div>
+                          {payment.notes && <p style={{ margin: '0 0 4px', fontSize: 12, color: 'var(--muted)' }}>{payment.notes}</p>}
+                          <p style={{ margin: 0, fontSize: 11, color: 'var(--muted)' }}>
+                            Aplicado a: {payment.allocations.map((a) => `${a.supplyName || 'compra'} (${formatMoney(a.amount)})`).join(', ')}
+                          </p>
                         </div>
                       ))}
                     </div>
@@ -299,34 +567,140 @@ export default function ProveedoresPage() {
                 )}
               </>
             )}
-          </div>
-        </div>
-      )}
 
-      {paymentForm && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center px-4" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}>
-          <div className="w-full max-w-sm p-6 space-y-4" style={{ backgroundColor: DS.surface, borderRadius: DS.radius, border: `1px solid ${DS.border}`, boxShadow: '0px 4px 12px rgba(67,20,7,0.08)' }}>
-            <h2 className="font-bold" style={{ color: DS.text }}>Pago parcial</h2>
-            <p className="text-sm" style={{ color: DS.textMuted }}>Pendiente de {paymentForm.purchase.supplyName}: {formatMoney(paymentForm.purchase.pendingAmount)}</p>
-            <input type="number" min="0.01" max={paymentForm.purchase.pendingAmount} step="0.01" value={paymentForm.amount} onChange={(e) => setPaymentForm((f) => f ? { ...f, amount: e.target.value } : f)} className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2" style={{ border: `1px solid ${DS.border}`, borderRadius: '12px', color: DS.text }} placeholder="Monto" />
-            {partialPaymentError && <p className="text-sm" style={{ color: DS.primary }}>{partialPaymentError}</p>}
-            <input type="text" value={paymentForm.notes} onChange={(e) => setPaymentForm((f) => f ? { ...f, notes: e.target.value } : f)} className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2" style={{ border: `1px solid ${DS.border}`, borderRadius: '12px', color: DS.text }} placeholder="Notas opcionales" />
-            <div className="flex gap-3 pt-2">
-              <button onClick={() => setPaymentForm(null)} className="flex-1 py-2.5 text-sm font-medium" style={{ border: `1px solid ${DS.border}`, borderRadius: '12px', color: DS.textMuted }}>Cancelar</button>
-              <button onClick={submitPartialPayment} disabled={paying || !paymentForm.amount || !!partialPaymentError} className="flex-1 py-2.5 text-white text-sm font-medium" style={{ backgroundColor: DS.primary, borderRadius: '12px', opacity: paying || !paymentForm.amount || !!partialPaymentError ? 0.5 : 1 }}>Pagar</button>
+            <div style={{ display: 'flex', gap: 12, paddingTop: 16, marginTop: 16, borderTop: '1px solid var(--outline-soft)' }}>
+              <button
+                className="btn btn-outline"
+                onClick={() => {
+                  setDebtModal({ open: false, loading: false, detail: null })
+                  if (debtModal.detail) openEdit(suppliers.find((s) => s.id === debtModal.detail!.supplierId)!)
+                }}
+                style={{ flex: 1 }}
+              >
+                <span className="mat sm">edit</span> Editar
+              </button>
+              <button
+                className="btn btn-ghost"
+                onClick={() => setDebtModal({ open: false, loading: false, detail: null })}
+                style={{ flex: 1 }}
+              >
+                Cerrar
+              </button>
             </div>
           </div>
         </div>
       )}
 
+      {/* Partial Payment Modal */}
+      {paymentForm && (
+        <div className="modal-backdrop modal-center" onClick={() => setPaymentForm(null)}>
+          <div
+            className="modal-sheet"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 380 }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <h2 className="serif" style={{ margin: 0, fontSize: 24, color: 'var(--primary-dark)', fontWeight: 700 }}>
+                Pago parcial
+              </h2>
+              <button onClick={() => setPaymentForm(null)} className="tap" style={{ width: 32, height: 32, borderRadius: 16, display: 'grid', placeItems: 'center', color: 'var(--muted)', fontSize: 20 }}>
+                ✕
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>Pendiente de {paymentForm.purchase.supplyName}</div>
+                <div className="serif" style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>
+                  {formatMoney(paymentForm.purchase.pendingAmount)}
+                </div>
+              </div>
+
+              <div className="field">
+                <label>Monto a pagar</label>
+                <input
+                  className="input"
+                  type="number"
+                  min="0.01"
+                  max={paymentForm.purchase.pendingAmount}
+                  step="0.01"
+                  value={paymentForm.amount}
+                  onChange={(e) => setPaymentForm((f) => (f ? { ...f, amount: e.target.value } : f))}
+                  placeholder="Monto"
+                />
+              </div>
+
+              {partialPaymentError && (
+                <div style={{ padding: '10px 12px', background: 'var(--error-bg)', borderRadius: 8, fontSize: 12, color: 'var(--error)' }}>
+                  {partialPaymentError}
+                </div>
+              )}
+
+              <div className="field">
+                <label>Notas (opcional)</label>
+                <textarea
+                  className="input"
+                  value={paymentForm.notes}
+                  onChange={(e) => setPaymentForm((f) => (f ? { ...f, notes: e.target.value } : f))}
+                  placeholder="Notas adicionales"
+                  style={{ minHeight: 60 }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 12, paddingTop: 16, marginTop: 16, borderTop: '1px solid var(--outline-soft)' }}>
+              <button
+                className="btn btn-outline"
+                onClick={() => setPaymentForm(null)}
+                style={{ flex: 1 }}
+              >
+                Cancelar
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={submitPartialPayment}
+                disabled={paying || !paymentForm.amount || !!partialPaymentError}
+                style={{
+                  flex: 1,
+                  opacity: paying || !paymentForm.amount || !!partialPaymentError ? 0.5 : 1,
+                }}
+              >
+                Pagar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation */}
       {confirmDialog.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}>
-          <div className="w-full max-w-sm p-6 space-y-4" style={{ backgroundColor: DS.surface, borderRadius: DS.radius, border: `1px solid ${DS.border}`, boxShadow: '0px 4px 12px rgba(67,20,7,0.08)' }}>
-            <h2 className="font-bold text-lg" style={{ color: DS.text }}>¿Eliminar proveedor?</h2>
-            <p style={{ color: DS.textMuted }}>Estás a punto de eliminar el proveedor &quot;{confirmDialog.name}&quot;. Esta acción no se puede deshacer.</p>
-            <div className="flex gap-3 pt-2">
-              <button onClick={() => setConfirmDialog({ open: false, id: '', name: '' })} className="flex-1 py-2.5 text-sm font-medium" style={{ border: `1px solid ${DS.border}`, borderRadius: '12px', color: DS.textMuted }}>Cancelar</button>
-              <button onClick={confirmDelete} className="flex-1 py-2.5 text-white text-sm font-medium rounded-lg" style={{ backgroundColor: DS.primary, borderRadius: '12px' }}>Eliminar</button>
+        <div className="modal-backdrop modal-center" onClick={() => setConfirmDialog({ open: false, id: '', name: '' })}>
+          <div
+            className="modal-sheet"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 380 }}
+          >
+            <h2 className="serif" style={{ margin: '0 0 16px', fontSize: 20, color: 'var(--error)' }}>
+              ⚠️ ¿Eliminar proveedor?
+            </h2>
+            <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--muted)', lineHeight: 1.4 }}>
+              Estás a punto de eliminar <strong style={{ color: 'var(--text)' }}>"{confirmDialog.name}"</strong>. Esta acción no se puede deshacer.
+            </p>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button
+                className="btn btn-outline"
+                onClick={() => setConfirmDialog({ open: false, id: '', name: '' })}
+                style={{ flex: 1 }}
+              >
+                Cancelar
+              </button>
+              <button
+                className="btn btn-danger"
+                onClick={confirmDelete}
+                style={{ flex: 1 }}
+              >
+                Eliminar
+              </button>
             </div>
           </div>
         </div>
