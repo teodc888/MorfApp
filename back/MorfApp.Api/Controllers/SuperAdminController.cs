@@ -87,7 +87,7 @@ public class SuperAdminController(IAppDbContext db, IEmailService emailService, 
         if (req.Name is not null) tenant.Name = req.Name;
         if (req.OwnerName is not null) tenant.OwnerName = req.OwnerName;
         if (req.OwnerPhone is not null) tenant.OwnerPhone = req.OwnerPhone;
-        tenant.SubscriptionEndsAt = req.SubscriptionEndsAt;
+        if (req.SubscriptionEndsAt.HasValue) tenant.SubscriptionEndsAt = req.SubscriptionEndsAt;
         tenant.UpdatedAt = DateTime.UtcNow;
 
         await db.SaveChangesAsync();
@@ -123,6 +123,10 @@ public class SuperAdminController(IAppDbContext db, IEmailService emailService, 
 
         var now = DateTime.UtcNow;
 
+        var existingUser = tenant.AdminUsers.FirstOrDefault(u => u.Email == tenant.OwnerEmail);
+        if (existingUser is not null)
+            return BadRequest(new { message = "Ya existe un usuario admin con ese email para este negocio" });
+
         var adminUser = new AdminUser
         {
             TenantId = tenant.Id,
@@ -145,6 +149,7 @@ public class SuperAdminController(IAppDbContext db, IEmailService emailService, 
         db.SetupTokens.Add(setupToken);
 
         tenant.Status = TenantStatus.Active;
+        tenant.SubscriptionEndsAt = now.AddDays(30);
         tenant.UpdatedAt = now;
         await db.SaveChangesAsync();
 
@@ -154,13 +159,12 @@ public class SuperAdminController(IAppDbContext db, IEmailService emailService, 
         try
         {
             await emailService.SendSetupEmailAsync(tenant.OwnerEmail, tenant.OwnerName, tenant.Name, setupUrl);
+            return Ok(new { message = "Negocio activado y email enviado", setupUrl });
         }
         catch (Exception ex)
         {
             return Ok(new { message = "Negocio activado pero no se pudo enviar el email", setupUrl, error = ex.Message });
         }
-
-        return Ok(new { message = "Negocio activado y email enviado" });
     }
 
     [HttpGet("settings")]
@@ -170,12 +174,7 @@ public class SuperAdminController(IAppDbContext db, IEmailService emailService, 
 
         var settings = await db.SuperAdminSettings.FirstOrDefaultAsync();
         if (settings is null)
-        {
-            var newSettings = new SuperAdminSettings();
-            db.SuperAdminSettings.Add(newSettings);
-            await db.SaveChangesAsync();
-            settings = newSettings;
-        }
+            return Ok(MapSettingsToDto(new SuperAdminSettings()));
 
         return Ok(MapSettingsToDto(settings));
     }
@@ -219,5 +218,3 @@ public class SuperAdminController(IAppDbContext db, IEmailService emailService, 
         UpdatedAt = s.UpdatedAt,
     };
 }
-
-public record UpdateTenantStatusRequest(string Status);

@@ -57,12 +57,9 @@ namespace MorfApp.Infrastructure.Migrations
                     b.HasKey("Id")
                         .HasName("pk_admin_users");
 
-                    b.HasIndex("Email")
+                    b.HasIndex("TenantId", "Email")
                         .IsUnique()
-                        .HasDatabaseName("ix_admin_users_email");
-
-                    b.HasIndex("TenantId")
-                        .HasDatabaseName("ix_admin_users_tenant_id");
+                        .HasDatabaseName("ix_admin_users_tenant_id_email");
 
                     b.ToTable("admin_users", (string)null);
                 });
@@ -217,6 +214,46 @@ namespace MorfApp.Infrastructure.Migrations
                         .HasDatabaseName("ix_delivery_configs_tenant_id");
 
                     b.ToTable("delivery_configs", (string)null);
+                });
+
+            modelBuilder.Entity("MorfApp.Domain.Entities.InventoryMovement", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<decimal>("QuantityChange")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)")
+                        .HasColumnName("quantity_change");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("reason");
+
+                    b.Property<string>("ReferenceId")
+                        .HasColumnType("text")
+                        .HasColumnName("reference_id");
+
+                    b.Property<string>("SupplyId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("supply_id");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_inventory_movements");
+
+                    b.ToTable("inventory_movements", (string)null);
                 });
 
             modelBuilder.Entity("MorfApp.Domain.Entities.ModifierGroup", b =>
@@ -543,6 +580,42 @@ namespace MorfApp.Infrastructure.Migrations
                     b.ToTable("products", (string)null);
                 });
 
+            modelBuilder.Entity("MorfApp.Domain.Entities.ProductSupply", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("IsUnknownQuantity")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_unknown_quantity");
+
+                    b.Property<string>("ProductId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("product_id");
+
+                    b.Property<decimal>("QuantityRequired")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)")
+                        .HasColumnName("quantity_required");
+
+                    b.Property<string>("SupplyId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("supply_id");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_product_supplies");
+
+                    b.ToTable("product_supplies", (string)null);
+                });
+
             modelBuilder.Entity("MorfApp.Domain.Entities.PromoRedemption", b =>
                 {
                     b.Property<string>("Id")
@@ -753,6 +826,237 @@ namespace MorfApp.Infrastructure.Migrations
                         .HasName("pk_super_admin_settings");
 
                     b.ToTable("super_admin_settings", (string)null);
+                });
+
+            modelBuilder.Entity("MorfApp.Domain.Entities.Supplier", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Address")
+                        .HasColumnType("text")
+                        .HasColumnName("address");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text")
+                        .HasColumnName("notes");
+
+                    b.Property<string>("Phone")
+                        .HasColumnType("text")
+                        .HasColumnName("phone");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<decimal>("TotalDebt")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("total_debt");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_suppliers");
+
+                    b.ToTable("suppliers", (string)null);
+                });
+
+            modelBuilder.Entity("MorfApp.Domain.Entities.SupplierPayment", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text")
+                        .HasColumnName("notes");
+
+                    b.Property<DateTime>("PaidAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("paid_at");
+
+                    b.Property<string>("SupplierId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("supplier_id");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_supplier_payments");
+
+                    b.HasIndex("TenantId", "SupplierId", "PaidAt")
+                        .HasDatabaseName("ix_supplier_payments_tenant_id_supplier_id_paid_at");
+
+                    b.ToTable("supplier_payments", (string)null);
+                });
+
+            modelBuilder.Entity("MorfApp.Domain.Entities.SupplierPaymentAllocation", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<string>("SupplierPaymentId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("supplier_payment_id");
+
+                    b.Property<string>("SupplyPurchaseId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("supply_purchase_id");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_supplier_payment_allocations");
+
+                    b.HasIndex("SupplierPaymentId")
+                        .HasDatabaseName("ix_supplier_payment_allocations_supplier_payment_id");
+
+                    b.HasIndex("TenantId", "SupplyPurchaseId")
+                        .HasDatabaseName("ix_supplier_payment_allocations_tenant_id_supply_purchase_id");
+
+                    b.ToTable("supplier_payment_allocations", (string)null);
+                });
+
+            modelBuilder.Entity("MorfApp.Domain.Entities.Supply", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<decimal>("CurrentStock")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)")
+                        .HasColumnName("current_stock");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<string>("SupplierId")
+                        .HasColumnType("text")
+                        .HasColumnName("supplier_id");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Unit")
+                        .HasColumnType("text")
+                        .HasColumnName("unit");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_supplies");
+
+                    b.ToTable("supplies", (string)null);
+                });
+
+            modelBuilder.Entity("MorfApp.Domain.Entities.SupplyPurchase", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text")
+                        .HasColumnName("notes");
+
+                    b.Property<decimal>("PricePerUnit")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)")
+                        .HasColumnName("price_per_unit");
+
+                    b.Property<DateTime>("PurchaseDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("purchase_date");
+
+                    b.Property<decimal>("QuantityPurchased")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)")
+                        .HasColumnName("quantity_purchased");
+
+                    b.Property<string>("SupplierId")
+                        .HasColumnType("text")
+                        .HasColumnName("supplier_id");
+
+                    b.Property<string>("SupplyId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("supply_id");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<decimal>("TotalPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("total_price");
+
+                    b.HasKey("Id")
+                        .HasName("pk_supply_purchases");
+
+                    b.ToTable("supply_purchases", (string)null);
                 });
 
             modelBuilder.Entity("MorfApp.Domain.Entities.Tenant", b =>

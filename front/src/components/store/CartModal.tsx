@@ -6,10 +6,24 @@ import { useCartStore } from '@/store/cart'
 import { formatPrice, buildWhatsAppMessage } from '@/lib/utils'
 import type { CustomerForm } from '@/lib/utils'
 import { registerRedemption, createOrder, buildOrderItems } from '@/lib/api'
+import { STITCH } from '@/lib/stitch-theme'
 
 type Props = {
   tenant: TenantPublic
   onClose: () => void
+}
+
+const DS = {
+  bg: STITCH.bg,
+  surface: STITCH.surface,
+  primary: STITCH.primary,
+  secondary: STITCH.secondary,
+  tertiary: STITCH.tertiary,
+  text: STITCH.text,
+  textMuted: STITCH.muted,
+  border: STITCH.border,
+  radius: STITCH.radius,
+  radiusSm: '12px',
 }
 
 function CartItemRow({ item }: { item: CartItem }) {
@@ -26,25 +40,25 @@ function CartItemRow({ item }: { item: CartItem }) {
   const subtotal = ((item.product.finalPrice ?? item.product.price) + item.extraPrice) * item.qty
 
   return (
-    <div className="flex items-start gap-3 py-3 border-b border-zinc-100 last:border-0">
+    <div className="flex items-start gap-3 py-3" style={{ borderBottom: `1px solid ${DS.border}30` }}>
       <span className="text-3xl leading-none flex-shrink-0">{item.product.emoji}</span>
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-zinc-900 text-sm leading-snug">{item.product.name}</p>
+        <p className="font-semibold text-sm leading-snug" style={{ color: DS.text }}>{item.product.name}</p>
         <div className="mt-1 space-y-0.5">
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-2">
               {item.product.discountPercent && item.product.finalPrice && (
                 <>
-                  <span className="line-through text-xs text-zinc-400">
+                  <span className="line-through text-xs" style={{ color: '#9CA3AF' }}>
                     {formatPrice(item.product.price)}
                   </span>
-                  <span className="text-xs font-bold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded-full">
+                  <span className="text-xs font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: '#FED7AA', color: '#EA580C' }}>
                     -{item.product.discountPercent}%
                   </span>
                 </>
               )}
             </div>
-            <span className="text-xs font-semibold text-zinc-700">
+            <span className="text-xs font-semibold" style={{ color: DS.text }}>
               {formatPrice((item.product.finalPrice ?? item.product.price) * item.qty)}
             </span>
           </div>
@@ -52,7 +66,7 @@ function CartItemRow({ item }: { item: CartItem }) {
           {Object.entries(item.selections).map(([, value]) => {
             const selections = Array.isArray(value) ? value : [value]
             return selections.map((sel: SelectedOption) => (
-              <div key={sel.optionId} className="flex justify-between text-xs text-zinc-500">
+              <div key={sel.optionId} className="flex justify-between text-xs" style={{ color: DS.textMuted }}>
                 <span>· {sel.name}</span>
                 <span>+ {formatPrice(sel.extraPrice * item.qty)}</span>
               </div>
@@ -60,32 +74,35 @@ function CartItemRow({ item }: { item: CartItem }) {
           })}
 
           {item.observations && (
-            <p className="text-xs text-zinc-400 italic mt-1">📝 {item.observations}</p>
+            <p className="text-xs italic mt-1" style={{ color: DS.textMuted }}>📝 {item.observations}</p>
           )}
 
-          <div className="flex justify-between items-center pt-1 border-t border-zinc-100 mt-1">
-            <span className="text-xs font-bold text-zinc-900">Total</span>
-            <span className="text-sm font-bold text-primary">{formatPrice(subtotal)}</span>
+          <div className="flex justify-between items-center pt-1 mt-1" style={{ borderTop: `1px solid ${DS.border}` }}>
+            <span className="text-xs font-bold" style={{ color: DS.text }}>Total</span>
+            <span className="text-sm font-bold" style={{ color: DS.primary }}>{formatPrice(subtotal)}</span>
           </div>
         </div>
       </div>
       <div className="flex items-center gap-1 flex-shrink-0">
         <button
           onClick={() => updateQty(item.cartId, item.qty - 1)}
-          className="w-7 h-7 rounded-full bg-zinc-100 text-zinc-700 font-bold flex items-center justify-center text-base"
+          className="w-7 h-7 rounded-full flex items-center justify-center text-base transition-colors"
+          style={{ backgroundColor: '#F3F4F6', color: DS.textMuted }}
         >
           −
         </button>
         <span className="w-5 text-center text-sm font-semibold">{item.qty}</span>
         <button
           onClick={() => updateQty(item.cartId, item.qty + 1)}
-          className="w-7 h-7 rounded-full bg-zinc-100 text-zinc-700 font-bold flex items-center justify-center text-base"
+          className="w-7 h-7 rounded-full flex items-center justify-center text-base transition-colors"
+          style={{ backgroundColor: '#F3F4F6', color: DS.textMuted }}
         >
           +
         </button>
         <button
           onClick={() => removeItem(item.cartId)}
-          className="ml-1 w-7 h-7 rounded-full bg-zinc-100 text-red-400 flex items-center justify-center text-sm"
+          className="ml-1 w-7 h-7 rounded-full flex items-center justify-center text-sm"
+          style={{ backgroundColor: '#FEE2E2', color: '#EF4444' }}
         >
           🗑
         </button>
@@ -159,8 +176,8 @@ export function CartModal({ tenant, onClose }: Props) {
   const grandTotal = total + deliveryCost
 
   const isFormValid =
-    form.name.trim().length > 0 &&
-    form.phone.trim().length > 0 &&
+    form.name.trim().length >= 2 &&
+    /^\d{8,}$/.test(form.phone.replace(/[\s+\-()]/g, '')) &&
     (activeDelivery === 'pickup' || form.address.trim().length > 0)
 
   const handleConfirm = async () => {
@@ -224,25 +241,29 @@ export function CartModal({ tenant, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end">
+    <div className="fixed inset-0 z-50 flex flex-col justify-end" style={{ backgroundColor: DS.bg }}>
       <div
-        className={`absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${
-          isClosing ? 'opacity-0' : 'opacity-100'
-        }`}
+        className={`absolute inset-0 transition-opacity duration-300 ${isClosing ? 'opacity-0' : 'opacity-100'}`}
+        style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
         onClick={handleClose}
       />
 
       <div
-        className={`relative bg-white rounded-t-2xl max-h-[92dvh] flex flex-col max-w-[520px] mx-auto w-full overflow-hidden transition-opacity duration-300 ${
-          isClosing ? 'animate-slide-down opacity-0' : 'animate-slide-up opacity-100'
-        }`}
+        className={`relative flex flex-col max-w-[520px] mx-auto w-full overflow-hidden transition-opacity duration-300 ${isClosing ? 'opacity-0 translate-y-full' : 'opacity-100 translate-y-0'}`}
+        style={{
+          backgroundColor: DS.surface,
+          borderTopLeftRadius: DS.radius,
+          borderTopRightRadius: DS.radius,
+          maxHeight: '92dvh',
+        }}
       >
-        {/* Header */}
-        <div className="flex-shrink-0 flex items-center justify-between px-4 pt-4 pb-2 border-b border-zinc-100">
-          <h2 className="font-bold text-zinc-900 text-base">Tu carrito</h2>
+        {/* Header - Stitch Design: sticky top, cream bg */}
+        <div className="flex-shrink-0 flex items-center justify-between px-4 pt-4 pb-2 sticky top-0" style={{ backgroundColor: DS.surface, borderBottom: `1px solid ${DS.border}`}}>
+          <h2 className="font-bold text-base" style={{ color: DS.text, fontFamily: 'Plus Jakarta Sans, sans-serif' }}>Tu Pedido</h2>
           <button
             onClick={handleClose}
-            className="text-zinc-400 p-1 rounded-full hover:bg-zinc-100"
+            className="p-1 rounded-full transition-colors"
+            style={{ color: DS.textMuted }}
           >
             ✕
           </button>
@@ -252,11 +273,22 @@ export function CartModal({ tenant, onClose }: Props) {
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <span className="text-5xl mb-3">🛒</span>
-              <p className="text-zinc-500 font-medium">Tu carrito está vacío</p>
+              <p className="font-medium" style={{ color: DS.textMuted }}>Tu carrito está vacío</p>
             </div>
           ) : (
             <>
-              {/* Cart items */}
+              {/* Hero/Promo Image - Stitch Design */}
+              {tenant.branding.bannerUrl && (
+                <div className="-mx-4 mb-4 aspect-[2.11] overflow-hidden">
+                  <img
+                    alt="Promo"
+                    className="w-full h-full object-cover"
+                    src={tenant.branding.bannerUrl}
+                  />
+                </div>
+              )}
+
+              {/* Order Items Section - Stitch Design */}
               <div className="py-2">
                 {items.map((item) => (
                   <CartItemRow key={item.cartId} item={item} />
@@ -272,13 +304,14 @@ export function CartModal({ tenant, onClose }: Props) {
                       <button
                         key={mode}
                         onClick={() => handleDeliverySwitch(mode)}
-                        className={`flex-1 py-2 rounded-xl text-sm font-semibold border transition-colors ${
-                          isActive
-                            ? 'bg-primary-muted border-primary text-primary'
-                            : 'border-zinc-200 text-zinc-500'
-                        }`}
+                        className="flex-1 py-2 rounded-xl text-sm font-semibold border transition-colors"
+                        style={{
+                          backgroundColor: isActive ? DS.primary : 'transparent',
+                          borderColor: isActive ? DS.primary : DS.border,
+                          color: isActive ? '#FFFFFF' : DS.textMuted,
+                        }}
                       >
-                        {mode === 'delivery' ? '🛵 Delivery' : '🏠 Retiro en local'}
+                        {mode === 'delivery' ? '🛵 Delivery' : '🏠 Retiro'}
                       </button>
                     )
                   })}
@@ -292,14 +325,16 @@ export function CartModal({ tenant, onClose }: Props) {
                   placeholder="Tu nombre *"
                   value={form.name}
                   onChange={(e) => handleInput('name', e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm outline-none ring-primary focus:border-primary"
+                  className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+                  style={{ backgroundColor: DS.bg, border: `1px solid ${DS.border}`, color: DS.text }}
                 />
                 <input
                   type="tel"
                   placeholder="Teléfono *"
                   value={form.phone}
                   onChange={(e) => handleInput('phone', e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm outline-none ring-primary focus:border-primary"
+                  className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+                  style={{ backgroundColor: DS.bg, border: `1px solid ${DS.border}`, color: DS.text }}
                 />
                 {activeDelivery === 'delivery' && (
                   <input
@@ -307,7 +342,8 @@ export function CartModal({ tenant, onClose }: Props) {
                     placeholder="Dirección de entrega *"
                     value={form.address}
                     onChange={(e) => handleInput('address', e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm outline-none ring-primary focus:border-primary"
+                    className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+                    style={{ backgroundColor: DS.bg, border: `1px solid ${DS.border}`, color: DS.text }}
                   />
                 )}
                 <textarea
@@ -315,22 +351,24 @@ export function CartModal({ tenant, onClose }: Props) {
                   value={form.notes}
                   onChange={(e) => handleInput('notes', e.target.value)}
                   rows={2}
-                  className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm outline-none ring-primary focus:border-primary resize-none"
+                  className="w-full px-3 py-2.5 rounded-xl text-sm outline-none resize-none"
+                  style={{ backgroundColor: DS.bg, border: `1px solid ${DS.border}`, color: DS.text }}
                 />
 
                 {/* Método de pago */}
                 <div>
-                  <p className="text-xs font-medium text-zinc-500 mb-2">Forma de pago</p>
+                  <p className="text-xs font-medium mb-2" style={{ color: DS.textMuted }}>Forma de pago</p>
                   <div className="flex gap-2">
                     {getAvailablePaymentMethods(activeDelivery).map(({ key, label, icon }) => (
                       <button
                         key={key}
                         onClick={() => setForm((f) => ({ ...f, paymentMethod: key }))}
-                        className={`flex-1 flex flex-col items-center gap-0.5 py-2 rounded-xl text-xs font-semibold border transition-colors ${
-                          form.paymentMethod === key
-                            ? 'bg-primary-muted border-primary text-primary'
-                            : 'border-zinc-200 text-zinc-500 hover:bg-zinc-50'
-                        }`}
+                        className="flex-1 flex flex-col items-center gap-0.5 py-2 rounded-xl text-xs font-semibold border transition-colors"
+                        style={{
+                          backgroundColor: form.paymentMethod === key ? DS.primary : 'transparent',
+                          borderColor: form.paymentMethod === key ? DS.primary : DS.border,
+                          color: form.paymentMethod === key ? '#FFFFFF' : DS.textMuted,
+                        }}
                       >
                         <span className="text-lg">{icon}</span>
                         {label}
@@ -339,26 +377,28 @@ export function CartModal({ tenant, onClose }: Props) {
                   </div>
                 </div>
 
-                {/* Desglose de precios */}
-                <div className="border-t border-zinc-100 pt-3 space-y-1.5">
-                  <div className="flex justify-between text-sm text-zinc-500">
-                    <span>Subtotal</span>
-                    <span>{formatPrice(total)}</span>
-                  </div>
-                  {activeDelivery === 'delivery' && (
-                    <div className="flex justify-between text-sm text-zinc-500">
-                      <span>Envío</span>
-                      <span>
-                        {deliveryCost === 0
-                          ? <span className="text-green-600 font-medium">Gratis</span>
-                          : formatPrice(deliveryCost)
-                        }
-                      </span>
+                {/* Summary Section - Stitch Design */}
+                <div className="rounded-xl p-4" style={{ backgroundColor: DS.bg, border: `1px solid ${DS.border}` }}>
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-sm" style={{ color: DS.textMuted }}>
+                      <span>Subtotal</span>
+                      <span>{formatPrice(total)}</span>
                     </div>
-                  )}
-                  <div className="flex justify-between items-center pt-1 border-t border-zinc-100">
-                    <span className="font-bold text-zinc-900">Total</span>
-                    <span className="font-bold text-lg text-primary">{formatPrice(grandTotal)}</span>
+                    {activeDelivery === 'delivery' && (
+                      <div className="flex justify-between text-sm" style={{ color: DS.textMuted }}>
+                        <span>Envío</span>
+                        <span>
+                          {deliveryCost === 0
+                            ? <span className="font-medium" style={{ color: DS.secondary }}>Gratis</span>
+                            : formatPrice(deliveryCost)
+                          }
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center pt-2 mt-2" style={{ borderTop: `1px solid ${DS.border}` }}>
+                      <span className="font-bold text-lg" style={{ color: DS.text }}>Total</span>
+                      <span className="font-bold text-lg" style={{ color: DS.primary }}>{formatPrice(grandTotal)}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -368,23 +408,26 @@ export function CartModal({ tenant, onClose }: Props) {
 
         {/* Confirm button */}
         {items.length > 0 && (
-          <div className="flex-shrink-0 px-4 pb-5 pt-2 border-t border-zinc-100">
+          <div className="flex-shrink-0 px-4 pb-5 pt-2" style={{ borderTop: `1px solid ${DS.border}` }}>
             {redemptionError && (
-              <div className="bg-red-100 border border-red-300 text-red-700 px-3 py-2 rounded text-sm mb-3">
+              <div className="px-3 py-2 rounded text-sm mb-3" style={{ backgroundColor: '#FEE2E2', color: '#B91C1C' }}>
                 {redemptionError}
               </div>
             )}
             {orderError && (
-              <div className="bg-red-100 border border-red-300 text-red-700 px-3 py-2 rounded text-sm mb-3">
+              <div className="px-3 py-2 rounded text-sm mb-3" style={{ backgroundColor: '#FEE2E2', color: '#B91C1C' }}>
                 {orderError}
               </div>
             )}
             <button
               onClick={handleConfirm}
               disabled={!isFormValid || shortfall > 0 || isSaving}
-              className={`w-full py-3.5 rounded-2xl font-bold text-sm text-white transition-opacity bg-accent flex items-center justify-center gap-2 ${
-                isFormValid && shortfall === 0 && !isSaving ? 'opacity-100' : 'opacity-60 cursor-not-allowed'
-              }`}
+              className="w-full py-3.5 rounded-xl font-bold text-sm text-white transition-all flex items-center justify-center gap-2"
+              style={{
+                backgroundColor: isFormValid && shortfall === 0 && !isSaving ? DS.primary : '#D1D5DB',
+                opacity: isFormValid && shortfall === 0 && !isSaving ? 1 : 0.6,
+                cursor: isFormValid && shortfall === 0 && !isSaving ? 'pointer' : 'not-allowed',
+              }}
             >
               {isSaving ? (
                 <>
@@ -392,11 +435,11 @@ export function CartModal({ tenant, onClose }: Props) {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  Guardando pedido...
+                  Guardando...
                 </>
               ) : shortfall > 0
-                ? `Te faltan ${formatPrice(shortfall)} para el mínimo`
-                : `Confirmar pedido · ${formatPrice(grandTotal)}`}
+                ? `Mínimo ${formatPrice(shortfall)}`
+                : `Confirmar · ${formatPrice(grandTotal)}`}
             </button>
           </div>
         )}

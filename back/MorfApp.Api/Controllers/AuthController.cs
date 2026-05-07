@@ -57,9 +57,6 @@ public class AuthController(IAppDbContext db, IConfiguration config) : Controlle
     [HttpPost("setup-password")]
     public async Task<IActionResult> SetupPassword([FromBody] SetupPasswordRequest req)
     {
-        if (string.IsNullOrWhiteSpace(req.Password) || req.Password.Length < 8)
-            return BadRequest(new { message = "La contraseña debe tener al menos 8 caracteres" });
-
         var setupToken = await db.SetupTokens
             .Include(s => s.AdminUser)
             .FirstOrDefaultAsync(s => s.Token == req.Token && !s.IsUsed);

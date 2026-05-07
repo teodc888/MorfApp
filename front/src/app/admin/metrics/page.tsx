@@ -16,6 +16,7 @@ import {
 } from 'recharts'
 import { getMetrics, type MetricsPeriod, type MetricsData } from '@/lib/admin-api'
 import { formatPrice } from '@/lib/utils'
+import { STITCH, stitchCardStyle } from '@/lib/stitch-theme'
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -45,13 +46,13 @@ function KpiCard({
   icon: string
 }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 flex flex-col gap-2">
+    <div className="rounded-xl p-5 flex flex-col gap-2" style={stitchCardStyle}>
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</span>
+        <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: STITCH.muted, fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{label}</span>
         <span className="text-2xl">{icon}</span>
       </div>
-      <p className="text-2xl font-bold text-gray-900 leading-tight">{value}</p>
-      {sub && <p className="text-xs text-gray-400">{sub}</p>}
+      <p className="text-2xl font-bold leading-tight" style={{ color: STITCH.text, fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{value}</p>
+      {sub && <p className="text-xs" style={{ color: STITCH.muted }}>{sub}</p>}
     </div>
   )
 }
@@ -66,7 +67,7 @@ function Skeleton({ className }: { className?: string }) {
 
 function KpiSkeleton() {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 flex flex-col gap-3">
+    <div className="rounded-xl p-5 flex flex-col gap-3" style={stitchCardStyle}>
       <div className="flex items-center justify-between">
         <Skeleton className="h-3 w-24" />
         <Skeleton className="h-7 w-7 rounded-full" />
@@ -79,7 +80,7 @@ function KpiSkeleton() {
 
 function ChartSkeleton({ height = 260 }: { height?: number }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
+    <div className="rounded-xl p-5" style={stitchCardStyle}>
       <Skeleton className="h-4 w-40 mb-4" />
       <div
         className="animate-pulse bg-gray-200 rounded-lg"
@@ -177,7 +178,7 @@ function RevenueChart({
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
+    <div className="rounded-xl p-5" style={stitchCardStyle}>
       <h3 className="text-sm font-semibold text-gray-700 mb-4">{periodLabels[period]}</h3>
       {data.length === 0 ? (
         <div className="flex items-center justify-center h-52 text-gray-400 text-sm">
@@ -229,7 +230,7 @@ function TopProductsChart({ data }: { data: MetricsData['topProducts'] }) {
   }))
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
+    <div className="rounded-xl p-5" style={stitchCardStyle}>
       <h3 className="text-sm font-semibold text-gray-700 mb-4">Top 5 productos</h3>
       {chartData.length === 0 ? (
         <div className="flex items-center justify-center h-52 text-gray-400 text-sm">
@@ -275,7 +276,7 @@ function HourlyChart({ data }: { data: MetricsData['ordersByHour'] }) {
   })
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
+    <div className="rounded-xl p-5" style={stitchCardStyle}>
       <h3 className="text-sm font-semibold text-gray-700 mb-4">Pedidos por hora (hoy)</h3>
       <ResponsiveContainer width="100%" height={220}>
         <BarChart data={filled} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
@@ -323,11 +324,11 @@ export default function MetricsPage() {
   })
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6 px-4 py-6" style={{ backgroundColor: STITCH.bg, minHeight: '100vh' }}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Métricas</h1>
+          <h1 className="text-2xl font-bold" style={{ color: STITCH.text, fontFamily: 'Plus Jakarta Sans, sans-serif' }}>Métricas</h1>
           <p className="text-sm text-gray-500 mt-1">
             Rendimiento y ventas de tu negocio
           </p>

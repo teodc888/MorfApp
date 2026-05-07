@@ -5,6 +5,7 @@ import Image from 'next/image'
 import type { Product, ModifierGroup, SelectedOption, CartItem } from '@/types/store'
 import { formatPrice } from '@/lib/utils'
 import { useCartStore } from '@/store/cart'
+import { STITCH } from '@/lib/stitch-theme'
 
 function generateId(): string {
   return crypto.randomUUID()
@@ -34,9 +35,9 @@ function ModifierGroupSection({
     return (
       <div className="mb-4">
         <div className="flex items-center gap-2 mb-2">
-          <h3 className="font-semibold text-zinc-800 text-sm">{group.name}</h3>
+            <h3 className="font-semibold text-sm" style={{ color: STITCH.text }}>{group.name}</h3>
           {group.isRequired && (
-            <span className="text-[10px] font-bold uppercase bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">
+            <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full" style={{ backgroundColor: '#FEE2E2', color: STITCH.primary }}>
               Obligatorio
             </span>
           )}
@@ -97,7 +98,7 @@ function ModifierGroupSection({
       <div className="flex items-center gap-2 mb-2">
         <h3 className="font-semibold text-zinc-800 text-sm">{group.name}</h3>
         {group.isRequired && (
-          <span className="text-[10px] font-bold uppercase bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">
+            <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full" style={{ backgroundColor: '#FEE2E2', color: STITCH.primary }}>
             Obligatorio
           </span>
         )}
@@ -220,19 +221,10 @@ export function ProductModal({ product, categoryEmoji, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
-      <div
-        className={`absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${
-          isClosing ? 'opacity-0' : 'opacity-100'
-        }`}
-        onClick={handleClose}
-      />
+      <div className={`absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${isClosing ? 'opacity-0' : 'opacity-100'}`} onClick={handleClose} />
 
-      <div
-        className={`relative bg-white rounded-t-2xl max-h-[90dvh] flex flex-col max-w-[520px] mx-auto w-full overflow-hidden transition-opacity duration-300 ${
-          isClosing ? 'animate-slide-down opacity-0' : 'animate-slide-up opacity-100'
-        }`}
-      >
-        <div className="flex-shrink-0 flex justify-between items-center px-4 pt-3 pb-1">
+      <div className={`relative max-h-[90dvh] flex flex-col max-w-[520px] mx-auto w-full overflow-hidden transition-opacity duration-300 ${isClosing ? 'animate-slide-down opacity-0' : 'animate-slide-up opacity-100'}`} style={{ backgroundColor: STITCH.surface, borderTopLeftRadius: STITCH.radiusLg, borderTopRightRadius: STITCH.radiusLg, boxShadow: STITCH.shadowLg }}>
+        <div className="flex-shrink-0 flex justify-between items-center px-4 pt-3 pb-1" style={{ borderBottom: `1px solid ${STITCH.border}` }}>
           <div className="w-10" />
           <button
             onClick={handleClose}
@@ -240,7 +232,8 @@ export function ProductModal({ product, categoryEmoji, onClose }: Props) {
             aria-label="Cerrar modal"
           >
             <svg
-              className="w-6 h-6 text-zinc-400 hover:text-zinc-600"
+              className="w-6 h-6 hover:text-zinc-600"
+              style={{ color: STITCH.muted }}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -270,25 +263,23 @@ export function ProductModal({ product, categoryEmoji, onClose }: Props) {
             )}
           </div>
 
-          <h2 className="text-xl font-bold text-zinc-900">{product.name}</h2>
-          {product.description && (
-            <p className="text-sm text-zinc-500 mt-1 mb-3">{product.description}</p>
-          )}
+          <h2 className="text-xl font-bold" style={{ color: STITCH.text }}>{product.name}</h2>
+          {product.description && <p className="text-sm mt-1 mb-3" style={{ color: STITCH.muted }}>{product.description}</p>}
           <div className="flex items-center gap-2 mb-4">
             {product.discountPercent && product.finalPrice ? (
               <>
-                <span className="line-through text-sm text-zinc-400">
+                <span className="line-through text-sm" style={{ color: '#9CA3AF' }}>
                   {formatPrice(product.price)}
                 </span>
-                <p className="font-bold text-lg text-primary">
+                <p className="font-bold text-lg" style={{ color: STITCH.primary }}>
                   {formatPrice(product.finalPrice)}
                 </p>
-                <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-full">
+                <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ backgroundColor: '#FED7AA', color: STITCH.tertiary }}>
                   -{product.discountPercent}%
                 </span>
               </>
             ) : (
-              <p className="font-bold text-lg text-primary">
+                <p className="font-bold text-lg" style={{ color: STITCH.primary }}>
                 {formatPrice(product.price)}
               </p>
             )}
@@ -305,31 +296,34 @@ export function ProductModal({ product, categoryEmoji, onClose }: Props) {
 
           <div className="mt-2 mb-3">
             <div className="flex items-center justify-between mb-1.5">
-              <h3 className="font-semibold text-zinc-800 text-sm">Observaciones</h3>
-              <span className="text-xs text-zinc-400">{observations.length} / 150</span>
+              <h3 className="font-semibold text-sm" style={{ color: STITCH.text }}>Observaciones</h3>
+              <span className="text-xs" style={{ color: STITCH.muted }}>{observations.length} / 150</span>
             </div>
             <textarea
               value={observations}
               onChange={(e) => setObservations(e.target.value.slice(0, 150))}
               rows={2}
               placeholder="Si querés, agregá una aclaración para tu pedido..."
-              className="w-full px-3 py-2.5 text-sm rounded-lg border border-zinc-200 bg-zinc-50 outline-none focus:border-primary focus:bg-white resize-none transition-colors"
+              className="w-full px-3 py-2.5 text-sm rounded-lg border outline-none focus:bg-white resize-none transition-colors"
+              style={{ borderColor: STITCH.border, backgroundColor: '#FAF9F6', color: STITCH.text }}
             />
           </div>
         </div>
 
-        <div className="flex-shrink-0 border-t border-zinc-100 px-4 py-3 flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-zinc-100 rounded-full px-2 py-1">
+        <div className="flex-shrink-0 px-4 py-3 flex items-center gap-3" style={{ borderTop: `1px solid ${STITCH.border}` }}>
+          <div className="flex items-center gap-2 rounded-full px-2 py-1" style={{ backgroundColor: '#F4F2FD' }}>
             <button
               onClick={() => setQty((q) => Math.max(1, q - 1))}
-              className="w-7 h-7 rounded-full bg-white shadow-sm text-zinc-700 font-bold text-lg flex items-center justify-center"
+              className="w-7 h-7 rounded-full shadow-sm font-bold text-lg flex items-center justify-center"
+              style={{ backgroundColor: STITCH.surface, color: STITCH.text }}
             >
               −
             </button>
             <span className="w-5 text-center font-semibold text-sm">{qty}</span>
             <button
               onClick={() => setQty((q) => q + 1)}
-              className="w-7 h-7 rounded-full bg-white shadow-sm text-zinc-700 font-bold text-lg flex items-center justify-center"
+              className="w-7 h-7 rounded-full shadow-sm font-bold text-lg flex items-center justify-center"
+              style={{ backgroundColor: STITCH.surface, color: STITCH.text }}
             >
               +
             </button>
@@ -338,9 +332,10 @@ export function ProductModal({ product, categoryEmoji, onClose }: Props) {
           <button
             onClick={handleAdd}
             disabled={!isValid}
-            className={`flex-1 py-3 rounded-full font-bold text-sm text-white transition-opacity bg-primary ${
+            className={`flex-1 py-3 rounded-full font-bold text-sm text-white transition-opacity ${
               isValid ? 'opacity-100' : 'opacity-50 cursor-not-allowed'
             }`}
+            style={{ backgroundColor: STITCH.primary }}
           >
             Agregar · {formatPrice(subtotal)}
           </button>

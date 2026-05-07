@@ -1,3 +1,8 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace MorfApp.Application.DTOs.Auth;
 
-public record LoginRequest(string Email, string Password);
+public record LoginRequest(
+    [Required, EmailAddress, MaxLength(200)] string Email,
+    [Required, MinLength(6), MaxLength(128)] string Password
+);

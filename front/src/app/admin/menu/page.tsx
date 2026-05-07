@@ -13,9 +13,12 @@ import {
   getModifierGroups,
   updateProductModifierGroups,
   updateProductDiscount,
+  getSupplies,
+  getProductSupplies,
+  updateProductSupplies,
   type ModifierGroupAdmin,
 } from '@/lib/admin-api'
-import type { Category, Product } from '@/types/store'
+import type { Category, Product, SupplyDto, ProductSupplyDto } from '@/types/store'
 
 type CategoryAdmin = Category & { isActive: boolean }
 type ProductAdmin = Product & { categoryId: string; sortOrder: number; isActive: boolean; discountPercent?: number | null }
@@ -49,6 +52,7 @@ const EMPTY_PROD: ProductForm = {
 export default function MenuPage() {
   const [categories, setCategories] = useState<CategoryAdmin[]>([])
   const [availableGroups, setAvailableGroups] = useState<ModifierGroupAdmin[]>([])
+  const [availableSupplies, setAvailableSupplies] = useState<SupplyDto[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -76,6 +80,11 @@ export default function MenuPage() {
   const [discountInput, setDiscountInput] = useState('')
   const [discountSaving, setDiscountSaving] = useState(false)
 
+  const [productSupplies, setProductSupplies] = useState<ProductSupplyDto[]>([])
+  const [selectedSupplyIds, setSelectedSupplyIds] = useState<string[]>([])
+  const [supplyQuantities, setSupplyQuantities] = useState<Record<string, string>>({})
+  const [supplyUnknownQty, setSupplyUnknownQty] = useState<Record<string, boolean>>({})
+
   useEffect(() => {
     if (!openMenuId) return
     const handler = (e: MouseEvent) => {
@@ -90,9 +99,10 @@ export default function MenuPage() {
   const load = useCallback(async () => {
     try {
       setError(null)
-      const [data, groups] = await Promise.all([getAdminCategories(), getModifierGroups()])
+      const [data, groups, supplies] = await Promise.all([getAdminCategories(), getModifierGroups(), getSupplies()])
       setCategories(data as CategoryAdmin[])
       setAvailableGroups(groups)
+      setAvailableSupplies(supplies)
     } catch {
       setError('No se pudieron cargar las categorías')
     } finally {
@@ -149,10 +159,14 @@ export default function MenuPage() {
     const nextOrder = cat ? cat.products.length : 0
     setProdForm({ ...EMPTY_PROD, categoryId, sortOrder: nextOrder })
     setSelectedGroupIds([])
+    setProductSupplies([])
+    setSelectedSupplyIds([])
+    setSupplyQuantities({})
+    setSupplyUnknownQty({})
     setProdModal({ open: true, editing: null, defaultCategoryId: categoryId })
   }
 
-  function openEditProd(prod: ProductAdmin) {
+  async function openEditProd(prod: ProductAdmin) {
     setProdForm({
       categoryId: prod.categoryId,
       name: prod.name,
@@ -164,7 +178,27 @@ export default function MenuPage() {
       isActive: prod.isActive,
     })
     setSelectedGroupIds((prod as ProductAdmin & { modifierGroupIds?: string[] }).modifierGroupIds ?? [])
+    setProductSupplies([])
+    setSelectedSupplyIds([])
+    setSupplyQuantities({})
+    setSupplyUnknownQty({})
     setProdModal({ open: true, editing: prod, defaultCategoryId: prod.categoryId })
+    try {
+      const existingSupplies = await getProductSupplies(prod.id)
+      setProductSupplies(existingSupplies)
+      const ids = existingSupplies.map((s) => s.supplyId)
+      const quantities: Record<string, string> = {}
+      const unknownQty: Record<string, boolean> = {}
+      for (const s of existingSupplies) {
+        quantities[s.supplyId] = String(s.quantityRequired)
+        unknownQty[s.supplyId] = s.isUnknownQuantity
+      }
+      setSelectedSupplyIds(ids)
+      setSupplyQuantities(quantities)
+      setSupplyUnknownQty(unknownQty)
+    } catch {
+      // Si falla la carga de ingredientes no bloqueamos el modal
+    }
   }
 
   async function saveProd() {
@@ -181,12 +215,19 @@ export default function MenuPage() {
         isActive: prodForm.isActive,
         tags: [],
       }
+      const suppliesPayload = selectedSupplyIds.map((id) => ({
+        supplyId: id,
+        quantityRequired: supplyUnknownQty[id] ? 0 : (parseFloat(supplyQuantities[id]) || 0),
+        isUnknownQuantity: supplyUnknownQty[id] ?? false,
+      }))
       if (prodModal.editing) {
         await updateProduct(prodModal.editing.id, body)
         await updateProductModifierGroups(prodModal.editing.id, selectedGroupIds)
+        await updateProductSupplies(prodModal.editing.id, suppliesPayload)
       } else {
         const created = await createProduct(body)
         await updateProductModifierGroups(created.id, selectedGroupIds)
+        await updateProductSupplies(created.id, suppliesPayload)
       }
       setProdModal({ open: false, editing: null, defaultCategoryId: '' })
       await load()
@@ -254,6 +295,11 @@ export default function MenuPage() {
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    if (file.size > 5 * 1024 * 1024) {
+      setError('La imagen no puede superar los 5 MB')
+      e.target.value = ''
+      return
+    }
     setUploading(true)
     try {
       const url = await uploadImage(file)
@@ -551,6 +597,7 @@ export default function MenuPage() {
                   <input
                     type="number"
                     step="0.01"
+                    min="0"
                     value={prodForm.price}
                     onChange={(e) => setProdForm((f) => ({ ...f, price: e.target.value }))}
                     className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
@@ -649,6 +696,62 @@ export default function MenuPage() {
                 />
                 <span className="text-sm text-gray-700">Producto activo</span>
               </label>
+
+              {availableSupplies.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Ingredientes del producto
+                  </label>
+                  <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-2">
+                    {availableSupplies.map((supply) => {
+                      const isSelected = selectedSupplyIds.includes(supply.id)
+                      const isUnknown = supplyUnknownQty[supply.id] ?? false
+                      return (
+                        <div key={supply.id} className="flex items-center gap-2 px-1 py-0.5">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) => {
+                              setSelectedSupplyIds((prev) =>
+                                e.target.checked
+                                  ? [...prev, supply.id]
+                                  : prev.filter((id) => id !== supply.id)
+                              )
+                            }}
+                            className="w-4 h-4 accent-orange-600 flex-shrink-0"
+                          />
+                          <span className="text-sm text-gray-800 flex-1 min-w-0 truncate">
+                            {supply.name}{supply.unit ? ` (${supply.unit})` : ''}
+                          </span>
+                          {isSelected && (
+                            <>
+                              <input
+                                type="number"
+                                step="0.001"
+                                min="0"
+                                value={isUnknown ? '' : (supplyQuantities[supply.id] ?? '')}
+                                onChange={(e) => setSupplyQuantities((prev) => ({ ...prev, [supply.id]: e.target.value }))}
+                                disabled={isUnknown}
+                                className="w-20 px-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:bg-gray-100"
+                                placeholder="Cant."
+                              />
+                              <label className="flex items-center gap-1 flex-shrink-0 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={isUnknown}
+                                  onChange={(e) => setSupplyUnknownQty((prev) => ({ ...prev, [supply.id]: e.target.checked }))}
+                                  className="w-3.5 h-3.5 accent-orange-600"
+                                />
+                                <span className="text-xs text-gray-500">?</span>
+                              </label>
+                            </>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3 pt-2">

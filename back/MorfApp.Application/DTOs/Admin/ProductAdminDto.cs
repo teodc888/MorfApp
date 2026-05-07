@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace MorfApp.Application.DTOs.Admin;
 
 public record ProductAdminDto(
@@ -16,11 +18,11 @@ public record ProductAdminDto(
 );
 
 public record CreateProductRequest(
-    string CategoryId,
-    string Name,
-    string? Description,
-    decimal Price,
-    string Emoji,
+    [property: Required] string CategoryId,
+    [property: Required, MinLength(1), MaxLength(200)] string Name,
+    [property: MaxLength(1000)] string? Description,
+    [property: Range(0, 9999999)] decimal Price,
+    [property: MaxLength(10)] string Emoji,
     string? ImageUrl,
     int SortOrder,
     bool IsActive,
@@ -28,15 +30,17 @@ public record CreateProductRequest(
 );
 
 public record UpdateProductRequest(
-    string CategoryId,
-    string Name,
-    string? Description,
-    decimal Price,
-    string Emoji,
+    [property: Required] string CategoryId,
+    [property: Required, MinLength(1), MaxLength(200)] string Name,
+    [property: MaxLength(1000)] string? Description,
+    [property: Range(0, 9999999)] decimal Price,
+    [property: MaxLength(10)] string Emoji,
     string? ImageUrl,
     int SortOrder,
     bool IsActive,
     List<string> Tags
 );
 
-public record UpdateProductDiscountRequest(int? DiscountPercent);
+public record UpdateProductDiscountRequest(
+    [property: Range(0, 100)] int? DiscountPercent
+);

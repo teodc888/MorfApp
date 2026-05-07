@@ -8,6 +8,7 @@ import { CartModal } from './CartModal'
 import { CategorySidebar } from './CategorySidebar'
 import { CategoryTabs } from './CategoryTabs'
 import { DeliveryChips } from './DeliveryChips'
+import { STITCH } from '@/lib/stitch-theme'
 
 type Props = {
   tenant: TenantPublic
@@ -19,7 +20,7 @@ export function StoreShell({ tenant, categories, children }: Props) {
   const [cartOpen, setCartOpen] = useState(false)
 
   return (
-    <div className="flex flex-col min-h-screen bg-zinc-50">
+    <div className="flex flex-col min-h-screen" style={{ backgroundColor: STITCH.bg }}>
       <MenuHeader tenant={tenant} onCartOpen={() => setCartOpen(true)} />
 
       {/* Mobile category pills — sticky within the page, not wrapped in a fixed-height div */}

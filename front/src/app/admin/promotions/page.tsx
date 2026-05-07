@@ -197,6 +197,11 @@ export default function PromotionsPage() {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.currentTarget.files?.[0]
     if (!file) return
+    if (file.size > 5 * 1024 * 1024) {
+      setError('La imagen no puede superar los 5 MB')
+      e.currentTarget.value = ''
+      return
+    }
     setUploading(true)
     try {
       const url = await uploadImage(file)

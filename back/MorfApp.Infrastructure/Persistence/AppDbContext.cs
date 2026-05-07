@@ -26,6 +26,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<SuperAdminSettings> SuperAdminSettings => Set<SuperAdminSettings>();
     public DbSet<SetupToken> SetupTokens => Set<SetupToken>();
+    public DbSet<Supplier> Suppliers => Set<Supplier>();
+    public DbSet<Supply> Supplies => Set<Supply>();
+    public DbSet<SupplyPurchase> SupplyPurchases => Set<SupplyPurchase>();
+    public DbSet<SupplierPayment> SupplierPayments => Set<SupplierPayment>();
+    public DbSet<SupplierPaymentAllocation> SupplierPaymentAllocations => Set<SupplierPaymentAllocation>();
+    public DbSet<ProductSupply> ProductSupplies => Set<ProductSupply>();
+    public DbSet<InventoryMovement> InventoryMovements => Set<InventoryMovement>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -158,7 +165,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<AdminUser>(e =>
         {
             e.HasKey(u => u.Id);
-            e.HasIndex(u => u.Email).IsUnique();
+            e.HasIndex(u => new { u.TenantId, u.Email }).IsUnique();
             e.HasOne(u => u.Tenant)
              .WithMany(t => t.AdminUsers)
              .HasForeignKey(u => u.TenantId)
@@ -241,6 +248,60 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
              .WithMany()
              .HasForeignKey(s => s.AdminUserId)
              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Supplier
+        modelBuilder.Entity<Supplier>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.Property(s => s.TotalDebt).HasPrecision(18, 2);
+        });
+
+        // Supply
+        modelBuilder.Entity<Supply>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.Property(s => s.CurrentStock).HasPrecision(18, 4);
+        });
+
+        // SupplyPurchase
+        modelBuilder.Entity<SupplyPurchase>(e =>
+        {
+            e.HasKey(sp => sp.Id);
+            e.Property(sp => sp.QuantityPurchased).HasPrecision(18, 4);
+            e.Property(sp => sp.TotalPrice).HasPrecision(18, 2);
+            e.Property(sp => sp.PricePerUnit).HasPrecision(18, 4);
+        });
+
+        // SupplierPayment
+        modelBuilder.Entity<SupplierPayment>(e =>
+        {
+            e.HasKey(sp => sp.Id);
+            e.Property(sp => sp.Amount).HasPrecision(18, 2);
+            e.HasIndex(sp => new { sp.TenantId, sp.SupplierId, sp.PaidAt });
+        });
+
+        // SupplierPaymentAllocation
+        modelBuilder.Entity<SupplierPaymentAllocation>(e =>
+        {
+            e.HasKey(a => a.Id);
+            e.Property(a => a.Amount).HasPrecision(18, 2);
+            e.HasIndex(a => new { a.TenantId, a.SupplyPurchaseId });
+            e.HasIndex(a => a.SupplierPaymentId);
+        });
+
+        // ProductSupply
+        modelBuilder.Entity<ProductSupply>(e =>
+        {
+            e.HasKey(ps => ps.Id);
+            e.Property(ps => ps.QuantityRequired).HasPrecision(18, 4);
+        });
+
+        // InventoryMovement
+        modelBuilder.Entity<InventoryMovement>(e =>
+        {
+            e.HasKey(im => im.Id);
+            e.Property(im => im.QuantityChange).HasPrecision(18, 4);
         });
 
         // Order - Items serialized with PropertyNameCaseInsensitive for compatibility

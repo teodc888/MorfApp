@@ -1,8 +1,10 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace MorfApp.Application.DTOs.SuperAdmin;
 
 public record UpdateTenantSuperAdminRequest(
-    string? OwnerName,
-    string? OwnerPhone,
+    [property: MinLength(2), MaxLength(200)] string? OwnerName,
+    [property: MaxLength(50)] string? OwnerPhone,
     DateTime? SubscriptionEndsAt,
-    string? Name
+    [property: MinLength(2), MaxLength(200)] string? Name
 );
