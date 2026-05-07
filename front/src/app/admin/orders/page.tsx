@@ -343,22 +343,6 @@ export default function OrdersPage() {
       </div>
 
       {/* Filtro por status */}
-<<<<<<< HEAD
-      <div className="flex gap-2 border-b border-[#E5E7EB] overflow-x-auto">
-        {STATUS_TABS.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setStatusFilter(tab)}
-            className={`pb-2.5 px-1 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
-              statusFilter === tab
-                ? 'border-[#EF4444] text-[#EF4444]'
-                : 'border-transparent text-[#584237] hover:text-[#1A1B22]'
-            }`}
-          >
-            {TAB_LABELS[tab]}
-          </button>
-        ))}
-=======
       <div className="flex gap-2 border-b border-gray-200 overflow-x-auto">
         <button
           onClick={() => {
@@ -388,7 +372,6 @@ export default function OrdersPage() {
         >
           Historial
         </button>
->>>>>>> master
       </div>
 
       {/* Filtros y búsqueda solo en historial */}

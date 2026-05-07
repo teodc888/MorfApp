@@ -8,12 +8,12 @@ public record UpdateTenantRequest(
 );
 
 public record UpdateBrandingRequest(
-    [property: Required, RegularExpression(@"^#[0-9A-Fa-f]{6}$", ErrorMessage = "ColorPrimary debe ser un color hex válido (#RRGGBB)")] string ColorPrimary,
-    [property: Required, RegularExpression(@"^#[0-9A-Fa-f]{6}$", ErrorMessage = "ColorAccent debe ser un color hex válido (#RRGGBB)")] string ColorAccent,
+    [Required, RegularExpression(@"^#[0-9A-Fa-f]{6}$", ErrorMessage = "ColorPrimary debe ser un color hex válido (#RRGGBB)")] string ColorPrimary,
+    [Required, RegularExpression(@"^#[0-9A-Fa-f]{6}$", ErrorMessage = "ColorAccent debe ser un color hex válido (#RRGGBB)")] string ColorAccent,
     string? LogoUrl,
     string? BannerUrl,
-    [property: MaxLength(200)] string? Tagline,
-    [property: MaxLength(10)] string EmojiIcon
+    [MaxLength(200)] string? Tagline,
+    [MaxLength(10)] string EmojiIcon
 );
 
 public record UpdateDeliveryRequest(
