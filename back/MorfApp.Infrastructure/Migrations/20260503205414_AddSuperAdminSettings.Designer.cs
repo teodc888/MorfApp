@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MorfApp.Infrastructure.Persistence;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MorfApp.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260503205414_AddSuperAdminSettings")]
+    partial class AddSuperAdminSettings
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -693,47 +696,6 @@ namespace MorfApp.Infrastructure.Migrations
                     b.ToTable("refresh_tokens", (string)null);
                 });
 
-            modelBuilder.Entity("MorfApp.Domain.Entities.SetupToken", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("text")
-                        .HasColumnName("id");
-
-                    b.Property<string>("AdminUserId")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("admin_user_id");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("expires_at");
-
-                    b.Property<bool>("IsUsed")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_used");
-
-                    b.Property<string>("Token")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("token");
-
-                    b.HasKey("Id")
-                        .HasName("pk_setup_tokens");
-
-                    b.HasIndex("AdminUserId")
-                        .HasDatabaseName("ix_setup_tokens_admin_user_id");
-
-                    b.HasIndex("Token")
-                        .IsUnique()
-                        .HasDatabaseName("ix_setup_tokens_token");
-
-                    b.ToTable("setup_tokens", (string)null);
-                });
-
             modelBuilder.Entity("MorfApp.Domain.Entities.SuperAdminSettings", b =>
                 {
                     b.Property<string>("Id")
@@ -778,10 +740,6 @@ namespace MorfApp.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("name");
-
-                    b.Property<string>("OwnerEmail")
-                        .HasColumnType("text")
-                        .HasColumnName("owner_email");
 
                     b.Property<string>("OwnerName")
                         .IsRequired()
@@ -1098,18 +1056,6 @@ namespace MorfApp.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_refresh_tokens_admin_users_admin_user_id");
-
-                    b.Navigation("AdminUser");
-                });
-
-            modelBuilder.Entity("MorfApp.Domain.Entities.SetupToken", b =>
-                {
-                    b.HasOne("MorfApp.Domain.Entities.AdminUser", "AdminUser")
-                        .WithMany()
-                        .HasForeignKey("AdminUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_setup_tokens_admin_users_admin_user_id");
 
                     b.Navigation("AdminUser");
                 });
