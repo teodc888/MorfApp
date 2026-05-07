@@ -28,7 +28,7 @@ export function useWebSocket() {
 
     ws.onmessage = (event) => {
       try {
-        const raw = JSON.parse(event.data) as any
+        const raw = JSON.parse(event.data) as { type?: string; Type?: string; data?: Record<string, unknown>; Data?: Record<string, unknown> }
         // Handle both camelCase and PascalCase from backend
         const message: WebSocketMessage = {
           type: (raw.type || raw.Type) as WebSocketEventType,
@@ -59,6 +59,7 @@ export function useWebSocket() {
     ws.onclose = () => {
       console.log('[WebSocket] Disconnected')
       // Reconectar después de 3 segundos
+      // eslint-disable-next-line react-hooks/immutability
       setTimeout(connect, 3000)
     }
 

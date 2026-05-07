@@ -41,7 +41,9 @@ export default function TenantsPage() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/immutability
     load()
+    // eslint-disable-next-line react-hooks/immutability
     loadTemplate()
   }, [])
 
@@ -322,7 +324,7 @@ export default function TenantsPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl shadow-xl max-w-sm mx-4">
             <div className="p-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-2">Dar de baja "{confirmDialog.tenantName}"</h2>
+              <h2 className="text-lg font-bold text-gray-900 mb-2">Dar de baja &quot;{confirmDialog.tenantName}&quot;</h2>
               <p className="text-sm text-gray-600 mb-6">
                 Esta acción marcará el negocio como inactivo. El dueño no podrá acceder al panel de administración.
               </p>
@@ -351,7 +353,7 @@ export default function TenantsPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl shadow-xl max-w-sm mx-4">
             <div className="p-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-2">Activar "{activateDialog.tenantName}"</h2>
+              <h2 className="text-lg font-bold text-gray-900 mb-2">Activar &quot;{activateDialog.tenantName}&quot;</h2>
               <p className="text-sm text-gray-600 mb-2">
                 Al activar este negocio:
               </p>

@@ -109,7 +109,7 @@ export default function EditTenantPage() {
         >
           ← Volver
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">Editar "{tenant.name}"</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Editar &quot;{tenant.name}&quot;</h1>
         <p className="text-sm text-gray-500 mt-1">Slug: {tenant.slug}</p>
       </div>
 

@@ -303,7 +303,7 @@ export function PromoModal({ promo, onClose }: Props) {
                     }
                     acc[product.id].count++
                     return acc
-                  }, {} as Record<string, any>)
+                  }, {} as Record<string, typeof promo.products[0] & { count: number }>)
                 ).map((product) => (
                   <div key={product.id} className="text-xs text-zinc-600">
                     {product.emoji} {product.name} — {formatPrice(product.price)}{product.count > 1 ? ` x${product.count}` : ''}

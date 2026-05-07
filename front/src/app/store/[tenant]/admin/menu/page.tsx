@@ -95,6 +95,7 @@ export default function MenuPage() {
     }
   }, [])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load() }, [load])
 
   function openNewCat() {

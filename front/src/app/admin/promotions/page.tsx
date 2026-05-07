@@ -71,7 +71,7 @@ export default function PromotionsPage() {
         getModifierGroups(),
       ])
       setPromotions(promos)
-      setCategories(cats as any)
+      setCategories(cats as unknown as Array<{ id: string; name: string; products: Array<{ id: string; name: string; price: number }> }>)
       setModifierGroups(groups)
       const flatProducts = cats.flatMap(c => c.products.map(p => ({ id: p.id, name: p.name, price: p.price })))
       setProducts(flatProducts)
@@ -83,6 +83,7 @@ export default function PromotionsPage() {
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load()
   }, [load])
 

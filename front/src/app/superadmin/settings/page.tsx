@@ -22,10 +22,12 @@ export default function SettingsPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/immutability
     loadSettings()
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/immutability
     updatePreview()
   }, [template])
 

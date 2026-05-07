@@ -684,7 +684,7 @@ export default function ProveedoresPage() {
               ⚠️ ¿Eliminar proveedor?
             </h2>
             <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--muted)', lineHeight: 1.4 }}>
-              Estás a punto de eliminar <strong style={{ color: 'var(--text)' }}>"{confirmDialog.name}"</strong>. Esta acción no se puede deshacer.
+              Estás a punto de eliminar <strong style={{ color: 'var(--text)' }}>&quot;{confirmDialog.name}&quot;</strong>. Esta acción no se puede deshacer.
             </p>
             <div style={{ display: 'flex', gap: 12 }}>
               <button
