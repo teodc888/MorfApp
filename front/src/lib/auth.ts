@@ -35,3 +35,14 @@ export function getTenantFromToken(): string | null {
     return null
   }
 }
+
+export function isSuperadmin(): boolean {
+  const token = getAccessToken()
+  if (!token) return false
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return payload.is_superadmin === 'true' || payload.is_superadmin === true
+  } catch {
+    return false
+  }
+}

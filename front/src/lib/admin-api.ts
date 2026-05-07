@@ -1,5 +1,5 @@
 import { getAccessToken, getRefreshToken, saveTokens, clearTokens } from '@/lib/auth'
-import type { TenantAdmin, TenantBranding, DeliveryConfig, PaymentConfig, BusinessHour, Category, Product } from '@/types/store'
+import type { TenantAdmin, TenantBranding, PaymentConfig, BusinessHour, Category, Product, SupplierDto, SupplierDebtDetailDto, SupplierPaymentDto, SupplyDto, SupplyPurchaseDto, ProductSupplyDto, InventoryMovementDto } from '@/types/store'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5500'
 
@@ -80,10 +80,16 @@ export async function adminFetch(path: string, options: RequestInit = {}): Promi
   }
 
   isRefreshing = true
-  const newToken = await attemptRefresh()
-  isRefreshing = false
-  refreshQueue.forEach((cb) => cb(newToken))
-  refreshQueue = []
+  let newToken: string | null = null
+  try {
+    newToken = await attemptRefresh()
+  } catch {
+    clearTokens()
+  } finally {
+    isRefreshing = false
+    refreshQueue.forEach((cb) => cb(newToken))
+    refreshQueue = []
+  }
 
   if (!newToken) {
     if (typeof window !== 'undefined') {
@@ -414,6 +420,111 @@ export async function updatePromotionModifierGroups(id: string, modifierGroupIds
 
 export async function deletePromotion(id: string): Promise<void> {
   const res = await adminFetch(`/api/admin/promotions/${id}`, { method: 'DELETE' })
+  return assertOk(res)
+}
+
+// ── Proveedores ──────────────────────────────────────────────────────────
+
+export async function getSuppliers(): Promise<SupplierDto[]> {
+  const res = await adminFetch('/api/admin/suppliers')
+  return parseJson<SupplierDto[]>(res)
+}
+
+export async function createSupplier(data: { name: string; phone?: string; address?: string; notes?: string }): Promise<SupplierDto> {
+  const res = await adminFetch('/api/admin/suppliers', { method: 'POST', body: JSON.stringify(data) })
+  return parseJson<SupplierDto>(res)
+}
+
+export async function updateSupplier(id: string, data: { name: string; phone?: string; address?: string; notes?: string }): Promise<SupplierDto> {
+  const res = await adminFetch(`/api/admin/suppliers/${id}`, { method: 'PUT', body: JSON.stringify(data) })
+  return parseJson<SupplierDto>(res)
+}
+
+export async function deleteSupplier(id: string): Promise<void> {
+  const res = await adminFetch(`/api/admin/suppliers/${id}`, { method: 'DELETE' })
+  return assertOk(res)
+}
+
+export async function getSupplierDebtDetail(id: string): Promise<SupplierDebtDetailDto> {
+  const res = await adminFetch(`/api/admin/suppliers/${id}/debt-detail`)
+  return parseJson<SupplierDebtDetailDto>(res)
+}
+
+export async function getSupplierPayments(id: string): Promise<SupplierPaymentDto[]> {
+  const res = await adminFetch(`/api/admin/suppliers/${id}/payments`)
+  return parseJson<SupplierPaymentDto[]>(res)
+}
+
+export async function paySupplierPurchasePartial(id: string, purchaseId: string, data: { amount: number; notes?: string }): Promise<SupplierDebtDetailDto> {
+  const res = await adminFetch(`/api/admin/suppliers/${id}/purchases/${purchaseId}/pay-partial`, { method: 'POST', body: JSON.stringify(data) })
+  return parseJson<SupplierDebtDetailDto>(res)
+}
+
+export async function paySupplierPurchaseFull(id: string, purchaseId: string): Promise<SupplierDebtDetailDto> {
+  const res = await adminFetch(`/api/admin/suppliers/${id}/purchases/${purchaseId}/pay-full`, { method: 'POST' })
+  return parseJson<SupplierDebtDetailDto>(res)
+}
+
+export async function paySupplierAllDebt(id: string): Promise<SupplierDebtDetailDto> {
+  const res = await adminFetch(`/api/admin/suppliers/${id}/pay-all`, { method: 'POST' })
+  return parseJson<SupplierDebtDetailDto>(res)
+}
+
+// ── Insumos ──────────────────────────────────────────────────────────
+
+export async function getSupplies(): Promise<SupplyDto[]> {
+  const res = await adminFetch('/api/admin/supplies')
+  return parseJson<SupplyDto[]>(res)
+}
+
+export async function createSupply(data: { name: string; unit?: string; supplierId?: string }): Promise<SupplyDto> {
+  const res = await adminFetch('/api/admin/supplies', { method: 'POST', body: JSON.stringify(data) })
+  return parseJson<SupplyDto>(res)
+}
+
+export async function updateSupply(id: string, data: { name: string; unit?: string; supplierId?: string }): Promise<SupplyDto> {
+  const res = await adminFetch(`/api/admin/supplies/${id}`, { method: 'PUT', body: JSON.stringify(data) })
+  return parseJson<SupplyDto>(res)
+}
+
+export async function deleteSupply(id: string): Promise<void> {
+  const res = await adminFetch(`/api/admin/supplies/${id}`, { method: 'DELETE' })
+  return assertOk(res)
+}
+
+export async function resetSupplyStock(id: string): Promise<void> {
+  const res = await adminFetch(`/api/admin/supplies/${id}/reset`, { method: 'POST' })
+  return assertOk(res)
+}
+
+// ── Compras ──────────────────────────────────────────────────────────
+
+export async function getSupplyPurchases(): Promise<SupplyPurchaseDto[]> {
+  const res = await adminFetch('/api/admin/supplies/purchases')
+  return parseJson<SupplyPurchaseDto[]>(res)
+}
+
+export async function createSupplyPurchase(data: { supplyId: string; supplierId: string; quantityPurchased: number; totalPrice: number; notes?: string }): Promise<SupplyPurchaseDto> {
+  const res = await adminFetch('/api/admin/supplies/purchases', { method: 'POST', body: JSON.stringify(data) })
+  return parseJson<SupplyPurchaseDto>(res)
+}
+
+// ── Movimientos ──────────────────────────────────────────────────────────
+
+export async function getSupplyMovements(supplyId: string): Promise<InventoryMovementDto[]> {
+  const res = await adminFetch(`/api/admin/supplies/${supplyId}/movements`)
+  return parseJson<InventoryMovementDto[]>(res)
+}
+
+// ── Ingredientes de productos ──────────────────────────────────────────────────────────
+
+export async function getProductSupplies(productId: string): Promise<ProductSupplyDto[]> {
+  const res = await adminFetch(`/api/admin/products/${productId}/supplies`)
+  return parseJson<ProductSupplyDto[]>(res)
+}
+
+export async function updateProductSupplies(productId: string, supplies: Array<{ supplyId: string; quantityRequired: number; isUnknownQuantity: boolean }>): Promise<void> {
+  const res = await adminFetch(`/api/admin/products/${productId}/supplies`, { method: 'PUT', body: JSON.stringify({ supplies }) })
   return assertOk(res)
 }
 

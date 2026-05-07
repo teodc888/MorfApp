@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { login } from '@/lib/admin-api'
-import { saveTokens, isAuthenticated } from '@/lib/auth'
+import { saveTokens, isAuthenticated, isSuperadmin } from '@/lib/auth'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -15,7 +15,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated()) {
-      router.replace(`${base}/menu`)
+      router.replace(isSuperadmin() ? '/superadmin/tenants' : `${base}/menu`)
     }
   }, [base, router])
 
@@ -27,7 +27,7 @@ export default function LoginPage() {
     try {
       const data = await login(email, password)
       saveTokens(data.accessToken, data.refreshToken)
-      router.replace(`${base}/menu`)
+      router.replace(isSuperadmin() ? '/superadmin/tenants' : `${base}/menu`)
     } catch {
       setError('Email o contraseña incorrectos')
     } finally {
@@ -68,6 +68,7 @@ export default function LoginPage() {
               id="password"
               type="password"
               required
+              minLength={8}
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

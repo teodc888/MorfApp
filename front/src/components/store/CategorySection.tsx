@@ -1,5 +1,6 @@
 import type { Category } from '@/types/store'
 import { ProductCardClient } from './ProductCardClient'
+import { STITCH } from '@/lib/stitch-theme'
 
 type Props = {
   category: Category
@@ -8,7 +9,7 @@ type Props = {
 export function CategorySection({ category }: Props) {
   return (
     <section id={`category-${category.id}`} className="scroll-mt-32 mb-10">
-      <h2 className="flex items-center gap-2 text-lg font-bold mb-4 pb-3 border-b border-zinc-200 text-zinc-900">
+      <h2 className="flex items-center gap-2 text-lg font-bold mb-4 pb-3" style={{ borderBottom: `1px solid ${STITCH.border}`, color: STITCH.text }}>
         <span>{category.emoji}</span>
         <span>{category.name}</span>
       </h2>

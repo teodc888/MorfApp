@@ -18,6 +18,11 @@ publish-linux/
 publish/
 back/32
 
+# .NET secrets (environment-specific config)
+appsettings.Development.json
+appsettings.Production.json
+appsettings.Staging.json
+
 # Env files (secrets)
 .env
 .env.local

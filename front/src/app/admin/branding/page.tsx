@@ -13,7 +13,7 @@ type FormState = {
 }
 
 const DEFAULTS: FormState = {
-  colorPrimary: '#e8390e',
+  colorPrimary: '#F97316',
   colorAccent: '#25d366',
   logoUrl: '',
   bannerUrl: '',
@@ -21,17 +21,35 @@ const DEFAULTS: FormState = {
   emojiIcon: '🍽️',
 }
 
+const COLOR_SWATCHES = [
+  '#9D4300', '#F97316', '#E2725B', '#D14B2F', '#7B1F0E',
+  '#2E7D32', '#1F8A5B', '#0F766E', '#1D4ED8', '#7C3AED',
+]
+
+function shade(hex: string, percent: number): string {
+  const h = hex.replace('#', '')
+  const n = parseInt(h, 16)
+  let r = (n >> 16) + Math.round((255 * percent) / 100)
+  let g = ((n >> 8) & 0xff) + Math.round((255 * percent) / 100)
+  let b = (n & 0xff) + Math.round((255 * percent) / 100)
+  r = Math.max(0, Math.min(255, r))
+  g = Math.max(0, Math.min(255, g))
+  b = Math.max(0, Math.min(255, b))
+  return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')
+}
+
 export default function BrandingPage() {
   const [form, setForm] = useState<FormState>(DEFAULTS)
+  const [tenantName, setTenantName] = useState('Mi local')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     getAdminMe()
       .then((tenant) => {
         const b = tenant.branding
+        setTenantName(tenant.name)
         setForm({
           colorPrimary: b.colorPrimary,
           colorAccent: b.colorAccent,
@@ -47,7 +65,6 @@ export default function BrandingPage() {
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }))
-    setSaved(false)
   }
 
   async function handleSave() {
@@ -62,7 +79,6 @@ export default function BrandingPage() {
         tagline: form.tagline || null,
         emojiIcon: form.emojiIcon,
       })
-      setSaved(true)
     } catch {
       setError('Error al guardar los cambios')
     } finally {
@@ -72,143 +88,158 @@ export default function BrandingPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full animate-spin" />
+      <div style={{ fontFamily: 'var(--sans)', minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid var(--primary)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
       </div>
     )
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 w-full min-w-0">
-      <h1 className="text-xl font-bold text-gray-900">Apariencia</h1>
+    <div style={{ fontFamily: 'var(--sans)', minHeight: '100vh', background: 'var(--bg)' }}>
+      <div style={{ padding: '4px 22px 18px' }}>
+        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>Marca y Apariencia</div>
+        <h1 className="serif" style={{ margin: 0, fontSize: 32, lineHeight: 1.05, color: 'var(--text)', fontWeight: 700 }}>Apariencia</h1>
+        <p style={{ margin: '6px 0 0 0', fontSize: 14, color: 'var(--muted)', lineHeight: 1.4 }}>Cómo te ven tus clientes en la tienda online.</p>
+      </div>
 
       {error && (
-        <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>
+        <div style={{ padding: '0 22px 12px' }}>
+          <div className="card" style={{ padding: 10, background: 'rgba(186,26,26,0.06)', border: '1px solid var(--error)', borderRadius: 8, fontSize: 13, color: 'var(--error)' }}>{error}</div>
+        </div>
       )}
 
-      {/* Preview */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <p className="text-xs font-medium text-gray-500 px-4 pt-3 pb-2 uppercase tracking-wide">Vista previa</p>
-        <div
-          className="mx-4 mb-4 rounded-xl h-20 flex items-center px-5 gap-3"
-          style={{ backgroundColor: form.colorPrimary }}
-        >
-          {form.logoUrl ? (
-            <img src={form.logoUrl} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
-          ) : (
-            <span className="text-3xl leading-none flex-shrink-0">{form.emojiIcon}</span>
-          )}
-          <div className="min-w-0">
-            <p className="font-bold text-white truncate text-base">Mi local</p>
-            {form.tagline && (
-              <p className="text-xs text-white/75 truncate">{form.tagline}</p>
-            )}
-          </div>
-          <div className="ml-auto flex-shrink-0">
-            <div
-              className="px-3 py-1.5 rounded-full text-xs font-semibold text-white"
-              style={{ backgroundColor: form.colorAccent }}
-            >
-              Ver más
+      <div style={{ padding: '0 22px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {/* Live preview */}
+        <div>
+          <div className="text-xs muted" style={{ fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8, padding: '0 4px' }}>Vista previa</div>
+          <div className="card" style={{ overflow: 'hidden', padding: 0 }}>
+            <div style={{
+              height: 90,
+              position: 'relative',
+              background: form.bannerUrl
+                ? `url(${form.bannerUrl}) center/cover`
+                : `linear-gradient(135deg, ${form.colorPrimary} 0%, ${shade(form.colorPrimary, -25)} 100%)`,
+            }}>
+              {!form.bannerUrl && (
+                <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: 'rgba(255,255,255,0.7)', fontSize: 11, fontFamily: 'ui-monospace, monospace' }}>banner placeholder</div>
+              )}
+            </div>
+            <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, position: 'relative' }}>
+              <div style={{
+                width: 56,
+                height: 56,
+                borderRadius: 28,
+                marginTop: -36,
+                background: form.logoUrl ? `url(${form.logoUrl}) center/cover` : form.colorPrimary,
+                border: '4px solid var(--surface)',
+                display: 'grid',
+                placeItems: 'center',
+                fontSize: 24,
+                color: '#fff',
+                boxShadow: '0 4px 10px rgba(0,0,0,0.12)',
+                flexShrink: 0,
+              }}>
+                {!form.logoUrl && form.emojiIcon}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="serif" style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)' }}>{tenantName}</div>
+                <div className="text-xs muted" style={{ marginTop: 2, lineHeight: 1.3 }}>{form.tagline}</div>
+              </div>
+              <div style={{
+                padding: '6px 12px',
+                borderRadius: 999,
+                background: form.colorAccent,
+                color: '#fff',
+                fontSize: 11,
+                fontWeight: 700,
+                letterSpacing: '0.02em',
+                flexShrink: 0,
+              }}>
+                Abierto
+              </div>
+            </div>
+            <div style={{ padding: '0 16px 16px' }}>
+              <div style={{ padding: '10px 14px', borderRadius: 10, background: form.colorPrimary, color: '#fff', textAlign: 'center', fontWeight: 600, fontSize: 13 }}>Hacer pedido</div>
             </div>
           </div>
+        </div>
+
+        {/* Identity */}
+        <div className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div className="serif" style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>Identidad</div>
+          <div className="field">
+            <label>Tagline</label>
+            <input className="input" value={form.tagline} onChange={(e) => set('tagline', e.target.value)} placeholder="Una frase corta que te describa" />
+          </div>
+          <div className="field">
+            <label>Emoji ícono <span className="muted" style={{ fontWeight: 400 }}>· se muestra cuando no hay logo</span></label>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <div style={{ width: 56, height: 56, borderRadius: 10, background: 'var(--surface-container)', display: 'grid', placeItems: 'center', fontSize: 28, flexShrink: 0 }}>{form.emojiIcon}</div>
+              <input className="input" value={form.emojiIcon} onChange={(e) => set('emojiIcon', e.target.value)} maxLength={4} style={{ fontSize: 18, textAlign: 'center', flex: 1 }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Colors */}
+        <div className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div className="serif" style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>Colores</div>
+          <ColorPicker label="Color primario" desc="Botones, links, marca" value={form.colorPrimary} onChange={(c) => set('colorPrimary', c)} />
+          <ColorPicker label="Color acento" desc="Estados, chips, destacados" value={form.colorAccent} onChange={(c) => set('colorAccent', c)} />
+        </div>
+
+        {/* Assets */}
+        <div className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div className="serif" style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>Imágenes</div>
+          <div className="field">
+            <label>URL del logo</label>
+            <input className="input" value={form.logoUrl} onChange={(e) => set('logoUrl', e.target.value)} placeholder="https://..." />
+          </div>
+          <div className="field">
+            <label>URL del banner</label>
+            <input className="input" value={form.bannerUrl} onChange={(e) => set('bannerUrl', e.target.value)} placeholder="https://..." />
+          </div>
+          <div className="text-xs muted" style={{ lineHeight: 1.4 }}>ℹ Recomendado: logo 512×512 PNG con fondo transparente. Banner 1600×600.</div>
+        </div>
+
+        <div style={{ position: 'sticky', bottom: 0, padding: '12px 0 0', background: 'linear-gradient(to top, var(--bg) 60%, transparent)' }}>
+          <button className="btn btn-primary btn-block" disabled={saving} onClick={handleSave}>
+            {saving ? 'Guardando...' : 'Guardar cambios'}
+          </button>
         </div>
       </div>
 
-      {/* Form */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 space-y-5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="min-w-0">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Color primario</label>
-            <div className="flex items-center gap-3 min-w-0">
-              <input
-                type="color"
-                value={form.colorPrimary}
-                onChange={(e) => set('colorPrimary', e.target.value)}
-                className="w-12 h-10 min-w-12 rounded-lg border border-gray-300 cursor-pointer p-0.5"
-              />
-              <input
-                type="text"
-                value={form.colorPrimary}
-                onChange={(e) => set('colorPrimary', e.target.value)}
-                className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-orange-500"
-              />
-            </div>
-          </div>
-          <div className="min-w-0">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Color acento</label>
-            <div className="flex items-center gap-3 min-w-0">
-              <input
-                type="color"
-                value={form.colorAccent}
-                onChange={(e) => set('colorAccent', e.target.value)}
-                className="w-12 h-10 min-w-12 rounded-lg border border-gray-300 cursor-pointer p-0.5"
-              />
-              <input
-                type="text"
-                value={form.colorAccent}
-                onChange={(e) => set('colorAccent', e.target.value)}
-                className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-orange-500"
-              />
-            </div>
-          </div>
-        </div>
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+    </div>
+  )
+}
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Emoji icono</label>
-          <input
-            type="text"
-            value={form.emojiIcon}
-            onChange={(e) => set('emojiIcon', e.target.value)}
-            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-            placeholder="🍽️"
-          />
-          <p className="text-xs text-gray-400 mt-1">Se muestra cuando no hay logo</p>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Tagline</label>
-          <input
-            type="text"
-            value={form.tagline}
-            onChange={(e) => set('tagline', e.target.value)}
-            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-            placeholder="La mejor pizza de la ciudad"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">URL del logo</label>
-          <input
-            type="url"
-            value={form.logoUrl}
-            onChange={(e) => set('logoUrl', e.target.value)}
-            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-            placeholder="https://..."
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">URL del banner</label>
-          <input
-            type="url"
-            value={form.bannerUrl}
-            onChange={(e) => set('bannerUrl', e.target.value)}
-            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-            placeholder="https://..."
-          />
-        </div>
-
-        <div className="flex items-center gap-3 pt-2">
+function ColorPicker({ label, desc, value, onChange }: { label: string; desc: string; value: string; onChange: (color: string) => void }) {
+  return (
+    <div>
+      <div style={{ marginBottom: 8 }}>
+        <div className="text-sm fw-600">{label}</div>
+        <div className="text-xs muted">{desc}</div>
+      </div>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
+        <div style={{ width: 44, height: 44, borderRadius: 10, background: value, border: '2px solid var(--surface)', boxShadow: '0 0 0 1px var(--outline-soft), 0 4px 10px rgba(0,0,0,0.06)', flexShrink: 0 }} />
+        <input className="input" value={value} onChange={(e) => onChange(e.target.value)} style={{ fontFamily: 'ui-monospace, monospace', flex: 1, textTransform: 'uppercase' }} />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: 6 }}>
+        {COLOR_SWATCHES.map((c) => (
           <button
-            onClick={handleSave}
-            disabled={saving}
-            className="px-5 py-2.5 bg-orange-600 hover:bg-orange-700 disabled:bg-orange-300 text-white text-sm font-medium rounded-lg transition-colors"
-          >
-            {saving ? 'Guardando...' : 'Guardar cambios'}
-          </button>
-          {saved && <p className="text-sm text-green-600 font-medium">Guardado correctamente</p>}
-        </div>
+            key={c}
+            onClick={() => onChange(c)}
+            style={{
+              aspectRatio: '1',
+              borderRadius: 8,
+              background: c,
+              border: value.toLowerCase() === c.toLowerCase() ? '2px solid var(--text)' : '2px solid transparent',
+              boxShadow: '0 0 0 1px var(--outline-soft) inset',
+              cursor: 'pointer',
+              padding: 0,
+            }}
+          />
+        ))}
       </div>
     </div>
   )

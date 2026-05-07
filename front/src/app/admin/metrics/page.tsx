@@ -1,429 +1,356 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { getMetrics, type MetricsPeriod, type MetricsData } from '@/lib/admin-api'
 import { formatPrice } from '@/lib/utils'
 
-// ── Types ────────────────────────────────────────────────────────────
-
-type Period = {
-  key: MetricsPeriod
-  label: string
+function todayKicker(): string {
+  const d = new Date()
+  const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+  const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+  return `HOY · ${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}`
 }
 
-const PERIODS: Period[] = [
-  { key: 'today', label: 'Hoy' },
-  { key: 'week', label: 'Esta semana' },
-  { key: 'month', label: 'Este mes' },
-  { key: 'year', label: 'Este año' },
-]
-
-// ── KPI Card ─────────────────────────────────────────────────────────
-
-function KpiCard({
-  label,
-  value,
-  sub,
-  icon,
-}: {
-  label: string
-  value: string
-  sub?: string
-  icon: string
-}) {
+function Skel({ h }: { h: number }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</span>
-        <span className="text-2xl">{icon}</span>
+    <div style={{ height: h, background: 'var(--surface-container)', borderRadius: 12, animation: 'pulse 1.5s ease-in-out infinite' }} />
+  )
+}
+
+/* ── MetricCard ─────────────────────────────────────────────────── */
+function MetricCard({ label, value, delta, icon, big }: {
+  label: string; value: string; delta?: string; icon: string; big?: boolean
+}) {
+  const positive = delta?.startsWith('+')
+  const neutral = delta === '→'
+  const deltaColor = neutral ? 'var(--muted)' : positive ? 'var(--success)' : 'var(--error)'
+
+  return (
+    <div className="card" style={{ padding: '16px 18px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--muted)' }}>
+          {label}
+        </div>
+        <div style={{ width: 32, height: 32, borderRadius: 16, background: 'var(--surface-container)', display: 'grid', placeItems: 'center', color: 'var(--primary-dark)' }}>
+          <span className="mat sm fill">{icon}</span>
+        </div>
       </div>
-      <p className="text-2xl font-bold text-gray-900 leading-tight">{value}</p>
-      {sub && <p className="text-xs text-gray-400">{sub}</p>}
-    </div>
-  )
-}
-
-// ── Skeleton ─────────────────────────────────────────────────────────
-
-function Skeleton({ className }: { className?: string }) {
-  return (
-    <div className={`animate-pulse bg-gray-200 rounded-lg ${className ?? ''}`} />
-  )
-}
-
-function KpiSkeleton() {
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <Skeleton className="h-3 w-24" />
-        <Skeleton className="h-7 w-7 rounded-full" />
+      <div className="serif" style={{ fontSize: big ? 32 : 26, fontWeight: 700, color: 'var(--text)', lineHeight: 1, letterSpacing: '-0.02em' }}>
+        {value}
       </div>
-      <Skeleton className="h-8 w-32" />
-      <Skeleton className="h-3 w-20" />
+      {delta && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 8, color: deltaColor }}>
+          {!neutral && <span className="mat xs fill">{positive ? 'trending_up' : 'trending_down'}</span>}
+          <span style={{ fontSize: 12, fontWeight: 600 }}>{delta} vs ayer</span>
+        </div>
+      )}
     </div>
   )
 }
 
-function ChartSkeleton({ height = 260 }: { height?: number }) {
+/* ── Sparkline ─────────────────────────────────────────────────── */
+function Sparkline({ data, todayIndex }: { data: { label: string; revenue: number }[]; todayIndex: number }) {
+  const max = Math.max(...data.map(d => d.revenue), 1)
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
-      <Skeleton className="h-4 w-40 mb-4" />
-      <div
-        className="animate-pulse bg-gray-200 rounded-lg"
-        style={{ height }}
-      />
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 110 }}>
+      {data.map((d, i) => {
+        const h = Math.max(4, (d.revenue / max) * 100)
+        const isToday = i === todayIndex
+        return (
+          <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, height: '100%' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', width: '100%', position: 'relative' }}>
+              {isToday && (
+                <div style={{ position: 'absolute', top: -18, left: '50%', transform: 'translateX(-50%)', fontSize: 10, fontWeight: 700, color: 'var(--primary-dark)', whiteSpace: 'nowrap' }}>
+                  HOY
+                </div>
+              )}
+              <div style={{
+                width: '100%', height: `${h}%`,
+                background: isToday ? 'var(--primary)' : 'var(--primary)',
+                opacity: isToday ? 1 : 0.45,
+                borderRadius: '6px 6px 2px 2px',
+                minHeight: 4,
+              }} />
+            </div>
+            <div style={{ fontSize: 11, color: isToday ? 'var(--primary-dark)' : 'var(--muted)', fontWeight: isToday ? 700 : 500 }}>
+              {d.label}
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }
 
-// ── Custom Tooltip ────────────────────────────────────────────────────
+/* ── Top products ───────────────────────────────────────────────── */
+function TopProducts({ data }: { data: MetricsData['topProducts'] }) {
+  const top4 = data.slice(0, 4)
+  const maxRev = Math.max(...top4.map(p => p.revenue), 1)
 
-interface TooltipPayloadItem {
-  name: string
-  value: number
-  color: string
-}
-
-function RevenueTooltip({
-  active,
-  payload,
-  label,
-}: {
-  active?: boolean
-  payload?: TooltipPayloadItem[]
-  label?: string
-}) {
-  if (!active || !payload || payload.length === 0) return null
-  return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-sm">
-      <p className="font-semibold text-gray-700 mb-1">{label}</p>
-      {payload.map((entry) => (
-        <p key={entry.name} style={{ color: entry.color }}>
-          {entry.name === 'revenue' ? 'Ingresos' : 'Pedidos'}:{' '}
-          <span className="font-semibold">
-            {entry.name === 'revenue' ? formatPrice(entry.value) : entry.value}
-          </span>
-        </p>
-      ))}
-    </div>
-  )
-}
-
-function ProductTooltip({
-  active,
-  payload,
-  label,
-}: {
-  active?: boolean
-  payload?: TooltipPayloadItem[]
-  label?: string
-}) {
-  if (!active || !payload || payload.length === 0) return null
-  return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-sm">
-      <p className="font-semibold text-gray-700 mb-1 max-w-[180px] break-words">{label}</p>
-      <p className="text-orange-600 font-semibold">{payload[0].value} vendidos</p>
-    </div>
-  )
-}
-
-function HourTooltip({
-  active,
-  payload,
-  label,
-}: {
-  active?: boolean
-  payload?: TooltipPayloadItem[]
-  label?: string
-}) {
-  if (!active || !payload || payload.length === 0) return null
-  const hour = Number(label)
-  const display = `${String(hour).padStart(2, '0')}:00 – ${String(hour + 1).padStart(2, '0')}:00`
-  return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-sm">
-      <p className="font-semibold text-gray-700 mb-1">{display}</p>
-      <p className="text-orange-600 font-semibold">{payload[0].value} pedidos</p>
-    </div>
-  )
-}
-
-// ── Charts ────────────────────────────────────────────────────────────
-
-function RevenueChart({
-  data,
-  period,
-}: {
-  data: MetricsData['revenueOverTime']
-  period: MetricsPeriod
-}) {
-  const periodLabels: Record<MetricsPeriod, string> = {
-    today: 'Ingresos por hora',
-    week: 'Ingresos por día',
-    month: 'Ingresos por día',
-    year: 'Ingresos por mes',
+  if (top4.length === 0) {
+    return (
+      <div className="card" style={{ padding: '16px 18px' }}>
+        <div className="serif" style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>Top productos</div>
+        <div style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', padding: '20px 0' }}>Sin datos</div>
+      </div>
+    )
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
-      <h3 className="text-sm font-semibold text-gray-700 mb-4">{periodLabels[period]}</h3>
-      {data.length === 0 ? (
-        <div className="flex items-center justify-center h-52 text-gray-400 text-sm">
-          Sin datos para este período
-        </div>
-      ) : (
-        <ResponsiveContainer width="100%" height={260}>
-          <LineChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis
-              dataKey="label"
-              tick={{ fontSize: 11, fill: '#9ca3af' }}
-              axisLine={false}
-              tickLine={false}
-              interval="preserveStartEnd"
-            />
-            <YAxis
-              tick={{ fontSize: 11, fill: '#9ca3af' }}
-              axisLine={false}
-              tickLine={false}
-              tickFormatter={(v: number) =>
-                v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : `$${v}`
-              }
-              width={48}
-            />
-            <Tooltip content={<RevenueTooltip />} />
-            <Line
-              type="monotone"
-              dataKey="revenue"
-              stroke="#ea580c"
-              strokeWidth={2.5}
-              dot={data.length <= 12 ? { r: 4, fill: '#ea580c' } : false}
-              activeDot={{ r: 6, fill: '#ea580c' }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      )}
+    <div className="card" style={{ padding: '16px 18px' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div className="serif" style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>Top productos</div>
+        <span style={{ fontSize: 12, color: 'var(--muted)' }}>Esta semana</span>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {top4.map((p, i) => (
+          <div key={p.productId} style={{ padding: '10px 0', borderTop: i > 0 ? '1px solid var(--outline-soft)' : 'none' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div className="serif" style={{
+                width: 30, height: 30, borderRadius: 8,
+                background: 'var(--surface-container)', color: 'var(--primary-dark)',
+                display: 'grid', placeItems: 'center', fontWeight: 700, fontSize: 14, flexShrink: 0,
+              }}>{i + 1}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {p.productName}
+                </div>
+              </div>
+              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
+                  {p.quantity} <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--muted)' }}>vendidos</span>
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--primary)' }}>
+                  {formatPrice(p.revenue)}
+                </div>
+              </div>
+            </div>
+            <div style={{ marginTop: 8, marginLeft: 42 }}>
+              <div style={{ height: 4, background: 'var(--surface-container)', borderRadius: 2, overflow: 'hidden' }}>
+                <div style={{ width: `${(p.revenue / maxRev) * 100}%`, height: '100%', background: 'var(--primary)', borderRadius: 2 }} />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
 
-function TopProductsChart({ data }: { data: MetricsData['topProducts'] }) {
-  const chartData = data.map((p) => ({
-    name:
-      p.productName.length > 18
-        ? `${p.productName.slice(0, 17)}…`
-        : p.productName,
-    quantity: p.quantity,
-  }))
-
+/* ── Tooltip del chart ─────────────────────────────────────────── */
+interface TooltipItem { value: number }
+function HourTooltip({ active, payload, label }: { active?: boolean; payload?: TooltipItem[]; label?: string }) {
+  if (!active || !payload?.length) return null
+  const h = Number(label)
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
-      <h3 className="text-sm font-semibold text-gray-700 mb-4">Top 5 productos</h3>
-      {chartData.length === 0 ? (
-        <div className="flex items-center justify-center h-52 text-gray-400 text-sm">
-          Sin datos para este período
-        </div>
-      ) : (
-        <ResponsiveContainer width="100%" height={260}>
-          <BarChart
-            data={chartData}
-            layout="vertical"
-            margin={{ top: 4, right: 16, bottom: 0, left: 0 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
-            <XAxis
-              type="number"
-              tick={{ fontSize: 11, fill: '#9ca3af' }}
-              axisLine={false}
-              tickLine={false}
-              allowDecimals={false}
-            />
-            <YAxis
-              type="category"
-              dataKey="name"
-              tick={{ fontSize: 11, fill: '#6b7280' }}
-              axisLine={false}
-              tickLine={false}
-              width={110}
-            />
-            <Tooltip content={<ProductTooltip />} />
-            <Bar dataKey="quantity" fill="#ea580c" radius={[0, 6, 6, 0]} maxBarSize={28} />
-          </BarChart>
-        </ResponsiveContainer>
-      )}
+    <div style={{ background: 'var(--surface)', border: '1px solid var(--outline)', borderRadius: 10, padding: '10px 14px', fontSize: 13, boxShadow: 'var(--shadow-card)' }}>
+      <p style={{ fontWeight: 600, color: 'var(--text)', margin: '0 0 4px' }}>
+        {String(h).padStart(2, '0')}:00 – {String(h + 1).padStart(2, '0')}:00
+      </p>
+      <p style={{ color: 'var(--primary)', fontWeight: 600, margin: 0 }}>{payload[0].value} pedidos</p>
     </div>
   )
 }
 
-function HourlyChart({ data }: { data: MetricsData['ordersByHour'] }) {
-  // Rellenar las 24 horas aunque no haya datos
-  const filled = Array.from({ length: 24 }, (_, hour) => {
-    const found = data.find((d) => d.hour === hour)
-    return { hour, orders: found?.orders ?? 0 }
-  })
-
+function RevenueTooltip({ active, payload, label }: { active?: boolean; payload?: TooltipItem[]; label?: string }) {
+  if (!active || !payload?.length) return null
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
-      <h3 className="text-sm font-semibold text-gray-700 mb-4">Pedidos por hora (hoy)</h3>
-      <ResponsiveContainer width="100%" height={220}>
-        <BarChart data={filled} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-          <XAxis
-            dataKey="hour"
-            tick={{ fontSize: 10, fill: '#9ca3af' }}
-            axisLine={false}
-            tickLine={false}
-            tickFormatter={(h: number) => `${String(h).padStart(2, '0')}h`}
-            interval={3}
-          />
-          <YAxis
-            tick={{ fontSize: 11, fill: '#9ca3af' }}
-            axisLine={false}
-            tickLine={false}
-            allowDecimals={false}
-            width={28}
-          />
-          <Tooltip content={<HourTooltip />} />
-          <Bar dataKey="orders" fill="#fb923c" radius={[4, 4, 0, 0]} maxBarSize={24} />
-        </BarChart>
-      </ResponsiveContainer>
+    <div style={{ background: 'var(--surface)', border: '1px solid var(--outline)', borderRadius: 10, padding: '10px 14px', fontSize: 13, boxShadow: 'var(--shadow-card)' }}>
+      <p style={{ fontWeight: 600, color: 'var(--text)', margin: '0 0 4px' }}>{label}</p>
+      <p style={{ color: 'var(--primary)', fontWeight: 600, margin: 0 }}>{formatPrice(payload[0].value)}</p>
     </div>
   )
 }
 
-// ── Page ──────────────────────────────────────────────────────────────
+/* ── Page ───────────────────────────────────────────────────────── */
+type Period = 'today' | 'week' | 'month' | 'year'
+const PERIODS: { key: Period; label: string }[] = [
+  { key: 'today', label: 'Hoy' },
+  { key: 'week',  label: 'Semana' },
+  { key: 'month', label: 'Mes' },
+  { key: 'year',  label: 'Año' },
+]
 
 export default function MetricsPage() {
   const [period, setPeriod] = useState<MetricsPeriod>('today')
+  const [sparkPeriod, setSparkPeriod] = useState<'week' | 'month'>('week')
 
-  const {
-    data,
-    isLoading,
-    error,
-    refetch,
-  } = useQuery<MetricsData, Error>({
+  const { data, isLoading, error, refetch } = useQuery<MetricsData, Error>({
     queryKey: ['metrics', period],
     queryFn: () => getMetrics(period),
-    staleTime: 2 * 60 * 1000, // 2 min
+    staleTime: 2 * 60 * 1000,
   })
 
+  const sparkData = useMemo(() => {
+    if (!data?.revenueOverTime?.length) return []
+    return data.revenueOverTime.slice(-7)
+  }, [data])
+  const todayIdx = sparkData.length - 1
+
+  const hourlyData = useMemo(() => {
+    if (!data?.ordersByHour) return []
+    return Array.from({ length: 24 }, (_, hour) => {
+      const found = data.ordersByHour.find((d: { hour: number; orders: number }) => d.hour === hour)
+      return { hour, orders: found?.orders ?? 0 }
+    })
+  }, [data])
+
+  const kicker = todayKicker()
+
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Métricas</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Rendimiento y ventas de tu negocio
-          </p>
+    <div style={{ fontFamily: 'var(--sans)', minHeight: '100vh', background: 'var(--bg)' }}>
+
+      {/* Page header */}
+      <div style={{ padding: '4px 22px 18px' }}>
+        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>
+          {kicker}
         </div>
-        <button
-          onClick={() => refetch()}
-          className="self-start sm:self-auto text-sm px-4 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg font-medium transition-colors"
-        >
-          Actualizar
-        </button>
-      </div>
-
-      {/* Tabs de período */}
-      <div className="flex gap-1 bg-gray-100 p-1 rounded-lg w-fit">
-        {PERIODS.map((p) => (
-          <button
-            key={p.key}
-            onClick={() => setPeriod(p.key)}
-            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
-              period === p.key
-                ? 'bg-white text-orange-600 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            {p.label}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+          <h1 className="serif" style={{ margin: 0, fontSize: 32, lineHeight: 1.05, color: 'var(--text)', flex: 1, fontWeight: 700 }}>
+            Métricas
+          </h1>
+          <button onClick={() => refetch()} className="btn btn-outline btn-sm" style={{ marginTop: 4 }}>
+            <span className="mat sm">refresh</span>
           </button>
-        ))}
+        </div>
+        <p style={{ margin: '8px 0 0', fontSize: 13, color: 'var(--muted)', lineHeight: 1.4 }}>
+          Cómo está rindiendo tu negocio en tiempo real.
+        </p>
       </div>
 
-      {/* Error */}
+      {/* Period selector */}
+      <div style={{ padding: '0 22px 16px' }}>
+        <div className="seg">
+          {PERIODS.map(p => (
+            <button key={p.key} className={period === p.key ? 'active' : ''} onClick={() => setPeriod(p.key)}>
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">
+        <div style={{ margin: '0 22px 16px', padding: '12px 16px', background: 'var(--error-bg)', color: 'var(--error)', borderRadius: 'var(--radius-card)', fontSize: 13 }}>
           {error.message}
         </div>
       )}
 
       {/* KPI cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div style={{ padding: '0 22px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {isLoading ? (
-          Array.from({ length: 4 }).map((_, i) => <KpiSkeleton key={i} />)
+          <>
+            <Skel h={110} />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <Skel h={90} />
+              <Skel h={90} />
+            </div>
+          </>
         ) : data ? (
           <>
-            <KpiCard
-              label="Total pedidos"
-              value={String(data.totalOrders)}
-              icon="🧾"
-            />
-            <KpiCard
-              label="Ingresos totales"
-              value={formatPrice(data.totalRevenue)}
-              icon="💰"
-            />
-            <KpiCard
-              label="Ticket promedio"
-              value={data.totalOrders > 0 ? formatPrice(data.averageOrderValue) : '—'}
-              icon="📊"
-            />
-            <KpiCard
-              label="Clientes únicos"
-              value={String(data.totalCustomers)}
-              icon="👤"
-            />
+            <MetricCard label="Ventas" value={formatPrice(data.totalRevenue)} icon="payments" big />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <MetricCard label="Pedidos" value={String(data.totalOrders)} icon="receipt_long" />
+              <MetricCard
+                label="Ticket prom."
+                value={data.totalOrders > 0 ? formatPrice(data.averageOrderValue) : '—'}
+                icon="restaurant"
+              />
+            </div>
           </>
         ) : null}
       </div>
 
-      {/* Gráficos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {isLoading ? (
-          <>
-            <ChartSkeleton height={260} />
-            <ChartSkeleton height={260} />
-          </>
-        ) : data ? (
-          <>
-            <RevenueChart data={data.revenueOverTime} period={period} />
-            <TopProductsChart data={data.topProducts} />
-          </>
-        ) : null}
+      {/* Sparkline */}
+      <div style={{ padding: '0 22px 14px' }}>
+        {isLoading ? <Skel h={180} /> : (
+          <div className="card" style={{ padding: '16px 18px 18px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <div>
+                <div className="serif" style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>Ventas por día</div>
+                {data && (
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+                    Total · {formatPrice(data.totalRevenue)}
+                  </div>
+                )}
+              </div>
+              <div style={{ display: 'inline-flex', background: 'var(--surface-container)', borderRadius: 999, padding: 3 }}>
+                {(['week', 'month'] as const).map(v => (
+                  <button key={v} onClick={() => setSparkPeriod(v)} style={{
+                    padding: '5px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer',
+                    background: sparkPeriod === v ? 'var(--surface)' : 'transparent',
+                    color: sparkPeriod === v ? 'var(--text)' : 'var(--muted)',
+                    boxShadow: sparkPeriod === v ? 'var(--shadow-soft)' : 'none',
+                  }}>{v === 'week' ? 'Sem' : 'Mes'}</button>
+                ))}
+              </div>
+            </div>
+            <div style={{ marginTop: 24 }}>
+              {sparkData.length > 0
+                ? <Sparkline data={sparkData} todayIndex={todayIdx} />
+                : <div style={{ height: 110, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: 'var(--muted)' }}>Sin datos</div>
+              }
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Gráfico horario — solo para "Hoy" */}
+      {/* Top products */}
+      <div style={{ padding: '0 22px 14px' }}>
+        {isLoading ? <Skel h={220} /> : data ? <TopProducts data={data.topProducts} /> : null}
+      </div>
+
+      {/* Hourly chart — desktop */}
       {period === 'today' && (
-        <div>
-          {isLoading ? (
-            <ChartSkeleton height={220} />
-          ) : data ? (
-            <HourlyChart data={data.ordersByHour} />
-          ) : null}
+        <div className="hidden md:block" style={{ padding: '0 22px 24px' }}>
+          {isLoading ? <Skel h={240} /> : (
+            <div className="card" style={{ padding: '16px 18px' }}>
+              <div className="serif" style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>Pedidos por hora</div>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={hourlyData} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--outline-soft)" />
+                  <XAxis dataKey="hour" tick={{ fontSize: 10, fill: 'var(--muted)' }} axisLine={false} tickLine={false}
+                    tickFormatter={(h: number) => `${String(h).padStart(2, '0')}h`} interval={3} />
+                  <YAxis tick={{ fontSize: 11, fill: 'var(--muted)' }} axisLine={false} tickLine={false} allowDecimals={false} width={28} />
+                  <Tooltip content={<HourTooltip />} />
+                  <Bar dataKey="orders" fill="var(--primary)" radius={[4, 4, 0, 0]} maxBarSize={24} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Empty state si no hay error pero data llega vacía */}
+      {/* Revenue chart — desktop */}
+      <div className="hidden md:block" style={{ padding: '0 22px 24px' }}>
+        {isLoading ? <Skel h={240} /> : data && data.revenueOverTime.length > 0 ? (
+          <div className="card" style={{ padding: '16px 18px' }}>
+            <div className="serif" style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', marginBottom: 16 }}>Ingresos</div>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={data.revenueOverTime} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--outline-soft)" />
+                <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--muted)' }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+                <YAxis tick={{ fontSize: 11, fill: 'var(--muted)' }} axisLine={false} tickLine={false}
+                  tickFormatter={(v: number) => v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : `$${v}`} width={48} />
+                <Tooltip content={<RevenueTooltip />} />
+                <Bar dataKey="revenue" fill="var(--primary)" radius={[4, 4, 0, 0]} maxBarSize={28} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        ) : null}
+      </div>
+
       {!isLoading && !error && data && data.totalOrders === 0 && (
-        <div className="text-center py-12 text-gray-400">
-          <p className="text-4xl mb-3">📭</p>
-          <p className="font-medium text-gray-500">Sin pedidos en este período</p>
-          <p className="text-sm mt-1">Los datos aparecerán cuando haya actividad</p>
+        <div style={{ padding: '0 22px 24px' }}>
+          <div className="card" style={{ padding: 32, textAlign: 'center', color: 'var(--muted)' }}>
+            <span className="mat lg" style={{ color: 'var(--muted-soft)', display: 'block', marginBottom: 8 }}>inbox</span>
+            <div style={{ fontSize: 14 }}>Sin pedidos en este período</div>
+          </div>
         </div>
       )}
+
+      <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }`}</style>
     </div>
   )
 }

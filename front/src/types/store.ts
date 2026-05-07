@@ -123,3 +123,93 @@ export type Promotion = {
   products: Product[]
   modifierGroups: ModifierGroup[]
 }
+
+export interface SupplierDto {
+  id: string
+  name: string
+  phone?: string
+  address?: string
+  notes?: string
+  totalDebt: number
+  isActive: boolean
+  createdAt: string
+}
+
+export interface SupplierDebtDetailDto {
+  supplierId: string
+  supplierName: string
+  totalDebt: number
+  purchases: SupplierDebtPurchaseDto[]
+  payments: SupplierPaymentDto[]
+}
+
+export interface SupplierDebtPurchaseDto {
+  purchaseId: string
+  supplyId: string
+  supplyName: string
+  totalPrice: number
+  paidAmount: number
+  pendingAmount: number
+  status: 'pending' | 'partial' | 'paid'
+  purchaseDate: string
+  allocations: SupplierPaymentAllocationDto[]
+}
+
+export interface SupplierPaymentDto {
+  id: string
+  supplierId: string
+  supplierName: string
+  amount: number
+  notes?: string
+  paidAt: string
+  allocations: SupplierPaymentAllocationDto[]
+}
+
+export interface SupplierPaymentAllocationDto {
+  paymentId: string
+  purchaseId: string
+  supplyName: string
+  amount: number
+}
+
+export interface SupplyDto {
+  id: string
+  name: string
+  unit?: string
+  currentStock: number
+  supplierId?: string
+  supplierName?: string
+  isActive: boolean
+  createdAt: string
+}
+
+export interface SupplyPurchaseDto {
+  id: string
+  supplyId: string
+  supplyName: string
+  supplierId?: string
+  supplierName?: string
+  quantityPurchased: number
+  totalPrice: number
+  pricePerUnit: number
+  notes?: string
+  purchaseDate: string
+}
+
+export interface ProductSupplyDto {
+  supplyId: string
+  supplyName: string
+  unit?: string
+  quantityRequired: number
+  isUnknownQuantity: boolean
+}
+
+export interface InventoryMovementDto {
+  id: string
+  supplyId: string
+  supplyName: string
+  quantityChange: number
+  reason: 'Purchase' | 'OrderDeducted' | 'ManualReset' | 'ManualAdjust'
+  referenceId?: string
+  createdAt: string
+}

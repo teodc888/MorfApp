@@ -18,13 +18,13 @@ public class OrdersController(IAppDbContext db) : ControllerBase
         ?? throw new UnauthorizedAccessException();
 
     // GET /api/admin/orders
-    // Devuelve pedidos pendientes del tenant, ordenados por fecha desc.
-    // Query param opcional ?status=pending|confirmed (default: pending)
+    // Devuelve pedidos del tenant por estado, ordenados por fecha desc.
+    // Query param ?status=pending|confirmed|cancelled (default: pending)
     [HttpGet]
     public async Task<ActionResult<List<OrderAdminDto>>> GetOrders([FromQuery] string status = "pending")
     {
         if (!Enum.TryParse<OrderStatus>(status, ignoreCase: true, out var orderStatus))
-            return BadRequest(new { message = "Estado inválido. Usar 'pending' o 'confirmed'." });
+            return BadRequest(new { message = "Estado inválido. Usar 'pending', 'confirmed' o 'cancelled'." });
 
         var orders = await db.Orders
             .Where(o => o.TenantId == TenantId && o.Status == orderStatus)
@@ -50,6 +50,55 @@ public class OrdersController(IAppDbContext db) : ControllerBase
 
         order.Status = OrderStatus.Confirmed;
         order.ConfirmedAt = DateTime.UtcNow;
+
+        // Descontar inventario según los insumos asociados a cada producto
+        foreach (var item in order.Items)
+        {
+            var productSupplies = await db.ProductSupplies
+                .Where(ps => ps.ProductId == item.ProductId && ps.TenantId == TenantId && !ps.IsUnknownQuantity)
+                .ToListAsync();
+
+            foreach (var ps in productSupplies)
+            {
+                var supply = await db.Supplies.FirstOrDefaultAsync(s => s.Id == ps.SupplyId);
+                if (supply is null) continue;
+
+                var delta = ps.QuantityRequired * item.Quantity;
+                supply.CurrentStock -= delta;
+                supply.UpdatedAt = DateTime.UtcNow;
+
+                db.InventoryMovements.Add(new InventoryMovement
+                {
+                    TenantId = TenantId,
+                    SupplyId = ps.SupplyId,
+                    QuantityChange = -delta,
+                    Reason = "OrderDeducted",
+                    ReferenceId = order.Id
+                });
+            }
+        }
+
+        await db.SaveChangesAsync();
+
+        return Ok(MapOrder(order));
+    }
+
+    // POST /api/admin/orders/{id}/cancel
+    // Cancela un pedido pendiente del tenant.
+    [HttpPost("{id}/cancel")]
+    public async Task<ActionResult<OrderAdminDto>> CancelOrder(string id)
+    {
+        var order = await db.Orders
+            .FirstOrDefaultAsync(o => o.Id == id && o.TenantId == TenantId);
+
+        if (order is null)
+            return NotFound(new { message = "Pedido no encontrado." });
+
+        if (order.Status == OrderStatus.Cancelled)
+            return BadRequest(new { message = "El pedido ya fue cancelado." });
+
+        order.Status = OrderStatus.Cancelled;
+
         await db.SaveChangesAsync();
 
         return Ok(MapOrder(order));

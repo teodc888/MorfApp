@@ -1,4 +1,5 @@
 import type { DeliveryConfig } from '@/types/store'
+import { STITCH } from '@/lib/stitch-theme'
 
 type Props = {
   deliveryConfig: DeliveryConfig
@@ -34,10 +35,7 @@ export function DeliveryChips({ deliveryConfig: dc }: Props) {
   return (
     <div className="flex flex-wrap gap-2 mb-6">
       {chips.map((chip) => (
-        <div
-          key={chip.label}
-          className="flex items-center gap-1.5 bg-white border border-zinc-200 rounded-full px-3.5 py-1.5 text-sm text-zinc-500"
-        >
+        <div key={chip.label} className="flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm" style={{ backgroundColor: STITCH.surface, border: `1px solid ${STITCH.border}`, color: STITCH.muted, boxShadow: STITCH.shadow }}>
           <span>{chip.icon}</span>
           <span>{chip.label}</span>
         </div>

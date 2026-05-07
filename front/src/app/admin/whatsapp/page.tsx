@@ -164,92 +164,115 @@ export default function WhatsAppPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full animate-spin" />
+      <div style={{ fontFamily: 'var(--sans)', minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid var(--primary)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
       </div>
     )
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">💬 Template WhatsApp</h1>
-        <p className="text-gray-600">Personaliza el mensaje que se envía a los clientes</p>
+    <div style={{ fontFamily: 'var(--sans)', minHeight: '100vh', background: 'var(--bg)' }}>
+      <div style={{ padding: '4px 22px 18px' }}>
+        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>Mensaje Automático</div>
+        <h1 className="serif" style={{ margin: 0, fontSize: 32, lineHeight: 1.05, color: 'var(--text)', fontWeight: 700 }}>WhatsApp</h1>
+        <p style={{ margin: '6px 0 0 0', fontSize: 14, color: 'var(--muted)', lineHeight: 1.4 }}>Personalizá el texto que recibe el cliente al confirmar el pedido.</p>
       </div>
 
       {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-          {error}
+        <div style={{ padding: '0 22px 12px' }}>
+          <div className="card" style={{ padding: 10, background: 'rgba(186,26,26,0.06)', border: '1px solid var(--error)', borderRadius: 8, fontSize: 13, color: 'var(--error)' }}>{error}</div>
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div style={{ padding: '0 22px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {/* Preview chat bubble */}
+        <div className="card" style={{ padding: 16, background: '#ECE5DD', border: 'none' }}>
+          <div className="text-xs" style={{ fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#075E54', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+            💬 Vista previa
+          </div>
+          <div style={{
+            background: '#DCF8C6',
+            padding: '10px 12px',
+            borderRadius: '14px 14px 14px 4px',
+            position: 'relative',
+            fontSize: 13.5,
+            lineHeight: 1.45,
+            color: '#1f2c33',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            marginBottom: 6,
+          }}>
+            {preview || 'La previsualización aparecerá aquí'}
+            <div style={{ marginTop: 6, fontSize: 10, color: '#7d8a93', textAlign: 'right' }}>20:45 ✓✓</div>
+          </div>
+          <div className="text-xs" style={{ color: '#5b6b73', fontStyle: 'italic' }}>Datos de ejemplo. El mensaje real usará los datos del pedido.</div>
+        </div>
+
         {/* Editor */}
-        <div className="space-y-4">
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Editor</h2>
-              <button
-                onClick={resetToDefault}
-                className="text-sm text-gray-600 hover:text-gray-900 underline"
-              >
-                Restaurar default
-              </button>
-            </div>
-
-            <textarea
-              ref={textareaRef}
-              value={template || ''}
-              onChange={(e) => setTemplate(e.target.value)}
-              placeholder="Deja en blanco para usar el formato por defecto"
-              className="w-full h-64 p-4 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
-            />
-
-            <div className="mt-4">
-              <h3 className="text-sm font-semibold text-gray-700 mb-2">Variables disponibles</h3>
-              <div className="flex flex-wrap gap-2">
-                {VARIABLES.map(({ var: variable, label }) => (
-                  <button
-                    key={variable}
-                    onClick={() => insertVariable(variable)}
-                    className="px-3 py-1 bg-orange-100 text-orange-700 hover:bg-orange-200 rounded text-xs font-medium transition-colors"
-                  >
-                    {variable}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="w-full mt-6 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors font-medium"
-            >
-              {saving ? 'Guardando...' : 'Guardar cambios'}
+        <div className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div className="serif" style={{ fontSize: 16, fontWeight: 700 }}>Plantilla</div>
+            <button style={{ fontSize: 12, color: 'var(--primary-dark)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer' }} onClick={resetToDefault}>
+              🔄 Restaurar default
             </button>
           </div>
-        </div>
+          <textarea
+            ref={textareaRef}
+            className="input"
+            rows={9}
+            value={template || ''}
+            onChange={(e) => setTemplate(e.target.value)}
+            style={{ fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace', fontSize: 13, lineHeight: 1.5, resize: 'vertical' }}
+          />
 
-        {/* Preview */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Vista previa</h2>
-          <div className="bg-gray-50 rounded-lg p-4 min-h-96 whitespace-pre-wrap text-sm font-mono overflow-auto max-h-96 border border-gray-200">
-            {preview || 'La previsualización aparecerá aquí'}
+          <div>
+            <div className="text-xs muted" style={{ fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>Variables · tap para insertar</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {VARIABLES.map(({ var: variable, label }) => (
+                <button
+                  key={variable}
+                  onClick={() => insertVariable(variable)}
+                  title={label}
+                  style={{
+                    padding: '6px 10px',
+                    borderRadius: 999,
+                    background: 'rgba(249,115,22,0.08)',
+                    color: 'var(--primary-dark)',
+                    fontFamily: 'ui-monospace, monospace',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    border: '1px solid rgba(249,115,22,0.18)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {variable}
+                </button>
+              ))}
+            </div>
           </div>
-          <p className="text-xs text-gray-500 mt-4">Ejemplo con datos de prueba. El mensaje real contendrá los datos del pedido.</p>
+        </div>
+
+        {/* Tips */}
+        <div className="card" style={{ padding: 14, background: 'rgba(46,125,50,0.06)', borderLeft: 'none' }}>
+          <div className="text-xs" style={{ fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--success)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+            💡 Cómo usar
+          </div>
+          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: 'var(--text)', lineHeight: 1.5 }}>
+            <li>Usa variables entre llaves: <code style={{ background: 'var(--surface)', padding: '1px 5px', borderRadius: 4, fontSize: 12 }}>{'{variable}'}</code></li>
+            <li>Los saltos de línea se preservan tal cual los escribís.</li>
+            <li>Markdown básico: <code style={{ background: 'var(--surface)', padding: '1px 5px', borderRadius: 4, fontSize: 12 }}>*negrita*</code> y <code style={{ background: 'var(--surface)', padding: '1px 5px', borderRadius: 4, fontSize: 12 }}>_cursiva_</code></li>
+          </ul>
+        </div>
+
+        <div style={{ position: 'sticky', bottom: 0, padding: '12px 0 0', background: 'linear-gradient(to top, var(--bg) 60%, transparent)' }}>
+          <button className="btn btn-primary btn-block" disabled={saving || !template?.trim()} onClick={handleSave}>
+            {saving ? 'Guardando...' : 'Guardar plantilla'}
+          </button>
         </div>
       </div>
 
-      {/* Help section */}
-      <div className="mt-12 bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 className="font-semibold text-blue-900 mb-2">📝 Cómo usar</h3>
-        <ul className="text-sm text-blue-800 space-y-1">
-          <li>• Usa las variables entre llaves: <code className="bg-white px-1 rounded">{'{variable}'}</code></li>
-          <li>• Las saltos de línea se preservan tal como los escribes</li>
-          <li>• Si no escribes nada, se usa el formato por defecto</li>
-          <li>• Usa Markdown básico: <code className="bg-white px-1 rounded">*negrita*</code>, <code className="bg-white px-1 rounded">_cursiva_</code></li>
-        </ul>
-      </div>
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 }

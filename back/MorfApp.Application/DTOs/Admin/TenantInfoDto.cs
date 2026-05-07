@@ -6,6 +6,7 @@ public record TenantInfoDto(
     string Name,
     string WhatsappNumber,
     string? WhatsAppMessageTemplate,
+    string Plan,
     BrandingAdminDto? Branding,
     DeliveryAdminDto? Delivery,
     PaymentAdminDto? Payment,

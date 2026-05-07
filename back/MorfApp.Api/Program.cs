@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using MorfApp.Application.Interfaces;
 using MorfApp.Api;
+using MorfApp.Api.Services;
 using MorfApp.Infrastructure.Persistence;
 using System.Text;
 
@@ -52,7 +54,22 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddScoped<IEmailService, EmailService>();
+
 builder.Services.AddControllers();
+
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
+    {
+        var errors = context.ModelState
+            .Where(e => e.Value?.Errors.Count > 0)
+            .SelectMany(e => e.Value!.Errors.Select(err => new { field = e.Key, message = err.ErrorMessage }))
+            .ToList();
+        return new BadRequestObjectResult(new { errors });
+    };
+});
+
 builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks();
 
@@ -67,6 +84,85 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    // If tables already exist but migration history is empty, mark existing migrations as applied
+    // This handles the case where the DB was created without EF migrations tracking
+    var conn = db.Database.GetDbConnection();
+    await conn.OpenAsync();
+    using (var cmd = conn.CreateCommand())
+    {
+        cmd.CommandText = @"
+            CREATE TABLE IF NOT EXISTS ""__EFMigrationsHistory"" (
+                migration_id character varying(150) NOT NULL,
+                product_version character varying(32) NOT NULL,
+                CONSTRAINT pk___ef_migrations_history PRIMARY KEY (migration_id)
+            );
+            INSERT INTO ""__EFMigrationsHistory"" (migration_id, product_version)
+            SELECT v.id, '9.0.4' FROM (VALUES
+                ('20260428030226_InitialCreate'),
+                ('20260428032704_AddRefreshTokens'),
+                ('20260428180000_AddTenantModifierGroups'),
+                ('20260430010813_AddWhatsAppMessageTemplate'),
+                ('20260502140646_AddPromotions'),
+                ('20260502144208_AddPromotionModifierGroups'),
+                ('20260502150059_ConvertPromotionProductsToJson'),
+                ('20260502192710_AddProductDiscountPercent'),
+                ('20260502201140_AddPaymentConfig'),
+                ('20260502220820_AddOrder'),
+                ('20260502221445_AddMetricsIndices'),
+                ('20260502221541_AddMetricsIndex'),
+                ('20260502224653_AddOrderExtraFields')
+            ) AS v(id)
+            WHERE EXISTS (
+                SELECT 1 FROM information_schema.tables
+                WHERE table_schema = 'public' AND table_name = 'tenants'
+            )
+            ON CONFLICT DO NOTHING;
+
+            DELETE FROM ""__EFMigrationsHistory""
+            WHERE migration_id = '20260502144208_AddPromotionModifierGroups'
+              AND NOT EXISTS (
+                  SELECT 1 FROM information_schema.tables
+                  WHERE table_schema = 'public' AND table_name = 'promotion_modifier_groups'
+              );
+
+            DELETE FROM ""__EFMigrationsHistory""
+            WHERE migration_id = '20260502201140_AddPaymentConfig'
+              AND NOT EXISTS (
+                  SELECT 1 FROM information_schema.tables
+                  WHERE table_schema = 'public' AND table_name = 'payment_configs'
+              );
+
+            DELETE FROM ""__EFMigrationsHistory""
+            WHERE migration_id = '20260505161547_AddSuppliersAndInventory'
+              AND NOT EXISTS (
+                  SELECT 1 FROM information_schema.tables
+                  WHERE table_schema = 'public' AND table_name = 'suppliers'
+              );
+
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.tables
+                    WHERE table_schema = 'public' AND table_name = 'promotions'
+                ) THEN
+                    ALTER TABLE promotions ADD COLUMN IF NOT EXISTS description text NULL;
+                    ALTER TABLE promotions ADD COLUMN IF NOT EXISTS price numeric(18,2) NOT NULL DEFAULT 0;
+                    ALTER TABLE promotions ADD COLUMN IF NOT EXISTS emoji text NOT NULL DEFAULT '🎁';
+                    ALTER TABLE promotions ADD COLUMN IF NOT EXISTS image_url text NULL;
+                    ALTER TABLE promotions ADD COLUMN IF NOT EXISTS sort_order integer NOT NULL DEFAULT 0;
+                    ALTER TABLE promotions ADD COLUMN IF NOT EXISTS is_active boolean NOT NULL DEFAULT true;
+                    ALTER TABLE promotions ADD COLUMN IF NOT EXISTS max_per_user integer NULL;
+                    ALTER TABLE promotions ADD COLUMN IF NOT EXISTS product_ids jsonb NOT NULL DEFAULT '[]'::jsonb;
+                    ALTER TABLE promotions ADD COLUMN IF NOT EXISTS created_at timestamp with time zone NOT NULL DEFAULT now();
+                    ALTER TABLE promotions ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone NOT NULL DEFAULT now();
+                END IF;
+            END $$;
+        ";
+        await cmd.ExecuteNonQueryAsync();
+    }
+    await conn.CloseAsync();
+
     await db.Database.MigrateAsync();
 }
 
@@ -88,6 +184,13 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHealthChecks("/health");
+
+// Superadmin seed — runs in all environments
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await SuperAdminSeeder.SeedAsync(db, app.Configuration, app.Environment);
+}
 
 if (app.Environment.IsDevelopment())
 {

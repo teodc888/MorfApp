@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   getOrders,
@@ -13,22 +13,8 @@ import { formatPrice } from '@/lib/utils'
 
 type StatusFilter = 'pending' | 'confirmed' | 'cancelled'
 
-const STATUS_LABELS: Record<OrderAdmin['status'], string> = {
-  pending: 'Pendiente',
-  confirmed: 'Confirmado',
-  cancelled: 'Cancelado',
-}
-
-const STATUS_STYLES: Record<OrderAdmin['status'], string> = {
-  pending: 'bg-yellow-100 text-yellow-800',
-  confirmed: 'bg-green-100 text-green-800',
-  cancelled: 'bg-red-100 text-red-800',
-}
-
-function formatDate(iso: string): string {
-  const d = new Date(iso)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+function elapsedMin(createdAt: string): number {
+  return Math.floor((Date.now() - new Date(createdAt).getTime()) / 60000)
 }
 
 function parseItems(raw: unknown): OrderItemFromApi[] {
@@ -39,187 +25,190 @@ function parseItems(raw: unknown): OrderItemFromApi[] {
   return []
 }
 
-function ItemsSummary({ items }: { items: OrderItemFromApi[] }) {
-  const parsed = parseItems(items)
-  if (parsed.length === 0) return <span className="text-gray-400 italic">Sin items</span>
-
+/* ── Elapsed chip ─────────────────────────────────────────────────── */
+function ElapsedChip({ createdAt, status }: { createdAt: string; status: OrderAdmin['status'] }) {
+  const min = elapsedMin(createdAt)
+  if (status === 'confirmed') return (
+    <span className="chip success"><span className="mat xs fill">check_circle</span>Confirmado</span>
+  )
+  if (status === 'cancelled') return (
+    <span className="chip error"><span className="mat xs fill">cancel</span>Cancelado</span>
+  )
+  if (min >= 10) return (
+    <span className="chip error"><span className="mat xs fill">timer</span>{min} min</span>
+  )
   return (
-    <ul className="space-y-1">
-      {parsed.map((item, i) => (
-        <li key={i} className="text-xs text-gray-700">
-          <div className="font-semibold">{item.quantity}x {item.productName}</div>
-          {item.modifiers && item.modifiers.length > 0 && (
-            <ul className="ml-3 text-gray-500 space-y-0.5">
-              {item.modifiers.map((mod, j) => (
-                <li key={j}>
-                  • {mod.optionName}{mod.extraPrice > 0 && ` +$${mod.extraPrice}`}
-                </li>
-              ))}
-            </ul>
-          )}
-        </li>
-      ))}
-    </ul>
+    <span className="chip"><span className="mat xs">schedule</span>{min} min</span>
   )
 }
 
-function OrderRow({
-  order,
-  onConfirm,
-  onCancel,
-  confirmingId,
-  cancellingId,
-}: {
-  order: OrderAdmin
-  onConfirm: (id: string) => void
-  onCancel: (id: string) => void
-  confirmingId: string | null
-  cancellingId: string | null
-}) {
-  const isConfirming = confirmingId === order.id
-  const isCancelling = cancellingId === order.id
-  const isBusy = isConfirming || isCancelling
-
+/* ── Toast ────────────────────────────────────────────────────────── */
+function Toast({ msg, onDone }: { msg: string; onDone: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onDone, 2200)
+    return () => clearTimeout(t)
+  }, [msg, onDone])
   return (
-    <tr className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-      {/* ID pedido */}
-      <td className="px-4 py-3 whitespace-nowrap">
-        <span className="text-xs font-mono text-gray-500">
-          #{order.id.slice(-6).toUpperCase()}
-        </span>
-      </td>
-
-      {/* Cliente */}
-      <td className="px-4 py-3">
-        <p className="text-sm font-medium text-gray-900">
-          {order.customerName || '—'}
-        </p>
-        <p className="text-xs text-gray-500">{order.customerPhone}</p>
-      </td>
-
-      {/* Items */}
-      <td className="px-4 py-3 max-w-xs">
-        <ItemsSummary items={order.items} />
-      </td>
-
-      {/* Total */}
-      <td className="px-4 py-3 whitespace-nowrap">
-        <span className="text-sm font-semibold text-gray-900">
-          {formatPrice(order.totalPrice)}
-        </span>
-      </td>
-
-      {/* Status */}
-      <td className="px-4 py-3 whitespace-nowrap">
-        <span
-          className={`inline-block text-xs font-medium px-2 py-1 rounded-full ${STATUS_STYLES[order.status]}`}
-        >
-          {STATUS_LABELS[order.status]}
-        </span>
-      </td>
-
-      {/* Fecha */}
-      <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-500">
-        {formatDate(order.createdAt)}
-      </td>
-
-      {/* Acciones */}
-      <td className="px-4 py-3 whitespace-nowrap">
-        <div className="flex items-center gap-2">
-          {order.status === 'pending' && (
-            <>
-              <button
-                onClick={() => onConfirm(order.id)}
-                disabled={isBusy}
-                className="text-xs px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isConfirming ? 'Confirmando...' : 'Confirmar'}
-              </button>
-              <button
-                onClick={() => onCancel(order.id)}
-                disabled={isBusy}
-                className="text-xs px-3 py-1.5 text-red-600 hover:bg-red-50 border border-red-200 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isCancelling ? 'Cancelando...' : 'Cancelar'}
-              </button>
-            </>
-          )}
-          {order.status !== 'pending' && (
-            <span className="text-xs text-gray-400">—</span>
-          )}
-        </div>
-      </td>
-    </tr>
+    <div className="admin-toast">
+      <span className="mat sm fill" style={{ color: '#7be38a' }}>check_circle</span>
+      {msg}
+    </div>
   )
 }
 
-/* ------------------------------------------------------------------ */
-/* Mobile card variant                                                   */
-/* ------------------------------------------------------------------ */
+/* ── Order card ───────────────────────────────────────────────────── */
 function OrderCard({
-  order,
-  onConfirm,
-  onCancel,
-  confirmingId,
-  cancellingId,
+  order, onTap, onAccept, onReject, busy,
 }: {
   order: OrderAdmin
-  onConfirm: (id: string) => void
-  onCancel: (id: string) => void
-  confirmingId: string | null
-  cancellingId: string | null
+  onTap: () => void
+  onAccept: (id: string) => void
+  onReject: (id: string) => void
+  busy: boolean
 }) {
-  const isConfirming = confirmingId === order.id
-  const isCancelling = cancellingId === order.id
-  const isBusy = isConfirming || isCancelling
+  const items = parseItems(order.items)
+  const isPending = order.status === 'pending'
+  const min = elapsedMin(order.createdAt)
+  const accent = !isPending ? undefined
+    : min >= 10 ? 'var(--error)'
+    : min >= 5  ? 'var(--warning)'
+    : 'var(--primary)'
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <p className="font-semibold text-gray-900 text-sm">
-            {order.customerName || order.customerPhone}
-          </p>
-          {order.customerName && (
-            <p className="text-xs text-gray-500">{order.customerPhone}</p>
-          )}
+    <div className="card" style={{ overflow: 'hidden', borderTop: isPending ? `3px solid ${accent}` : undefined }}>
+      <button onClick={onTap} className="tap" style={{ width: '100%', padding: '14px 16px 12px', textAlign: 'left', display: 'block' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
+              <span className="serif" style={{ fontSize: 19, fontWeight: 700, color: 'var(--text)' }}>
+                #{order.id.slice(-6).toUpperCase()}
+              </span>
+              <ElapsedChip createdAt={order.createdAt} status={order.status} />
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--muted)' }}>
+              {order.customerName
+                ? `${order.customerName} · ${order.customerPhone}`
+                : order.customerPhone}
+            </div>
+          </div>
+          <div className="serif" style={{ fontSize: 20, fontWeight: 700, color: 'var(--primary-dark)', whiteSpace: 'nowrap' }}>
+            {formatPrice(order.totalPrice)}
+          </div>
         </div>
-        <div className="flex flex-col items-end gap-1 flex-shrink-0">
-          <span
-            className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_STYLES[order.status]}`}
-          >
-            {STATUS_LABELS[order.status]}
+
+        <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {items.map((it, i) => (
+            <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+              <span style={{
+                minWidth: 26, height: 22, borderRadius: 6,
+                background: 'var(--surface-container)', color: 'var(--primary-dark)',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 12, fontWeight: 700, padding: '0 6px', flexShrink: 0,
+              }}>{it.quantity}×</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{it.productName}</div>
+                {it.modifiers && it.modifiers.length > 0 && (
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+                    {it.modifiers.map(m => m.optionName).join(', ')}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </button>
+
+      {isPending && (
+        <div style={{ display: 'flex', gap: 8, padding: '0 16px 14px' }}>
+          <button className="btn btn-danger" style={{ flex: 1 }} disabled={busy} onClick={() => onReject(order.id)}>
+            Rechazar
+          </button>
+          <button className="btn btn-primary" style={{ flex: 1.4 }} disabled={busy} onClick={() => onAccept(order.id)}>
+            <span className="mat sm">check</span> Aceptar
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ── Detail sheet ─────────────────────────────────────────────────── */
+function DetailSheet({
+  order, onClose, onAccept, onReject, busy,
+}: {
+  order: OrderAdmin
+  onClose: () => void
+  onAccept: (id: string) => void
+  onReject: (id: string) => void
+  busy: boolean
+}) {
+  const items = parseItems(order.items)
+  const isPending = order.status === 'pending'
+
+  return (
+    <div className="modal-backdrop modal-center" onClick={onClose}>
+      <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ maxHeight: '90dvh', overflowY: 'auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <h2 className="serif" style={{ margin: 0, fontSize: 24, color: 'var(--primary-dark)', fontWeight: 700 }}>
+            Pedido #{order.id.slice(-6).toUpperCase()}
+          </h2>
+          <button onClick={onClose} className="tap" style={{ width: 32, height: 32, borderRadius: 16, display: 'grid', placeItems: 'center', color: 'var(--muted)', fontSize: 20 }}>
+            ✕
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+          <ElapsedChip createdAt={order.createdAt} status={order.status} />
+          {order.customerName && <span className="chip">{order.customerName}</span>}
+          <span className="chip">{order.customerPhone}</span>
+        </div>
+
+        <div className="card" style={{ padding: 16, marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {items.length === 0
+            ? <p style={{ color: 'var(--muted)', fontSize: 13, margin: 0 }}>Sin items</p>
+            : items.map((it, i) => (
+              <div key={i} style={{
+                display: 'flex', gap: 12, alignItems: 'flex-start',
+                paddingBottom: i < items.length - 1 ? 10 : 0,
+                borderBottom: i < items.length - 1 ? '1px solid var(--outline-soft)' : 'none',
+              }}>
+                <span style={{
+                  minWidth: 30, height: 24, borderRadius: 6,
+                  background: 'var(--primary)', color: 'white',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 12, fontWeight: 700, flexShrink: 0,
+                }}>{it.quantity}×</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{it.productName}</div>
+                  {it.modifiers && it.modifiers.length > 0 && (
+                    <div style={{ marginTop: 4 }}>
+                      {it.modifiers.map((m, j) => (
+                        <div key={j} style={{ fontSize: 12, color: 'var(--muted)' }}>
+                          • {m.optionName}{m.extraPrice > 0 ? ` +$${m.extraPrice}` : ''}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))
+          }
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '4px 4px', marginBottom: 16 }}>
+          <span style={{ fontSize: 13, color: 'var(--muted)' }}>Total</span>
+          <span className="serif" style={{ fontSize: 26, fontWeight: 700, color: 'var(--primary-dark)' }}>
+            {formatPrice(order.totalPrice)}
           </span>
-          <span className="text-xs text-gray-400">{formatDate(order.createdAt)}</span>
         </div>
-      </div>
 
-      <div className="text-xs text-gray-500 font-mono">
-        #{order.id.slice(-6).toUpperCase()}
-      </div>
-
-      <div className="border-t border-gray-100 pt-2">
-        <ItemsSummary items={order.items} />
-      </div>
-
-      <div className="flex items-center justify-between pt-1">
-        <span className="text-sm font-bold text-gray-900">{formatPrice(order.totalPrice)}</span>
-
-        {order.status === 'pending' && (
-          <div className="flex gap-2">
-            <button
-              onClick={() => onCancel(order.id)}
-              disabled={isBusy}
-              className="text-xs px-3 py-1.5 text-red-600 hover:bg-red-50 border border-red-200 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isCancelling ? 'Cancelando...' : 'Cancelar'}
+        {isPending && (
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button className="btn btn-danger" style={{ flex: 1 }} disabled={busy} onClick={() => onReject(order.id)}>
+              Rechazar
             </button>
-            <button
-              onClick={() => onConfirm(order.id)}
-              disabled={isBusy}
-              className="text-xs px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isConfirming ? 'Confirmando...' : 'Confirmar'}
+            <button className="btn btn-primary" style={{ flex: 1.4 }} disabled={busy} onClick={() => onAccept(order.id)}>
+              <span className="mat sm">check</span> Aceptar pedido
             </button>
           </div>
         )}
@@ -228,183 +217,141 @@ function OrderCard({
   )
 }
 
-/* ------------------------------------------------------------------ */
-/* Page                                                                  */
-/* ------------------------------------------------------------------ */
+/* ── Page ─────────────────────────────────────────────────────────── */
 export default function OrdersPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('pending')
-  const [confirmingId, setConfirmingId] = useState<string | null>(null)
-  const [cancellingId, setCancellingId] = useState<string | null>(null)
+  const [detail, setDetail] = useState<OrderAdmin | null>(null)
+  const [toast, setToast] = useState<{ id: number; msg: string } | null>(null)
 
   const queryClient = useQueryClient()
 
   const { data: orders = [], isLoading, error, refetch } = useQuery<OrderAdmin[], Error>({
     queryKey: ['orders', statusFilter],
     queryFn: () => getOrders(statusFilter),
-    refetchInterval: 30_000, // refresca cada 30s automáticamente
+    refetchInterval: 30_000,
   })
+
+  const pendingCount = orders.filter(o => o.status === 'pending').length
+
+  const showToast = useCallback((msg: string) => setToast({ id: Date.now(), msg }), [])
 
   const confirmMutation = useMutation({
     mutationFn: (id: string) => confirmOrder(id),
-    onMutate: (id) => setConfirmingId(id),
+    onSuccess: (_, id) => {
+      const o = orders.find(x => x.id === id)
+      if (o) showToast(`Pedido #${o.id.slice(-6).toUpperCase()} aceptado`)
+    },
     onSettled: () => {
-      setConfirmingId(null)
+      setDetail(null)
       queryClient.invalidateQueries({ queryKey: ['orders'] })
     },
   })
 
   const cancelMutation = useMutation({
     mutationFn: (id: string) => cancelOrder(id),
-    onMutate: (id) => setCancellingId(id),
+    onSuccess: (_, id) => {
+      const o = orders.find(x => x.id === id)
+      if (o) showToast(`Pedido #${o.id.slice(-6).toUpperCase()} rechazado`)
+    },
     onSettled: () => {
-      setCancellingId(null)
+      setDetail(null)
       queryClient.invalidateQueries({ queryKey: ['orders'] })
     },
   })
 
-  const handleConfirm = useCallback(
-    (id: string) => confirmMutation.mutate(id),
-    [confirmMutation],
-  )
-
-  const handleCancel = useCallback(
-    (id: string) => cancelMutation.mutate(id),
-    [cancelMutation],
-  )
+  const handleAccept = useCallback((id: string) => confirmMutation.mutate(id), [confirmMutation])
+  const handleReject = useCallback((id: string) => cancelMutation.mutate(id), [cancelMutation])
+  const isBusy = confirmMutation.isPending || cancelMutation.isPending
 
   const mutationError = confirmMutation.error?.message ?? cancelMutation.error?.message ?? null
 
-  const STATUS_TABS: StatusFilter[] = ['pending', 'confirmed', 'cancelled']
-  const TAB_LABELS: Record<StatusFilter, string> = {
-    pending: 'Pendientes',
-    confirmed: 'Confirmados',
-    cancelled: 'Cancelados',
-  }
+  const TABS = [
+    { key: 'pending'   as StatusFilter, label: `Pendientes${statusFilter === 'pending' && pendingCount > 0 ? ` (${pendingCount})` : ''}` },
+    { key: 'confirmed' as StatusFilter, label: 'Confirmados' },
+    { key: 'cancelled' as StatusFilter, label: 'Cancelados' },
+  ]
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Pedidos</h1>
-          <p className="text-sm text-gray-600 mt-1">
-            Gestioná y confirmá los pedidos de tus clientes
-          </p>
+    <div style={{ fontFamily: 'var(--sans)', minHeight: '100vh', background: 'var(--bg)' }}>
+
+      {/* Page header */}
+      <div style={{ padding: '4px 22px 18px' }}>
+        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>
+          Cola de servicio
         </div>
-        <button
-          onClick={() => refetch()}
-          className="self-start sm:self-auto text-sm px-4 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg font-medium transition-colors"
-        >
-          Actualizar
-        </button>
-      </div>
-
-      {/* Filtro por status */}
-      <div className="flex gap-2 border-b border-gray-200 overflow-x-auto">
-        {STATUS_TABS.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setStatusFilter(tab)}
-            className={`pb-2.5 px-1 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
-              statusFilter === tab
-                ? 'border-orange-600 text-orange-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            {TAB_LABELS[tab]}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+          <h1 className="serif" style={{ margin: 0, fontSize: 32, lineHeight: 1.05, color: 'var(--text)', flex: 1, fontWeight: 700 }}>
+            Pedidos activos
+          </h1>
+          <button onClick={() => refetch()} className="btn btn-outline btn-sm" style={{ marginTop: 4 }}>
+            <span className="mat sm">refresh</span>
           </button>
-        ))}
+        </div>
+        <p style={{ margin: '8px 0 0', fontSize: 13, color: 'var(--muted)', lineHeight: 1.4 }}>
+          Gestioná tickets entrantes y el flujo de preparación.
+        </p>
       </div>
 
-      {/* Errores */}
+      {/* Segmented filter */}
+      <div style={{ padding: '0 22px 16px' }}>
+        <div className="seg">
+          {TABS.map(t => (
+            <button key={t.key} className={statusFilter === t.key ? 'active' : ''} onClick={() => setStatusFilter(t.key)}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Error */}
       {(error || mutationError) && (
-        <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
+        <div style={{ margin: '0 22px 16px', padding: '12px 16px', background: 'var(--error-bg)', color: 'var(--error)', borderRadius: 'var(--radius-card)', fontSize: 13 }}>
           {error?.message ?? mutationError}
-        </p>
+        </div>
       )}
 
       {/* Loading */}
       {isLoading && (
-        <div className="flex items-center justify-center py-20">
-          <div className="w-8 h-8 border-4 border-orange-600 border-t-transparent rounded-full animate-spin" />
+        <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
+          <div style={{ width: 32, height: 32, border: '4px solid var(--primary)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       )}
 
-      {/* Empty state */}
-      {!isLoading && orders.length === 0 && (
-        <div className="text-center py-16 text-gray-400">
-          <p className="text-4xl mb-3">
-            {statusFilter === 'pending' ? '🟡' : statusFilter === 'confirmed' ? '✅' : '❌'}
-          </p>
-          <p className="font-medium">Sin pedidos {TAB_LABELS[statusFilter].toLowerCase()}</p>
-          <p className="text-sm mt-1">
-            {statusFilter === 'pending'
-              ? 'Los nuevos pedidos aparecerán aquí'
-              : 'No hay pedidos en este estado'}
-          </p>
+      {/* Order list */}
+      {!isLoading && (
+        <div style={{ padding: '0 22px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {orders.length === 0 ? (
+            <div className="card" style={{ padding: 32, textAlign: 'center', color: 'var(--muted)' }}>
+              <span className="mat lg" style={{ color: 'var(--muted-soft)', display: 'block', marginBottom: 8 }}>inbox</span>
+              <div style={{ fontSize: 14 }}>Sin pedidos en este estado</div>
+            </div>
+          ) : orders.map(o => (
+            <OrderCard
+              key={o.id}
+              order={o}
+              onTap={() => setDetail(o)}
+              onAccept={handleAccept}
+              onReject={handleReject}
+              busy={isBusy}
+            />
+          ))}
         </div>
       )}
 
-      {/* Tabla — desktop */}
-      {!isLoading && orders.length > 0 && (
-        <>
-          <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <table className="w-full text-left">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    ID
-                  </th>
-                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Cliente
-                  </th>
-                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Items
-                  </th>
-                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Total
-                  </th>
-                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Estado
-                  </th>
-                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Fecha
-                  </th>
-                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Acciones
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map((order) => (
-                  <OrderRow
-                    key={order.id}
-                    order={order}
-                    onConfirm={handleConfirm}
-                    onCancel={handleCancel}
-                    confirmingId={confirmingId}
-                    cancellingId={cancellingId}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Cards — mobile */}
-          <div className="md:hidden space-y-3">
-            {orders.map((order) => (
-              <OrderCard
-                key={order.id}
-                order={order}
-                onConfirm={handleConfirm}
-                onCancel={handleCancel}
-                confirmingId={confirmingId}
-                cancellingId={cancellingId}
-              />
-            ))}
-          </div>
-        </>
+      {/* Detail sheet */}
+      {detail && (
+        <DetailSheet
+          order={detail}
+          onClose={() => setDetail(null)}
+          onAccept={handleAccept}
+          onReject={handleReject}
+          busy={isBusy}
+        />
       )}
+
+      {/* Toast */}
+      {toast && <Toast key={toast.id} msg={toast.msg} onDone={() => setToast(null)} />}
     </div>
   )
 }
