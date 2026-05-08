@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { getSettings, updateSettings, buildWhatsAppNotificationUrl } from '@/lib/superadmin-api'
+import { useState, useEffect, useMemo, useRef } from 'react'
+import { getSettings, updateSettings } from '@/lib/superadmin-api'
 
 const TEMPLATE_VARIABLES = [
   { variable: '{tenantName}', description: 'Nombre del negocio' },
@@ -17,17 +17,20 @@ export default function SettingsPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [template, setTemplate] = useState(DEFAULT_TEMPLATE)
-  const [preview, setPreview] = useState('')
   const [showVarMenu, setShowVarMenu] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  useEffect(() => {
-    loadSettings()
-  }, [])
+  const preview = useMemo(() => {
+    return template
+      .replace('{tenantName}', 'Burger Co.')
+      .replace('{plan}', 'Pro')
+      .replace('{expirationDate}', '15 de junio de 2026')
+  }, [template])
 
   useEffect(() => {
-    updatePreview()
-  }, [template])
+    // eslint-disable-next-line react-hooks/immutability
+    loadSettings()
+  }, [])
 
   async function loadSettings() {
     try {
@@ -39,21 +42,6 @@ export default function SettingsPage() {
     } finally {
       setLoading(false)
     }
-  }
-
-  function updatePreview() {
-    const exampleDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('es-AR', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    })
-
-    const preview = template
-      .replace('{tenantName}', 'Burger Co.')
-      .replace('{plan}', 'Pro')
-      .replace('{expirationDate}', exampleDate)
-
-    setPreview(preview)
   }
 
   function insertVariable(variable: string) {

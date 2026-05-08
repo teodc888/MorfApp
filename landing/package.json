@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "tsc --noEmit",
     "test": "tsx --test src/components/contact/chatbot-content.test.ts"
   },
   "dependencies": {

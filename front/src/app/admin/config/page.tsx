@@ -1,10 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { getAdminMe, updateAdminMe, updateDelivery, updateHours, updatePayment } from '@/lib/admin-api'
-import type { BusinessHour, PaymentConfig } from '@/types/store'
-
-const DAY_NAMES = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+import { getAdminMe, updateAdminMe, updateDelivery, updateHours } from '@/lib/admin-api'
+import type { BusinessHour } from '@/types/store'
 
 type DeliveryForm = {
   mode: 'delivery' | 'pickup' | 'both'
@@ -38,26 +36,13 @@ export default function ConfigPage() {
   const [tenantName, setTenantName] = useState('')
   const [whatsappNumber, setWhatsappNumber] = useState('')
   const [localSaving, setLocalSaving] = useState(false)
-  const [localSaved, setLocalSaved] = useState(false)
 
   const [delivery, setDelivery] = useState<DeliveryForm>(DEFAULT_DELIVERY)
   const [deliverySaving, setDeliverySaving] = useState(false)
-  const [deliverySaved, setDeliverySaved] = useState(false)
 
   const [hours, setHours] = useState<BusinessHour[]>(DEFAULT_HOURS)
   const [hoursSaving, setHoursSaving] = useState(false)
-  const [hoursSaved, setHoursSaved] = useState(false)
 
-  const [payment, setPayment] = useState<PaymentConfig>({
-    deliveryCash: true,
-    deliveryTransfer: true,
-    deliveryCard: true,
-    pickupCash: true,
-    pickupTransfer: true,
-    pickupCard: true,
-  })
-  const [paymentSaving, setPaymentSaving] = useState(false)
-  const [paymentSaved, setPaymentSaved] = useState(false)
 
   useEffect(() => {
     getAdminMe()
@@ -85,9 +70,6 @@ export default function ConfigPage() {
           setHours(filled)
         }
 
-        if (tenant.payment) {
-          setPayment(tenant.payment)
-        }
       })
       .catch(() => setError('No se pudo cargar la configuración'))
       .finally(() => setLoading(false))
@@ -98,7 +80,6 @@ export default function ConfigPage() {
     setError(null)
     try {
       await updateAdminMe({ name: tenantName, whatsappNumber })
-      setLocalSaved(true)
     } catch {
       setError('Error al guardar los datos del local')
     } finally {
@@ -118,7 +99,6 @@ export default function ConfigPage() {
         estimatedMinutes: delivery.estimatedMinutes || null,
         pickupAddress: delivery.pickupAddress || null,
       })
-      setDeliverySaved(true)
     } catch {
       setError('Error al guardar delivery')
     } finally {
@@ -131,7 +111,6 @@ export default function ConfigPage() {
     setError(null)
     try {
       await updateHours(hours)
-      setHoursSaved(true)
     } catch {
       setError('Error al guardar horarios')
     } finally {
@@ -139,32 +118,12 @@ export default function ConfigPage() {
     }
   }
 
-  async function savePayment() {
-    setPaymentSaving(true)
-    setError(null)
-    try {
-      await updatePayment(payment)
-      setPaymentSaved(true)
-    } catch {
-      setError('Error al guardar medios de pago')
-    } finally {
-      setPaymentSaving(false)
-    }
-  }
-
   function updateHour<K extends keyof BusinessHour>(index: number, key: K, value: BusinessHour[K]) {
     setHours((prev) => prev.map((h, i) => (i === index ? { ...h, [key]: value } : h)))
-    setHoursSaved(false)
   }
 
   function setDel<K extends keyof DeliveryForm>(key: K, value: DeliveryForm[K]) {
     setDelivery((f) => ({ ...f, [key]: value }))
-    setDeliverySaved(false)
-  }
-
-  function togglePayment<K extends keyof PaymentConfig>(key: K) {
-    setPayment((p) => ({ ...p, [key]: !p[key] }))
-    setPaymentSaved(false)
   }
 
   if (loading) {
@@ -197,11 +156,11 @@ export default function ConfigPage() {
         <Section title="Mi local">
           <div className="field">
             <label>Nombre del local</label>
-            <input className="input" value={tenantName} onChange={(e) => { setTenantName(e.target.value); setLocalSaved(false) }} />
+            <input className="input" value={tenantName} onChange={(e) => setTenantName(e.target.value)} />
           </div>
           <div className="field">
             <label>WhatsApp</label>
-            <input className="input" value={whatsappNumber} onChange={(e) => { setWhatsappNumber(e.target.value.replace(/\D/g, '')); setLocalSaved(false) }} placeholder="5491155443322" style={{ fontFamily: 'ui-monospace, monospace' }} />
+            <input className="input" value={whatsappNumber} onChange={(e) => setWhatsappNumber(e.target.value.replace(/\D/g, ''))} placeholder="5491155443322" style={{ fontFamily: 'ui-monospace, monospace' }} />
             <div className="text-xs muted">Código de país sin espacios ni guiones.</div>
           </div>
           <button className="btn btn-primary btn-block" disabled={localSaving} onClick={saveLocal}>

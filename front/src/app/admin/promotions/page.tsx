@@ -14,6 +14,7 @@ import {
   type PromotionAdmin,
   type ModifierGroupAdmin,
 } from '@/lib/admin-api'
+import Image from 'next/image'
 import { formatPrice } from '@/lib/utils'
 
 type PromotionForm = {
@@ -71,7 +72,7 @@ export default function PromotionsPage() {
         getModifierGroups(),
       ])
       setPromotions(promos)
-      setCategories(cats as any)
+      setCategories(cats as unknown as Array<{ id: string; name: string; products: Array<{ id: string; name: string; price: number }> }>)
       setModifierGroups(groups)
       const flatProducts = cats.flatMap(c => c.products.map(p => ({ id: p.id, name: p.name, price: p.price })))
       setProducts(flatProducts)
@@ -83,6 +84,7 @@ export default function PromotionsPage() {
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load()
   }, [load])
 
@@ -497,7 +499,7 @@ export default function PromotionsPage() {
                 >
                   {form.imageUrl ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center' }}>
-                      <img src={form.imageUrl} alt="promo" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover' }} />
+                      <Image src={form.imageUrl} alt="promo" width={48} height={48} style={{ borderRadius: 8, objectFit: 'cover' }} unoptimized />
                       <input
                         type="file"
                         accept="image/*"

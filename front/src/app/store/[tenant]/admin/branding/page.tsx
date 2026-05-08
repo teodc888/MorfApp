@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { getAdminMe, updateBranding } from '@/lib/admin-api'
 
 type FormState = {
@@ -94,7 +95,7 @@ export default function BrandingPage() {
           style={{ backgroundColor: form.colorPrimary }}
         >
           {form.logoUrl ? (
-            <img src={form.logoUrl} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+            <Image src={form.logoUrl} alt="" width={40} height={40} className="rounded-full object-cover flex-shrink-0" unoptimized />
           ) : (
             <span className="text-3xl leading-none flex-shrink-0">{form.emojiIcon}</span>
           )}

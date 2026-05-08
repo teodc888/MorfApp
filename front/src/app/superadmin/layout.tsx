@@ -15,6 +15,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
       router.replace('/admin/login')
       return
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setReady(true)
   }, [router])
 

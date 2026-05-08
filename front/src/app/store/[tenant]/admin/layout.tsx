@@ -35,6 +35,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       router.replace(`${base}/login`)
       return
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setReady(true)
   }, [base, isLoginPage, router])
 

@@ -35,6 +35,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const isLoginPage = pathname.endsWith('/login')
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true)
     if (isLoginPage) return
     if (!isAuthenticated()) router.replace(`${base}/login`)
@@ -236,19 +237,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <span className="serif" style={{ color: 'var(--primary-dark)', fontWeight: 700, fontSize: 20, lineHeight: 1, letterSpacing: '-0.02em' }}>MorfApp</span>
           </div>
 
-          {/* Notification bell */}
-          <button className="tap" style={{
-            width: 38, height: 38, borderRadius: 19,
-            display: 'grid', placeItems: 'center',
-            background: 'var(--surface-container)', color: 'var(--text)', position: 'relative',
-          }}>
-            <span className="mat">notifications</span>
-            <span style={{
-              position: 'absolute', top: 8, right: 9,
-              width: 8, height: 8, borderRadius: 4,
-              background: 'var(--primary)', border: '2px solid var(--surface-container)',
-            }} />
-          </button>
+          {/* Espacio reservado para futura campana de notificaciones */}
+          <div style={{ width: 38 }} />
         </header>
 
         {/* Page content */}

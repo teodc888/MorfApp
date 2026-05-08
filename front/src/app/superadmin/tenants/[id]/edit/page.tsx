@@ -4,9 +4,6 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { getSuperAdminTenants, updateTenant, type SuperAdminTenant } from '@/lib/superadmin-api'
 
-const PLANS = ['Basico', 'Pro', 'Negocio']
-const PLAN_LABELS: Record<string, string> = { Basico: 'Básico', Pro: 'Pro', Negocio: 'Negocio' }
-
 export default function EditTenantPage() {
   const router = useRouter()
   const params = useParams()
@@ -109,7 +106,7 @@ export default function EditTenantPage() {
         >
           ← Volver
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">Editar "{tenant.name}"</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Editar &quot;{tenant.name}&quot;</h1>
         <p className="text-sm text-gray-500 mt-1">Slug: {tenant.slug}</p>
       </div>
 

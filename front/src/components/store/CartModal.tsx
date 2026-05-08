@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import type { TenantPublic, CartItem, SelectedOption } from '@/types/store'
 import { useCartStore } from '@/store/cart'
 import { formatPrice, buildWhatsAppMessage } from '@/lib/utils'
@@ -29,13 +30,6 @@ const DS = {
 function CartItemRow({ item }: { item: CartItem }) {
   const updateQty = useCartStore((s) => s.updateQty)
   const removeItem = useCartStore((s) => s.removeItem)
-
-  const modifierSummary = Object.values(item.selections)
-    .flatMap((val) => {
-      if (Array.isArray(val)) return (val as SelectedOption[]).map((v) => v.name)
-      return [(val as SelectedOption).name]
-    })
-    .join(', ')
 
   const subtotal = ((item.product.finalPrice ?? item.product.price) + item.extraPrice) * item.qty
 
@@ -280,10 +274,13 @@ export function CartModal({ tenant, onClose }: Props) {
               {/* Hero/Promo Image - Stitch Design */}
               {tenant.branding.bannerUrl && (
                 <div className="-mx-4 mb-4 aspect-[2.11] overflow-hidden">
-                  <img
+                  <Image
                     alt="Promo"
                     className="w-full h-full object-cover"
                     src={tenant.branding.bannerUrl}
+                    width={600}
+                    height={284}
+                    unoptimized
                   />
                 </div>
               )}

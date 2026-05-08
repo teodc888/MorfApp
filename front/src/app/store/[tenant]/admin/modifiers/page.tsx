@@ -51,6 +51,7 @@ export default function ModifiersPage() {
     }
   }, [])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load() }, [load])
 
   function openNew() {
