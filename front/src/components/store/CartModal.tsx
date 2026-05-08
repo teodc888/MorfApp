@@ -31,6 +31,21 @@ function CartItemRow({ item }: { item: CartItem }) {
   const updateQty = useCartStore((s) => s.updateQty)
   const removeItem = useCartStore((s) => s.removeItem)
 
+  if (!item.product) {
+    return (
+      <div className="flex items-center justify-between py-3 px-2" style={{ borderBottom: `1px solid ${DS.border}30`, backgroundColor: '#FEF2F2' }}>
+        <span className="text-sm" style={{ color: '#DC2626' }}>Producto no disponible</span>
+        <button
+          onClick={() => removeItem(item.cartId)}
+          className="text-xs px-2 py-1 rounded"
+          style={{ backgroundColor: '#FEE2E2', color: '#DC2626' }}
+        >
+          Remover
+        </button>
+      </div>
+    )
+  }
+
   const subtotal = ((item.product.finalPrice ?? item.product.price) + item.extraPrice) * item.qty
 
   return (
