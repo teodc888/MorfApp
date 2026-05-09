@@ -18,11 +18,11 @@ public record ProductAdminDto(
 );
 
 public record CreateProductRequest(
-    [property: Required] string CategoryId,
-    [property: Required, MinLength(1), MaxLength(200)] string Name,
-    [property: MaxLength(1000)] string? Description,
-    [property: Range(0, 9999999)] decimal Price,
-    [property: MaxLength(10)] string Emoji,
+    [Required] string CategoryId,
+    [Required, MinLength(1), MaxLength(200)] string Name,
+    [MaxLength(1000)] string? Description,
+    [Range(0, 9999999)] decimal Price,
+    [MaxLength(10)] string Emoji,
     string? ImageUrl,
     int SortOrder,
     bool IsActive,
@@ -30,11 +30,11 @@ public record CreateProductRequest(
 );
 
 public record UpdateProductRequest(
-    [property: Required] string CategoryId,
-    [property: Required, MinLength(1), MaxLength(200)] string Name,
-    [property: MaxLength(1000)] string? Description,
-    [property: Range(0, 9999999)] decimal Price,
-    [property: MaxLength(10)] string Emoji,
+    [Required] string CategoryId,
+    [Required, MinLength(1), MaxLength(200)] string Name,
+    [MaxLength(1000)] string? Description,
+    [Range(0, 9999999)] decimal Price,
+    [MaxLength(10)] string Emoji,
     string? ImageUrl,
     int SortOrder,
     bool IsActive,
@@ -42,5 +42,5 @@ public record UpdateProductRequest(
 );
 
 public record UpdateProductDiscountRequest(
-    [property: Range(0, 100)] int? DiscountPercent
+    [Range(0, 100)] int? DiscountPercent
 );

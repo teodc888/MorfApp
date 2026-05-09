@@ -12,14 +12,14 @@ public record CategoryAdminDto(
 );
 
 public record CreateCategoryRequest(
-    [property: Required, MinLength(1), MaxLength(100)] string Name,
-    [property: MaxLength(10)] string? Emoji,
+    [Required, MinLength(1), MaxLength(100)] string Name,
+    [MaxLength(10)] string? Emoji,
     int SortOrder
 );
 
 public record UpdateCategoryRequest(
-    [property: Required, MinLength(1), MaxLength(100)] string Name,
-    [property: MaxLength(10)] string? Emoji,
+    [Required, MinLength(1), MaxLength(100)] string Name,
+    [MaxLength(10)] string? Emoji,
     int SortOrder,
     bool IsActive
 );

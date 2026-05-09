@@ -22,28 +22,28 @@ public record ModifierOptionAdminDto(
 );
 
 public record CreateModifierGroupRequest(
-    [property: Required, MinLength(1), MaxLength(100)] string Name,
-    [property: Required] string Type,
+    [Required, MinLength(1), MaxLength(100)] string Name,
+    [Required] string Type,
     bool IsRequired,
-    [property: Range(1, 100)] int? MaxSelect,
+    [Range(1, 100)] int? MaxSelect,
     int SortOrder,
     List<UpsertModifierOptionRequest> Options
 );
 
 public record UpdateModifierGroupRequest(
-    [property: Required, MinLength(1), MaxLength(100)] string Name,
-    [property: Required] string Type,
+    [Required, MinLength(1), MaxLength(100)] string Name,
+    [Required] string Type,
     bool IsRequired,
-    [property: Range(1, 100)] int? MaxSelect,
+    [Range(1, 100)] int? MaxSelect,
     int SortOrder,
     List<UpsertModifierOptionRequest> Options
 );
 
 public record UpsertModifierOptionRequest(
     string? Id,
-    [property: Required, MinLength(1), MaxLength(100)] string Name,
-    [property: MaxLength(10)] string Emoji,
-    [property: Range(0, 99999)] decimal ExtraPrice,
+    [Required, MinLength(1), MaxLength(100)] string Name,
+    [MaxLength(10)] string Emoji,
+    [Range(0, 99999)] decimal ExtraPrice,
     int SortOrder
 );
 

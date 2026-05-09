@@ -18,26 +18,26 @@ public record PromotionAdminDto(
     List<string> ModifierGroupIds);
 
 public record CreatePromotionRequest(
-    [property: Required, MinLength(1), MaxLength(200)] string Name,
-    [property: MaxLength(1000)] string? Description,
-    [property: Range(0, 100)] decimal DiscountPercent,
-    [property: MaxLength(10)] string? Emoji,
+    [Required, MinLength(1), MaxLength(200)] string Name,
+    [MaxLength(1000)] string? Description,
+    [Range(0, 100)] decimal DiscountPercent,
+    [MaxLength(10)] string? Emoji,
     string? ImageUrl,
     int SortOrder,
     bool IsActive,
-    [property: Range(1, 10000)] int? MaxPerUser,
+    [Range(1, 10000)] int? MaxPerUser,
     List<string> ProductIds,
     List<string> ModifierGroupIds);
 
 public record UpdatePromotionRequest(
-    [property: Required, MinLength(1), MaxLength(200)] string Name,
-    [property: MaxLength(1000)] string? Description,
-    [property: Range(0, 100)] decimal DiscountPercent,
-    [property: MaxLength(10)] string? Emoji,
+    [Required, MinLength(1), MaxLength(200)] string Name,
+    [MaxLength(1000)] string? Description,
+    [Range(0, 100)] decimal DiscountPercent,
+    [MaxLength(10)] string? Emoji,
     string? ImageUrl,
     int SortOrder,
     bool IsActive,
-    [property: Range(1, 10000)] int? MaxPerUser);
+    [Range(1, 10000)] int? MaxPerUser);
 
 public record UpdatePromotionProductsRequest(List<string> ProductIds);
 
