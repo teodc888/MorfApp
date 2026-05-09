@@ -96,9 +96,11 @@ function readSectionProgress(section: HTMLElement | null | undefined): number {
   if (section) {
     const rect = section.getBoundingClientRect()
     const denom = Math.max(1, rect.height)
-    return Math.min(1, Math.max(0, -rect.top / denom))
+    const progress = Math.min(1, Math.max(0, -rect.top / denom))
+    return progress
   }
-  return Math.min(1, window.scrollY / Math.max(1, window.innerHeight * 0.85))
+  const viewportHeight = Math.max(1, window.innerHeight * 0.85)
+  return Math.min(1, window.scrollY / viewportHeight)
 }
 
 function BurgerLayers({ sectionRef, fullBleed }: SceneProps) {
@@ -196,7 +198,13 @@ function BurgerLayers({ sectionRef, fullBleed }: SceneProps) {
 
   const ref = (i: number) => (el: THREE.Group | null) => { layerRefs.current[i] = el }
 
-  if (slices.length === 0 || !material) return null
+  if (slices.length === 0 || !material) {
+    console.warn('BurgerLayers: Failed to load model or slices')
+    return null
+  }
+
+  const validSlices = LAYERS.filter((_, i) => slices[i]?.attributes.position.count > 0)
+  if (validSlices.length === 0) return null
 
   return (
     <group ref={groupRef} scale={1.0} position={[offsetX, 0, 0]}>
@@ -216,6 +224,15 @@ function BurgerLayers({ sectionRef, fullBleed }: SceneProps) {
 useGLTF.preload(MODEL_URL, undefined, undefined, extendLoader)
 
 function SceneLightsAndShadows({ contactX }: { contactX: number }) {
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.matchMedia('(max-width: 768px)').matches)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+
   return (
     <>
       {/* Soft warm key */}
@@ -235,13 +252,13 @@ function SceneLightsAndShadows({ contactX }: { contactX: number }) {
       <directionalLight position={[-2, 1.2, -3]} intensity={0.45} color="#ffb070" />
       <ambientLight intensity={0.28} />
 
-      {/* Soft, warm-toned contact shadow that matches the light surface */}
+      {/* Soft, warm-toned contact shadow — lower res on mobile for performance */}
       <ContactShadows
         position={[contactX, -0.95, 0]}
         opacity={0.45}
         blur={2.4}
         far={4}
-        resolution={1024}
+        resolution={isMobile ? 512 : 1024}
         color="#3a1a05"
       />
     </>
