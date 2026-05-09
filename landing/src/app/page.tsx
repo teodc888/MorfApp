@@ -1,5 +1,5 @@
 import { Nav } from '@/components/landing/Nav';
-import { Hero } from '@/components/landing/Hero';
+import { BurgerScroll } from '@/components/landing/BurgerScroll';
 import { Features } from '@/components/landing/Features';
 import { Pricing } from '@/components/landing/Pricing';
 import { Testimonial } from '@/components/landing/Testimonial';
@@ -38,7 +38,7 @@ export default function LandingPage() {
       `}</style>
       <main className="bg-surface-bright text-on-surface font-body antialiased min-h-screen">
         <Nav />
-        <Hero />
+        <BurgerScroll />
         <Features />
         <Pricing />
         <Testimonial />

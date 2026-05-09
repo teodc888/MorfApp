@@ -1,6 +1,6 @@
 export function Nav() {
   return (
-    <header className="fixed top-0 w-full z-50 bg-[#faf5ee]/90 backdrop-blur-md border-b border-[#d8d0c8]/60 shadow-[0_2px_16px_rgba(58,48,42,0.04)]">
+    <header className="fixed top-0 w-full z-50 bg-transparent border-b border-transparent">
       <div className="flex justify-between items-center px-6 py-4 max-w-7xl mx-auto">
         <a className="text-2xl font-headline italic font-bold text-primary" href="/">
           MorfApp
