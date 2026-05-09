@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 
 const TOTAL_FRAMES = 192;
-const IDLE_FRAMES = 10;   // oscila entre frame 0 y frame 9 en idle
+const IDLE_FRAMES = 10;
 const BG = '#EBEBEB';
 
 const frameUrl = (i: number) =>
@@ -63,6 +63,7 @@ export function BurgerScroll() {
   const scrollRafRef = useRef<number>(0);
   const isIdleRef = useRef(true);
 
+  // loaded = true cuando el primer frame está listo (no espera los 192)
   const [loaded, setLoaded] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
   const [activeOverlay, setActiveOverlay] = useState<number>(0);
@@ -84,7 +85,16 @@ export function BurgerScroll() {
   const drawFrame = useCallback((frameIndex: number) => {
     const canvas = canvasRef.current;
     const frames = framesRef.current;
-    const img = frames[frameIndex];
+
+    // Busca el frame pedido; si no cargó aún, usa el más cercano cargado
+    let img = frames[frameIndex];
+    if (!img?.complete || !img.naturalWidth) {
+      for (let i = frameIndex - 1; i >= 0; i--) {
+        const f = frames[i];
+        if (f?.complete && f.naturalWidth) { img = f; break; }
+      }
+    }
+
     if (!canvas || !img?.complete || !img.naturalWidth) return;
 
     const ctx = canvas.getContext('2d');
@@ -96,7 +106,6 @@ export function BurgerScroll() {
     const imgRatio = img.naturalWidth / img.naturalHeight;
     const canvasRatio = W / H;
 
-    // cover fit — sin barras
     let drawW: number, drawH: number, drawX: number, drawY: number;
     if (imgRatio > canvasRatio) {
       drawH = H;
@@ -114,7 +123,7 @@ export function BurgerScroll() {
     ctx.drawImage(img, drawX, drawY, drawW, drawH);
   }, []);
 
-  // Preload all frames
+  // Carga progresiva: muestra el canvas en cuanto llega el frame 0
   useEffect(() => {
     let loadedCount = 0;
     const images: HTMLImageElement[] = new Array(TOTAL_FRAMES);
@@ -122,27 +131,33 @@ export function BurgerScroll() {
     for (let i = 0; i < TOTAL_FRAMES; i++) {
       const img = new Image();
       const index = i;
-      const onDone = () => {
+      images[index] = img;
+
+      img.onload = () => {
         loadedCount++;
         setLoadProgress(Math.round((loadedCount / TOTAL_FRAMES) * 100));
-        if (loadedCount === TOTAL_FRAMES) {
-          framesRef.current = images;
+
+        // Mostrar contenido en cuanto el primer frame esté listo
+        if (index === 0) {
           setLoaded(true);
-          // Ensure canvas size is correct after images load
           setTimeout(() => {
             updateCanvasSize();
             requestAnimationFrame(() => drawFrame(0));
           }, 0);
         }
       };
-      img.onload = onDone;
-      img.onerror = onDone;
+      img.onerror = () => {
+        loadedCount++;
+        setLoadProgress(Math.round((loadedCount / TOTAL_FRAMES) * 100));
+      };
       img.src = frameUrl(i + 1);
-      images[index] = img;
     }
+
+    // Asignar inmediatamente: drawFrame accede a los frames a medida que cargan
+    framesRef.current = images;
   }, [drawFrame, updateCanvasSize]);
 
-  // Idle animation: frame oscillation + float bob + mouse parallax
+  // Animación idle: oscilación de frames + float bob + parallax de mouse
   useEffect(() => {
     if (!loaded) return;
 
@@ -162,11 +177,9 @@ export function BurgerScroll() {
     const animate = (now: number) => {
       const t = (now - startTime) / 1000;
 
-      // Lerp mouse para suavidad
       mouseX += (mouseTargetX - mouseX) * 0.05;
       mouseY += (mouseTargetY - mouseY) * 0.05;
 
-      // Float bob: ±9px, ciclo ~3.5s
       const floatY = Math.sin(t * 1.8) * 9;
 
       const wrapper = floatWrapperRef.current;
@@ -174,9 +187,7 @@ export function BurgerScroll() {
         wrapper.style.transform = `translate(${mouseX}px, ${floatY + mouseY * 0.45}px)`;
       }
 
-      // Frame oscillation solo en idle (0 → IDLE_FRAMES → 0)
       if (isIdleRef.current && framesRef.current.length > 0) {
-        // 0..1 oscilante cada ~2s
         const osc = (Math.sin(t * 3.2) + 1) / 2;
         const frameIndex = Math.round(osc * (IDLE_FRAMES - 1));
         if (frameIndex !== currentFrameRef.current) {
@@ -196,7 +207,7 @@ export function BurgerScroll() {
     };
   }, [loaded, drawFrame]);
 
-  // Scroll → frame mapping
+  // Scroll → frame
   useEffect(() => {
     const handleScroll = () => {
       const container = containerRef.current;
@@ -207,7 +218,6 @@ export function BurgerScroll() {
       const total = rect.height - window.innerHeight;
       const progress = Math.max(0, Math.min(1, scrolled / total));
 
-      // Pasar de idle a scroll cuando el usuario mueve
       isIdleRef.current = progress === 0;
 
       const frameIndex = Math.min(
@@ -238,7 +248,6 @@ export function BurgerScroll() {
       drawFrame(currentFrameRef.current);
     };
 
-    // Ensure correct size on mount (important for mobile)
     setTimeout(() => handleResize(), 100);
 
     window.addEventListener('resize', handleResize);
@@ -251,7 +260,6 @@ export function BurgerScroll() {
         className="sticky top-0 h-screen w-full overflow-hidden"
         style={{ background: BG }}
       >
-        {/* Wrapper que recibe float + parallax via ref */}
         <div ref={floatWrapperRef} className="absolute inset-0 will-change-transform">
           <canvas
             ref={canvasRef}
@@ -260,7 +268,7 @@ export function BurgerScroll() {
           />
         </div>
 
-        {/* Loading */}
+        {/* Spinner solo hasta que el primer frame esté listo (~1-2s en vez de 30s+) */}
         {!loaded && (
           <div
             className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-10"
@@ -268,12 +276,21 @@ export function BurgerScroll() {
           >
             <div className="w-8 h-8 border-2 border-black/15 border-t-black/50 rounded-full animate-spin" />
             <p className="text-black/40 text-sm tracking-widest uppercase">
-              Cargando… {loadProgress}%
+              Cargando…
             </p>
           </div>
         )}
 
-        {/* Overlays */}
+        {/* Barra de progreso sutil mientras los frames restantes cargan en segundo plano */}
+        {loaded && loadProgress < 100 && (
+          <div className="absolute bottom-0 left-0 right-0 h-0.5 z-20 bg-black/10">
+            <div
+              className="h-full bg-black/30 transition-[width] duration-500"
+              style={{ width: `${loadProgress}%` }}
+            />
+          </div>
+        )}
+
         {loaded &&
           OVERLAYS.map((overlay, i) => (
             <OverlayText
