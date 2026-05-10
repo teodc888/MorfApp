@@ -10,14 +10,53 @@ html, body {
 
 html {
   scroll-behavior: smooth;
-  background-color: #EBEBEB;
+  background-color: #2a1f1a;
 }
 
 body {
-  background-color: #EBEBEB;
+  background-color: #2a1f1a;
 }
 
 * {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* ─── Reveal animations (consolida los <style> inline de cada componente) ─── */
+.reveal {
+  opacity: 0; transform: translateY(24px);
+  transition: opacity .7s ease, transform .7s ease;
+}
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+.reveal-left {
+  opacity: 0; transform: translateX(-44px);
+  transition: opacity .7s cubic-bezier(.22,1,.36,1), transform .7s cubic-bezier(.22,1,.36,1);
+}
+.reveal-right {
+  opacity: 0; transform: translateX(44px);
+  transition: opacity .7s cubic-bezier(.22,1,.36,1), transform .7s cubic-bezier(.22,1,.36,1);
+}
+.reveal-left.visible, .reveal-right.visible { opacity: 1; transform: translateX(0); }
+
+.reveal-blur {
+  opacity: 0; filter: blur(8px); transform: translateY(20px);
+  transition: opacity .8s cubic-bezier(.22,1,.36,1), filter .8s cubic-bezier(.22,1,.36,1), transform .8s cubic-bezier(.22,1,.36,1);
+}
+.reveal-blur.visible { opacity: 1; filter: blur(0); transform: translateY(0); }
+
+/* ─── Features spine ─── */
+.features-spine {
+  position: absolute; left: 50%; top: 0; bottom: 0; width: 1px;
+  background: linear-gradient(to bottom, transparent, #d8d0c8 5%, #d8d0c8 95%, transparent);
+  transform-origin: top center; transform: scaleY(0);
+  transition: transform 1.4s cubic-bezier(.22,1,.36,1);
+}
+.features-spine::before,
+.features-spine::after {
+  content: ''; position: absolute; left: -3px; width: 7px; height: 7px;
+  background: #c2652a; border-radius: 50%;
+}
+.features-spine::before { top: -4px; }
+.features-spine::after  { bottom: -4px; }
+.features-spine.visible { transform: scaleY(1); }

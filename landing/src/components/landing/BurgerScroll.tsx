@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 
 const TOTAL_FRAMES = 192;
 const IDLE_FRAMES = 10;
-const BG = '#EBEBEB';
+const BG = '#2a1f1a';
 
 const frameUrl = (i: number) =>
   `/secuencia/${String(i).padStart(5, '0')}.png`;
@@ -180,11 +180,9 @@ export function BurgerScroll() {
       mouseX += (mouseTargetX - mouseX) * 0.05;
       mouseY += (mouseTargetY - mouseY) * 0.05;
 
-      const floatY = Math.sin(t * 1.8) * 9;
-
       const wrapper = floatWrapperRef.current;
       if (wrapper) {
-        wrapper.style.transform = `translate(${mouseX}px, ${floatY + mouseY * 0.45}px)`;
+        wrapper.style.transform = `translate(${mouseX}px, ${mouseY * 0.45}px)`;
       }
 
       if (isIdleRef.current && framesRef.current.length > 0) {

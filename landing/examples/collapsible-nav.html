@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Collapsible Navigation Demo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif;
+      background: #2a1f1a;
+    }
+
+    /* ─── HERO SECTION ─── */
+    .hero {
+      height: 100vh;
+      background: linear-gradient(135deg, #2a1f1a 0%, #352820 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #faf5ee;
+      text-align: center;
+    }
+
+    .hero h1 {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    .hero p {
+      font-size: 1.2rem;
+      color: rgba(250, 245, 238, 0.7);
+    }
+
+    /* ─── CONTENT SECTIONS ─── */
+    .section {
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #faf5ee;
+      border-bottom: 1px solid #f0ebe4;
+    }
+
+    .section:nth-child(odd) {
+      background: #f6f0e8;
+    }
+
+    .section h2 {
+      font-size: 2rem;
+      color: #2a1f1a;
+    }
+
+    /* ─── NAVIGATION ─── */
+    .nav-container {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 50;
+    }
+
+    .nav {
+      background: rgba(42, 31, 26, 0.95);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(250, 245, 238, 0.1);
+      border-radius: 50px;
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      height: 48px;
+      overflow: hidden;
+      transform-origin: left center;
+      transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    /* Estado colapsado (icono solo) */
+    .nav.collapsed {
+      width: 48px;
+      padding: 0;
+      justify-content: center;
+      border-radius: 50%;
+    }
+
+    .nav.collapsed .nav-items {
+      opacity: 0;
+      pointer-events: none;
+      visibility: hidden;
+    }
+
+    .nav.collapsed .nav-menu-icon {
+      opacity: 1;
+      visibility: visible;
+      scale: 1;
+    }
+
+    /* Estado expandido (todo visible) */
+    .nav.expanded {
+      width: auto;
+      justify-content: flex-start;
+    }
+
+    .nav.expanded .nav-items {
+      opacity: 1;
+      pointer-events: auto;
+      visibility: visible;
+    }
+
+    .nav.expanded .nav-menu-icon {
+      opacity: 0;
+      visibility: hidden;
+      scale: 0.8;
+    }
+
+    /* ─── LOGO ─── */
+    .nav-logo {
+      font-size: 1.25rem;
+      font-weight: bold;
+      color: #c2652a;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .nav.collapsed .nav-logo {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    /* ─── NAV ITEMS ─── */
+    .nav-items {
+      display: flex;
+      gap: 2rem;
+      align-items: center;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    .nav-items a {
+      color: #faf5ee;
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 500;
+      transition: color 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .nav-items a:hover {
+      color: #c2652a;
+    }
+
+    /* ─── MENU ICON (colapsado) ─── */
+    .nav-menu-icon {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #faf5ee;
+      cursor: pointer;
+      transition: opacity 0.3s ease, visibility 0.3s ease, scale 0.3s ease;
+      flex-shrink: 0;
+    }
+
+    .hamburger {
+      width: 24px;
+      height: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .hamburger span {
+      width: 100%;
+      height: 2px;
+      background: #faf5ee;
+      border-radius: 1px;
+      transition: all 0.3s ease;
+    }
+
+    /* ─── SCROLL INDICATOR ─── */
+    .scroll-indicator {
+      position: fixed;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #c2652a;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      animation: float 3s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(10px); }
+    }
+  </style>
+</head>
+<body>
+  <!-- NAVIGATION -->
+  <div class="nav-container">
+    <nav class="nav expanded">
+      <div class="nav-logo">MorfApp</div>
+      <div class="nav-items">
+        <a href="#home">Inicio</a>
+        <a href="#features">Funciones</a>
+        <a href="#pricing">Planes</a>
+        <a href="#contact">Contacto</a>
+      </div>
+      <div class="nav-menu-icon">
+        <div class="hamburger">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </div>
+    </nav>
+  </div>
+
+  <!-- HERO -->
+  <section class="hero" id="home">
+    <div>
+      <h1>Tu restaurante, online</h1>
+      <p>Scroll para ver cómo la nav se colapsa a la izquierda</p>
+      <div class="scroll-indicator">↓ Scroll ↓</div>
+    </div>
+  </section>
+
+  <!-- CONTENT SECTIONS -->
+  <section class="section" id="features">
+    <h2>Sección 1: Funciones</h2>
+  </section>
+
+  <section class="section">
+    <h2>Sección 2: Contenido</h2>
+  </section>
+
+  <section class="section" id="pricing">
+    <h2>Sección 3: Planes</h2>
+  </section>
+
+  <section class="section">
+    <h2>Sección 4: Más contenido</h2>
+  </section>
+
+  <section class="section" id="contact">
+    <h2>Sección 5: Contacto</h2>
+  </section>
+
+  <script>
+    const nav = document.querySelector('.nav');
+    const hero = document.querySelector('.hero');
+    let ticking = false;
+
+    function updateNavState() {
+      const heroRect = hero.getBoundingClientRect();
+      const heroBottom = heroRect.bottom;
+
+      // Si estamos dentro del hero (heroBottom > 0), expandido
+      // Si salimos del hero (heroBottom <= 0), colapsado
+      if (heroBottom > 0) {
+        nav.classList.remove('collapsed');
+        nav.classList.add('expanded');
+      } else {
+        nav.classList.remove('expanded');
+        nav.classList.add('collapsed');
+      }
+    }
+
+    window.addEventListener('scroll', () => {
+      if (!ticking) {
+        requestAnimationFrame(updateNavState);
+        ticking = true;
+      }
+      ticking = false;
+    }, { passive: true });
+
+    // Inicializar estado
+    updateNavState();
+
+    // Click en icono para expandir (opcional)
+    const menuIcon = document.querySelector('.nav-menu-icon');
+    menuIcon.addEventListener('click', () => {
+      if (nav.classList.contains('collapsed')) {
+        nav.classList.remove('collapsed');
+        nav.classList.add('expanded');
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MorfApp - Concepto A: Barra calida</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,600;0,700;0,800;1,600;1,700&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --surface: #fff7ea;
+      --surface-2: #f1dfca;
+      --surface-3: #e2c49f;
+      --ink: #39281d;
+      --muted: #765f4f;
+      --primary: #bd5f24;
+      --primary-2: #e38b45;
+      --cream: #fffdf7;
+      --wood: #8f4e28;
+      --green: #25d366;
+      --line: rgba(92, 58, 36, .18);
+      --shadow: 0 24px 70px rgba(91, 51, 27, .18);
+      --inner: inset 0 1px 0 rgba(255,255,255,.9), inset 0 -14px 26px rgba(121,61,25,.10);
+      --headline: "EB Garamond", Georgia, serif;
+      --body: "Manrope", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: var(--body);
+      background:
+        radial-gradient(circle at 18% 8%, rgba(255,255,255,.92), transparent 20rem),
+        linear-gradient(135deg, #fff8eb 0%, #f2ddc0 48%, #d09058 100%);
+    }
+    a { color: inherit; text-decoration: none; }
+    .nav {
+      position: sticky;
+      top: 18px;
+      z-index: 20;
+      width: min(1120px, calc(100% - 32px));
+      margin: 18px auto 0;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px 0 22px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255, 250, 240, .78);
+      backdrop-filter: blur(18px);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.92), 0 18px 45px rgba(82, 44, 24, .12);
+    }
+    .brand {
+      font-family: var(--headline);
+      font-size: 1.75rem;
+      font-style: italic;
+      font-weight: 800;
+      color: var(--primary);
+    }
+    .nav-links {
+      display: flex;
+      gap: 24px;
+      color: var(--muted);
+      font-size: .86rem;
+      font-weight: 700;
+    }
+    .nav-cta, .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 46px;
+      padding: 0 22px;
+      border: 1px solid rgba(108, 56, 25, .22);
+      border-radius: 13px;
+      background: linear-gradient(#f1954d, #bd5f24);
+      color: #fffdf7;
+      font-weight: 800;
+      box-shadow: var(--inner), 0 14px 30px rgba(189, 95, 36, .28);
+      text-shadow: 0 1px 0 rgba(91, 41, 14, .25);
+    }
+    .hero {
+      min-height: calc(100vh - 82px);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(360px, .92fr);
+      align-items: center;
+      gap: 56px;
+      width: min(1120px, calc(100% - 36px));
+      margin: 0 auto;
+      padding: 76px 0 90px;
+    }
+    .badge {
+      display: inline-flex;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: #ffe0ba;
+      border: 1px solid rgba(180, 90, 34, .18);
+      box-shadow: inset 0 1px 0 #fff8eb, 0 8px 20px rgba(114, 62, 31, .10);
+      color: #934215;
+      font-size: .72rem;
+      font-weight: 800;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 22px 0 0;
+      font-family: var(--headline);
+      font-size: clamp(3.4rem, 8vw, 7.6rem);
+      line-height: .88;
+      letter-spacing: 0;
+    }
+    h1 em { color: var(--primary); }
+    .lead {
+      max-width: 580px;
+      margin: 24px 0 0;
+      color: var(--muted);
+      font-size: clamp(1rem, 1.4vw, 1.18rem);
+      line-height: 1.7;
+      font-weight: 600;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 34px;
+    }
+    .button.secondary {
+      background: rgba(255, 250, 240, .72);
+      color: var(--ink);
+      border-color: rgba(92, 58, 36, .22);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 12px 24px rgba(82, 44, 24, .10);
+      text-shadow: none;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      max-width: 560px;
+      margin-top: 36px;
+    }
+    .stat {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255, 252, 246, .55);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.78), 0 12px 28px rgba(89,50,28,.08);
+    }
+    .stat strong {
+      display: block;
+      font-family: var(--headline);
+      font-size: 1.8rem;
+      line-height: 1;
+    }
+    .stat span {
+      color: var(--muted);
+      font-size: .72rem;
+      font-weight: 700;
+    }
+    .plate-wrap {
+      position: relative;
+      min-height: 560px;
+      display: grid;
+      place-items: center;
+    }
+    .board {
+      position: absolute;
+      inset: auto 3% 3% 7%;
+      height: 72%;
+      border-radius: 42px;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,.08), transparent 22%),
+        repeating-linear-gradient(90deg, rgba(255,255,255,.04) 0 12px, rgba(58,30,14,.04) 12px 24px),
+        linear-gradient(145deg, #b66b39, #6f351b);
+      box-shadow: inset 18px 18px 38px rgba(255,220,170,.12), inset -24px -32px 50px rgba(45,20,10,.28), 0 34px 70px rgba(82,40,19,.26);
+      transform: rotate(-7deg);
+    }
+    .plate {
+      position: relative;
+      width: min(440px, 82vw);
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #fffef7 0 22%, #f5e9d4 48%, #c99255 100%);
+      box-shadow: inset 18px 20px 28px rgba(255,255,255,.75), inset -24px -28px 48px rgba(121,66,28,.25), 0 38px 90px rgba(83,40,18,.32);
+      animation: float 5s ease-in-out infinite;
+    }
+    .burger {
+      position: absolute;
+      left: 12%;
+      right: 12%;
+      top: 21%;
+      height: 55%;
+      filter: drop-shadow(0 26px 30px rgba(65, 30, 14, .32));
+    }
+    .bun, .cheese, .patty, .lettuce { position: absolute; left: 0; right: 0; margin: auto; }
+    .bun.top {
+      top: 0;
+      width: 92%;
+      height: 34%;
+      border-radius: 56% 56% 34% 34%;
+      background: radial-gradient(circle at 38% 22%, #ffe6a6, transparent 18%), linear-gradient(#e7a653, #be6729);
+      box-shadow: inset 0 10px 18px rgba(255,239,177,.54), inset 0 -16px 26px rgba(116,48,17,.20);
+    }
+    .cheese {
+      top: 38%;
+      width: 90%;
+      height: 15%;
+      background: linear-gradient(#ffd263, #eaa528);
+      clip-path: polygon(0 0, 100% 0, 100% 70%, 72% 70%, 62% 100%, 50% 70%, 0 70%);
+    }
+    .patty {
+      top: 46%;
+      width: 96%;
+      height: 24%;
+      border-radius: 999px;
+      background: linear-gradient(#5b2b1a, #2d160f);
+      box-shadow: inset 0 8px 14px rgba(255,190,120,.10), inset 0 -10px 18px rgba(0,0,0,.38);
+    }
+    .lettuce {
+      top: 66%;
+      width: 92%;
+      height: 15%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #7fb649, #4f8b32, #8fc35a);
+      clip-path: polygon(0 42%, 10% 10%, 20% 45%, 30% 12%, 44% 47%, 56% 8%, 70% 45%, 84% 12%, 100% 45%, 100% 100%, 0 100%);
+    }
+    .bun.bottom {
+      top: 77%;
+      width: 88%;
+      height: 23%;
+      border-radius: 26% 26% 55% 55%;
+      background: linear-gradient(#d98a3e, #a95321);
+      box-shadow: inset 0 8px 14px rgba(255,226,156,.24), inset 0 -12px 20px rgba(84,35,13,.24);
+    }
+    .label {
+      position: absolute;
+      padding: 10px 14px;
+      border-radius: 14px;
+      background: rgba(255, 252, 245, .82);
+      border: 1px solid rgba(92,58,36,.18);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 16px 32px rgba(74,39,20,.14);
+      color: var(--muted);
+      font-size: .78rem;
+      font-weight: 800;
+    }
+    .l1 { top: 12%; right: 3%; }
+    .l2 { left: 0; bottom: 18%; }
+    .transition {
+      padding: 100px 24px;
+      background: linear-gradient(#f2ddc0, #fff7ea);
+      border-top: 1px solid var(--line);
+    }
+    .section-inner { width: min(1040px, 100%); margin: 0 auto; }
+    .section-title {
+      font-family: var(--headline);
+      font-size: clamp(2.5rem, 5vw, 4.8rem);
+      line-height: .96;
+      margin: 0 0 18px;
+    }
+    .scroll-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      margin-top: 34px;
+    }
+    .scroll-card, .token-card {
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: rgba(255, 252, 246, .68);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 18px 38px rgba(83,45,24,.10);
+    }
+    .scroll-card h3, .token-card h3 {
+      margin: 0 0 8px;
+      font-family: var(--headline);
+      font-size: 1.8rem;
+    }
+    .scroll-card p, .token-card p { margin: 0; color: var(--muted); line-height: 1.55; }
+    .tokens {
+      display: grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 18px;
+      margin-top: 18px;
+    }
+    .swatches { display: flex; gap: 10px; flex-wrap: wrap; }
+    .swatch {
+      width: 72px;
+      height: 72px;
+      border-radius: 18px;
+      border: 1px solid rgba(66,38,24,.16);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.55), 0 10px 20px rgba(73,42,24,.12);
+    }
+    .plans {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      margin-top: 42px;
+    }
+    .plan {
+      min-height: 280px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 26px;
+      border-radius: 24px;
+      border: 1px solid var(--line);
+      background: linear-gradient(#fffdf7, #f7e6d0);
+      box-shadow: var(--inner), var(--shadow);
+    }
+    .plan.featured {
+      background: linear-gradient(#3a2418, #1e130d);
+      color: #fff7ea;
+      border-color: rgba(255,198,112,.28);
+    }
+    .plan h3 { margin: 0; font-family: var(--headline); font-size: 2.25rem; }
+    .price { font-family: var(--headline); font-size: 2.5rem; font-weight: 800; }
+    @keyframes float { 0%, 100% { transform: translateY(0) rotate(2deg); } 50% { transform: translateY(-14px) rotate(2deg); } }
+    @media (max-width: 860px) {
+      .nav-links, .nav-cta { display: none; }
+      .hero { grid-template-columns: 1fr; padding-top: 56px; }
+      .plate-wrap { min-height: 420px; }
+      .scroll-strip, .tokens, .plans, .stats { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="nav">
+    <a class="brand" href="#">MorfApp</a>
+    <nav class="nav-links" aria-label="Principal">
+      <a href="#features">Funciones</a>
+      <a href="#tokens">Identidad</a>
+      <a href="#plans">Planes</a>
+    </nav>
+    <a class="nav-cta" href="#plans">Empezar gratis</a>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <span class="badge">Primer mes gratis</span>
+        <h1>Tu menu digital,<br><em>servido</em> en minutos</h1>
+        <p class="lead">Una identidad calida y gastronomica para restaurantes que quieren vender mas sin perder su esencia. Skeuomorphism de madera, ceramica y botones tactiles.</p>
+        <div class="actions">
+          <a class="button" href="#plans">Ver planes</a>
+          <a class="button secondary" href="#features">Ver experiencia</a>
+        </div>
+        <div class="stats" aria-label="Beneficios">
+          <div class="stat"><strong>5 min</strong><span>para estar online</span></div>
+          <div class="stat"><strong>0%</strong><span>de comision</span></div>
+          <div class="stat"><strong>100%</strong><span>marca propia</span></div>
+        </div>
+      </div>
+
+      <div class="plate-wrap" aria-label="Mock visual gastronomico">
+        <div class="board"></div>
+        <div class="plate">
+          <div class="burger">
+            <div class="bun top"></div>
+            <div class="cheese"></div>
+            <div class="patty"></div>
+            <div class="lettuce"></div>
+            <div class="bun bottom"></div>
+          </div>
+        </div>
+        <div class="label l1">Menu con textura real</div>
+        <div class="label l2">Pedidos por WhatsApp</div>
+      </div>
+    </section>
+
+    <section class="transition" id="features">
+      <div class="section-inner">
+        <h2 class="section-title">El scroll se siente como una cocina en accion.</h2>
+        <p class="lead">La hamburguesa o el plato puede mantenerse como protagonista, pero las capas de texto, chips y secciones comparten materiales: madera clara, ceramica, sombra suave y volumen medido.</p>
+        <div class="scroll-strip">
+          <article class="scroll-card"><h3>Entrada</h3><p>Hero con producto grande, nav flotante y CTA con relieve.</p></article>
+          <article class="scroll-card"><h3>Capas</h3><p>Overlays de funcion: menu, WhatsApp, personalizacion y horarios.</p></article>
+          <article class="scroll-card"><h3>Cierre</h3><p>Planes y testimonios con tarjetas tactiles, no genericas.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="transition" id="tokens">
+      <div class="section-inner">
+        <h2 class="section-title">Tokens de marca</h2>
+        <div class="tokens">
+          <div class="token-card">
+            <h3>Materiales</h3>
+            <p>Madera clara, ceramica crema, naranja tostado, sombras difusas e interiores iluminados. Radios entre 13px y 24px.</p>
+          </div>
+          <div class="token-card">
+            <h3>Colores</h3>
+            <div class="swatches">
+              <div class="swatch" style="background:#fff7ea"></div>
+              <div class="swatch" style="background:#bd5f24"></div>
+              <div class="swatch" style="background:#8f4e28"></div>
+              <div class="swatch" style="background:#39281d"></div>
+              <div class="swatch" style="background:#25d366"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="transition" id="plans">
+      <div class="section-inner">
+        <h2 class="section-title">Como escala a planes</h2>
+        <div class="plans">
+          <article class="plan"><h3>Basico</h3><p>1 local, menu ilimitado, pedidos por WhatsApp.</p><div class="price">$20.000</div></article>
+          <article class="plan featured"><h3>Pro</h3><p>Branding avanzado, dominio propio y estadisticas.</p><div class="price">$45.000</div></article>
+          <article class="plan"><h3>Negocio</h3><p>Multiples locales, reportes y onboarding.</p><div class="price">A consultar</div></article>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
