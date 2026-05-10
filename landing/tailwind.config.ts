@@ -42,6 +42,9 @@ const config: Config = {
         'surface-variant': '#ece6dc',
         'error': '#c0392b',
         'on-secondary': '#ffffff',
+        'surface-dark': '#2a1f1a',
+        'on-surface-dark': '#faf5ee',
+        'accent-amber': '#d4a96a',
       },
       fontFamily: {
         headline: ['var(--font-headline)', 'serif'],

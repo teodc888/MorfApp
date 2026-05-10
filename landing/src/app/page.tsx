@@ -6,6 +6,7 @@ import { Testimonial } from '@/components/landing/Testimonial';
 import { CTA } from '@/components/landing/CTA';
 import { Footer } from '@/components/landing/Footer';
 import { ScrollIndicator } from '@/components/landing/ScrollIndicator';
+import { HeroToFeaturesTransition } from '@/components/landing/HeroToFeaturesTransition';
 
 export const metadata = {
   title: 'MorfApp — Tu menú digital, listo en minutos',
@@ -43,10 +44,7 @@ export default function LandingPage() {
         <div id="hero">
           <BurgerScroll />
         </div>
-        <div style={{
-          height: '140px',
-          background: 'linear-gradient(to bottom, #2a1f1a 0%, #3d332c 40%, #f6f0e8 100%)'
-        }} />
+        <HeroToFeaturesTransition />
         <Features />
         <Pricing />
         <Testimonial />
