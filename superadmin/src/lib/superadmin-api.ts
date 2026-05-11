@@ -1,4 +1,4 @@
-import { adminFetch } from './admin-api'
+import { adminFetch } from '@/lib/api'
 
 async function json<T>(res: Response): Promise<T> {
   if (!res.ok) {

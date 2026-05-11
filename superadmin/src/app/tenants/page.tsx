@@ -41,9 +41,7 @@ export default function TenantsPage() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/immutability
     load()
-    // eslint-disable-next-line react-hooks/immutability
     loadTemplate()
   }, [])
 
@@ -151,7 +149,7 @@ export default function TenantsPage() {
           <p className="text-sm text-gray-500 mt-0.5">{tenants.length} negocios registrados</p>
         </div>
         <Link
-          href="/superadmin/tenants/new"
+          href="/tenants/new"
           className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
         >
           + Nuevo negocio
@@ -287,7 +285,7 @@ export default function TenantsPage() {
                           </a>
                         )}
                         <Link
-                          href={`/superadmin/tenants/${tenant.id}/edit`}
+                          href={`/tenants/${tenant.id}/edit`}
                           className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
                         >
                           Editar

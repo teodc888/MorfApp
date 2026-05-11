@@ -28,7 +28,6 @@ export default function SettingsPage() {
   }, [template])
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/immutability
     loadSettings()
   }, [])
 

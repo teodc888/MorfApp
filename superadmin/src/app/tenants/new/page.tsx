@@ -45,7 +45,7 @@ export default function NewTenantPage() {
         ...form,
         subscriptionEndsAt: form.subscriptionEndsAt || null,
       })
-      router.push('/superadmin/tenants')
+      router.push('/tenants')
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al crear el negocio'
       setError(msg)
