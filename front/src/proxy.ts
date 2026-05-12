@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? "morfapp.teodc.com";
-const SUPERADMIN_SUBDOMAIN = "super";
 const ADMIN_SUBDOMAIN = "admin";
 
 export function proxy(request: NextRequest) {
@@ -20,12 +19,6 @@ export function proxy(request: NextRequest) {
     : host.split(".").length > 2
       ? host.split(".").slice(0, -2).join(".")
       : "";
-
-  // super.morfapp.com → /superadmin/...
-  if (subdomain === SUPERADMIN_SUBDOMAIN) {
-    url.pathname = `/superadmin${url.pathname}`;
-    return NextResponse.rewrite(url);
-  }
 
   // admin.morfapp.com → /admin/...
   if (subdomain === ADMIN_SUBDOMAIN) {
