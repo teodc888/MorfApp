@@ -7,7 +7,7 @@ pipeline {
     parameters {
         choice(
             name: 'DEPLOY_WHAT',
-            choices: ['both', 'backend', 'frontend'],
+            choices: ['both', 'backend', 'frontend', 'superadmin', 'all'],
             description: 'What to deploy to PRE'
         )
     }
@@ -20,16 +20,19 @@ pipeline {
         // PRE environment
         PRE_API_URL = 'https://api-pre.morfapp.app'
         PRE_WEB_URL = 'https://pre.morfapp.app'
+        PRE_SUPERADMIN_URL = 'https://super-pre.morfapp.app'
         PRE_DB = 'morfapp_pre'
         PRE_DB_USER = 'morfapp'
         PRE_BACKEND_SERVICE = 'morfapp-pre-api'
         PRE_FRONTEND_SERVICE = 'morfapp-pre-web'
+        PRE_SUPERADMIN_SERVICE = 'morfapp-pre-superadmin'
 
         // Server connection
         SERVER_USER = 'teo'
         SERVER_HOST = '100.95.233.68'
         SERVER_BACKEND_DIR = '/home/teo/morfapp-pre-api'
         SERVER_FRONTEND_DIR = '/home/teo/morfapp-pre-web'
+        SERVER_SUPERADMIN_DIR = '/home/teo/morfapp-pre-superadmin'
         SERVER_SUDO_PASS = credentials('server-sudo-password')
     }
 
@@ -137,6 +140,51 @@ EOSSH
             }
         }
 
+        stage('Build SuperAdmin') {
+            when {
+                expression { params.DEPLOY_WHAT == 'superadmin' || params.DEPLOY_WHAT == 'all' }
+            }
+            steps {
+                dir('superadmin') {
+                    script {
+                        echo "🔨 Building Next.js superadmin for PRE..."
+                        sh '''
+                            npm install
+                            NEXT_PUBLIC_API_URL=${PRE_API_URL} \
+                            npm run build
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Deploy SuperAdmin to PRE') {
+            when {
+                expression { params.DEPLOY_WHAT == 'superadmin' || params.DEPLOY_WHAT == 'all' }
+            }
+            steps {
+                script {
+                    echo "📤 Deploying superadmin to PRE..."
+                    sh '''
+                        cd superadmin
+                        tar --exclude='.next/dev' -czf /tmp/morfapp-pre-superadmin.tar.gz .next public
+                        scp /tmp/morfapp-pre-superadmin.tar.gz ${SERVER_USER}@${SERVER_HOST}:/tmp/
+
+                        # Extract and restart
+                        ssh ${SERVER_USER}@${SERVER_HOST} << 'EOSSH'
+                            cd ${SERVER_SUPERADMIN_DIR}
+                            rm -rf .next public
+                            tar -xzf /tmp/morfapp-pre-superadmin.tar.gz
+                            rm /tmp/morfapp-pre-superadmin.tar.gz
+                            echo $SERVER_SUDO_PASS | sudo -S systemctl restart ${PRE_SUPERADMIN_SERVICE}
+                            sleep 2
+                            systemctl status ${PRE_SUPERADMIN_SERVICE} --no-pager | head -5
+EOSSH
+                    '''
+                }
+            }
+        }
+
         stage('Health Check PRE') {
             steps {
                 script {
@@ -146,14 +194,20 @@ EOSSH
 
                         API_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://api-pre.morfapp.app/health || echo "000")
                         WEB_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://pre.morfapp.app || echo "000")
+                        SUPERADMIN_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://super-pre.morfapp.app || echo "000")
 
-                        echo "PRE API:      $API_STATUS"
-                        echo "PRE Frontend: $WEB_STATUS"
+                        echo "PRE API:       $API_STATUS"
+                        echo "PRE Frontend:  $WEB_STATUS"
+                        echo "PRE SuperAdmin: $SUPERADMIN_STATUS"
 
                         if [ "$API_STATUS" != "200" ] || [ "$WEB_STATUS" != "200" ]; then
-                            echo "⚠️  Warning: not all services returned 200"
+                            echo "⚠️  Warning: not all core services returned 200"
                         else
-                            echo "✓ All PRE services healthy"
+                            echo "✓ All PRE core services healthy"
+                        fi
+
+                        if [ "$SUPERADMIN_STATUS" != "200" ] && [ "${DEPLOY_WHAT}" = "superadmin" ] || [ "${DEPLOY_WHAT}" = "all" ]; then
+                            echo "⚠️  Warning: SuperAdmin health check returned $SUPERADMIN_STATUS"
                         fi
                     '''
                 }

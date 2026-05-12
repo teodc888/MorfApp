@@ -7,7 +7,7 @@ pipeline {
     parameters {
         choice(
             name: 'DEPLOY_WHAT',
-            choices: ['both', 'backend', 'frontend'],
+            choices: ['both', 'backend', 'frontend', 'superadmin', 'all'],
             description: 'What to deploy to PRODUCTION'
         )
         booleanParam(
@@ -25,16 +25,19 @@ pipeline {
         // PRODUCTION environment
         PROD_API_URL = 'https://api.morfapp.app'
         PROD_WEB_URL = 'https://morfapp.app'
+        PROD_SUPERADMIN_URL = 'https://super.morfapp.app'
         PROD_DB = 'morfapp'
         PROD_DB_USER = 'morfapp'
         PROD_BACKEND_SERVICE = 'morfapp-api'
         PROD_FRONTEND_SERVICE = 'morfapp-web'
+        PROD_SUPERADMIN_SERVICE = 'morfapp-superadmin'
 
         // Server connection
         SERVER_USER = 'teo'
         SERVER_HOST = '100.95.233.68'
         SERVER_BACKEND_DIR = '/home/teo/morfapp-api'
         SERVER_FRONTEND_DIR = '/home/teo/morfapp-web'
+        SERVER_SUPERADMIN_DIR = '/home/teo/morfapp-superadmin'
         SERVER_SUDO_PASS = credentials('server-sudo-password')
     }
 
@@ -153,6 +156,51 @@ EOSSH
             }
         }
 
+        stage('Build SuperAdmin') {
+            when {
+                expression { params.DEPLOY_WHAT == 'superadmin' || params.DEPLOY_WHAT == 'all' }
+            }
+            steps {
+                dir('superadmin') {
+                    script {
+                        echo "🔨 Building Next.js superadmin for PRODUCTION..."
+                        sh '''
+                            npm install
+                            NEXT_PUBLIC_API_URL=${PROD_API_URL} \
+                            npm run build
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Deploy SuperAdmin to PRODUCTION') {
+            when {
+                expression { params.DEPLOY_WHAT == 'superadmin' || params.DEPLOY_WHAT == 'all' }
+            }
+            steps {
+                script {
+                    echo "📤 Deploying superadmin to PRODUCTION..."
+                    sh '''
+                        cd superadmin
+                        tar --exclude='.next/dev' -czf /tmp/morfapp-prod-superadmin.tar.gz .next public
+                        scp /tmp/morfapp-prod-superadmin.tar.gz ${SERVER_USER}@${SERVER_HOST}:/tmp/
+
+                        # Extract and restart
+                        ssh ${SERVER_USER}@${SERVER_HOST} << 'EOSSH'
+                            cd ${SERVER_SUPERADMIN_DIR}
+                            rm -rf .next public
+                            tar -xzf /tmp/morfapp-prod-superadmin.tar.gz
+                            rm /tmp/morfapp-prod-superadmin.tar.gz
+                            echo $SERVER_SUDO_PASS | sudo -S systemctl restart ${PROD_SUPERADMIN_SERVICE}
+                            sleep 2
+                            systemctl status ${PROD_SUPERADMIN_SERVICE} --no-pager | head -5
+EOSSH
+                    '''
+                }
+            }
+        }
+
         stage('Health Check PRODUCTION') {
             steps {
                 script {
@@ -162,14 +210,20 @@ EOSSH
 
                         API_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://api.morfapp.app/health || echo "000")
                         WEB_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://morfapp.app || echo "000")
+                        SUPERADMIN_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://super.morfapp.app || echo "000")
 
-                        echo "PROD API:      $API_STATUS"
-                        echo "PROD Frontend: $WEB_STATUS"
+                        echo "PROD API:       $API_STATUS"
+                        echo "PROD Frontend:  $WEB_STATUS"
+                        echo "PROD SuperAdmin: $SUPERADMIN_STATUS"
 
                         if [ "$API_STATUS" != "200" ] || [ "$WEB_STATUS" != "200" ]; then
                             error "❌ PRODUCTION health check failed!"
                         else
-                            echo "✓ All PRODUCTION services healthy"
+                            echo "✓ All PRODUCTION core services healthy"
+                        fi
+
+                        if [ "$SUPERADMIN_STATUS" != "200" ] && [ "${DEPLOY_WHAT}" = "superadmin" ] || [ "${DEPLOY_WHAT}" = "all" ]; then
+                            echo "⚠️  Warning: SuperAdmin health check returned $SUPERADMIN_STATUS"
                         fi
                     '''
                 }
