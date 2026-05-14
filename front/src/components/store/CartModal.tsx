@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import Image from 'next/image'
 import type { TenantPublic, CartItem, SelectedOption } from '@/types/store'
 import { useCartStore } from '@/store/cart'
@@ -129,9 +129,61 @@ export function CartModal({ tenant, onClose }: Props) {
   const [orderError, setOrderError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
 
+  const [dragY, setDragY] = useState(0)
+  const [isDragging, setIsDragging] = useState(false)
+  const dragStartY = useRef(0)
+
   const handleClose = () => {
     setIsClosing(true)
     setTimeout(onClose, 300)
+  }
+
+  const handleDragStart = (clientY: number) => {
+    dragStartY.current = clientY
+    setIsDragging(true)
+  }
+
+  const handleDragMove = (clientY: number) => {
+    if (!isDragging) return
+    const diff = clientY - dragStartY.current
+    if (diff > 0) {
+      setDragY(diff)
+    }
+  }
+
+  const handleDragEnd = () => {
+    setIsDragging(false)
+    if (dragY > 100) {
+      handleClose()
+    } else {
+      setDragY(0)
+    }
+  }
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    handleDragStart(e.clientY)
+  }
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    handleDragMove(e.clientY)
+  }
+
+  const handleMouseUp = () => {
+    handleDragEnd()
+  }
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    handleDragStart(e.touches[0].clientY)
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault()
+    handleDragMove(e.touches[0].clientY)
+  }
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    e.preventDefault()
+    handleDragEnd()
   }
 
   const deliveryMode = tenant.deliveryConfig.mode
@@ -264,7 +316,17 @@ export function CartModal({ tenant, onClose }: Props) {
           borderTopLeftRadius: DS.radius,
           borderTopRightRadius: DS.radius,
           maxHeight: '92dvh',
+          transform: `translateY(${dragY}px)`,
+          transition: isDragging ? 'none' : 'transform 0.3s ease-out',
+          touchAction: 'none',
         }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
         {/* Header - Stitch Design: sticky top, cream bg */}
         <div className="flex-shrink-0 flex items-center justify-between px-4 pt-4 pb-2 sticky top-0" style={{ backgroundColor: DS.surface, borderBottom: `1px solid ${DS.border}`}}>

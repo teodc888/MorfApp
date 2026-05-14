@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import Image from 'next/image'
 import type { Product, ModifierGroup, SelectedOption, CartItem } from '@/types/store'
 import { formatPrice } from '@/lib/utils'
@@ -168,11 +168,62 @@ export function ProductModal({ product, categoryEmoji, onClose }: Props) {
   const [selections, setSelections] = useState<Selections>({})
   const [observations, setObservations] = useState('')
   const [isClosing, setIsClosing] = useState(false)
+  const [dragY, setDragY] = useState(0)
+  const [isDragging, setIsDragging] = useState(false)
+  const dragStartY = useRef(0)
   const addItem = useCartStore((s) => s.addItem)
 
   const handleClose = () => {
     setIsClosing(true)
     setTimeout(onClose, 300)
+  }
+
+  const handleDragStart = (clientY: number) => {
+    dragStartY.current = clientY
+    setIsDragging(true)
+  }
+
+  const handleDragMove = (clientY: number) => {
+    if (!isDragging) return
+    const diff = clientY - dragStartY.current
+    if (diff > 0) {
+      setDragY(diff)
+    }
+  }
+
+  const handleDragEnd = () => {
+    setIsDragging(false)
+    if (dragY > 100) {
+      handleClose()
+    } else {
+      setDragY(0)
+    }
+  }
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    handleDragStart(e.clientY)
+  }
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    handleDragMove(e.clientY)
+  }
+
+  const handleMouseUp = () => {
+    handleDragEnd()
+  }
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    handleDragStart(e.touches[0].clientY)
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault()
+    handleDragMove(e.touches[0].clientY)
+  }
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    e.preventDefault()
+    handleDragEnd()
   }
 
   const handleSelectionChange = (
@@ -223,7 +274,25 @@ export function ProductModal({ product, categoryEmoji, onClose }: Props) {
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
       <div className={`absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${isClosing ? 'opacity-0' : 'opacity-100'}`} onClick={handleClose} />
 
-      <div className={`relative max-h-[90dvh] flex flex-col max-w-[520px] mx-auto w-full overflow-hidden transition-opacity duration-300 ${isClosing ? 'animate-slide-down opacity-0' : 'animate-slide-up opacity-100'}`} style={{ backgroundColor: STITCH.surface, borderTopLeftRadius: STITCH.radiusLg, borderTopRightRadius: STITCH.radiusLg, boxShadow: STITCH.shadowElev }}>
+      <div
+        className={`relative max-h-[90dvh] flex flex-col max-w-[520px] mx-auto w-full overflow-hidden transition-opacity duration-300 ${isClosing ? 'animate-slide-down opacity-0' : 'animate-slide-up opacity-100'}`}
+        style={{
+          backgroundColor: STITCH.surface,
+          borderTopLeftRadius: STITCH.radiusLg,
+          borderTopRightRadius: STITCH.radiusLg,
+          boxShadow: STITCH.shadowElev,
+          transform: `translateY(${dragY}px)`,
+          transition: isDragging ? 'none' : 'transform 0.3s ease-out',
+          touchAction: 'none',
+        }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
         <div className="flex-shrink-0 flex justify-between items-center px-4 pt-3 pb-1" style={{ borderBottom: `1px solid ${STITCH.border}` }}>
           <div className="w-10" />
           <button
@@ -248,7 +317,7 @@ export function ProductModal({ product, categoryEmoji, onClose }: Props) {
           </button>
         </div>
 
-        <div className="overflow-y-auto flex-1 px-4 pb-2">
+        <div className="overflow-hidden flex-1 px-4 pb-2 min-h-0">
           <div className="flex justify-center mb-4">
             {product.imageUrl ? (
               <Image
