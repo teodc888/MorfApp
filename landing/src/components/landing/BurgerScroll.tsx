@@ -144,6 +144,9 @@ export function BurgerScroll() {
       const progress = Math.max(0, Math.min(1, -rect.top / scrollableDistance));
       const frameIndex = Math.min(TOTAL_FRAMES - 1, Math.floor(progress * TOTAL_FRAMES));
 
+      // Hide fixed element when progress > 0.85 to prevent overlap with Features
+      setHeroVisible(progress < 0.85);
+
       if (frameIndex === currentFrameRef.current) return;
 
       currentFrameRef.current = frameIndex;
@@ -165,18 +168,6 @@ export function BurgerScroll() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [drawFrame, updateCanvasSize]);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => setHeroVisible(entry.isIntersecting),
-      { threshold: 0 }
-    );
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, []);
 
   return (
     <div ref={containerRef} className="h-[300vh]">
