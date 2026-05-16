@@ -1,7 +1,7 @@
 export function HeroToFeaturesTransition() {
   return (
     <section
-      className="relative h-[132px] overflow-hidden bg-[#f6f0e8] md:h-[180px]"
+      className="relative h-0 overflow-hidden bg-[#f6f0e8]"
       aria-hidden="true"
     >
       <div className="absolute inset-0 bg-[linear-gradient(180deg,#faf5ee_0%,#f9f2ea_34%,#fbe8d8_66%,#f6f0e8_100%)]" />

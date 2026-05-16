@@ -166,7 +166,7 @@ export function BurgerScroll() {
   }, [drawFrame, updateCanvasSize]);
 
   return (
-    <div ref={containerRef} className="h-[240svh] md:h-[280vh] lg:h-[320vh]">
+    <div ref={containerRef} className="h-[300vh]">
       <div
         className="sticky top-0 h-[100svh] w-full overflow-hidden md:h-screen"
         style={{ background: HERO_BACKGROUND }}

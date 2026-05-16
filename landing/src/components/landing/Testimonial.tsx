@@ -57,7 +57,7 @@ export function Testimonial() {
   return (
     <>
       {/* Mobile version — muestra los tres testimonios apilados */}
-      <section className="md:hidden bg-surface-container-low border-t border-outline-variant/30 py-14 px-5">
+      <section className="md:hidden bg-surface-container-low border-t border-outline-variant/30 py-8 px-5">
         <p className="font-body text-[0.68rem] font-bold uppercase tracking-[0.16em] text-primary mb-10 text-center">
           Lo que dicen nuestros clientes
         </p>
