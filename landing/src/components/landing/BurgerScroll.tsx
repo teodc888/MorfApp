@@ -18,7 +18,7 @@ export function BurgerScroll() {
 
   const [loaded, setLoaded] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
-  const [heroVisible, setHeroVisible] = useState(true);
+  const [heroPinned, setHeroPinned] = useState(true);
 
   const updateCanvasSize = useCallback(() => {
     const canvas = canvasRef.current;
@@ -142,10 +142,9 @@ export function BurgerScroll() {
       const rect = container.getBoundingClientRect();
       const scrollableDistance = rect.height - window.innerHeight;
       const progress = Math.max(0, Math.min(1, -rect.top / scrollableDistance));
-      const frameIndex = Math.min(TOTAL_FRAMES - 1, Math.floor(progress * TOTAL_FRAMES));
+      const frameIndex = Math.min(TOTAL_FRAMES - 1, Math.floor(progress * (TOTAL_FRAMES - 1)));
 
-      // Disable interactions when progress > 0.85, but keep last frame visible
-      setHeroVisible(progress < 1.0);
+      setHeroPinned(rect.bottom > window.innerHeight);
 
       if (frameIndex === currentFrameRef.current) return;
 
@@ -170,13 +169,15 @@ export function BurgerScroll() {
   }, [drawFrame, updateCanvasSize]);
 
   return (
-    <div ref={containerRef} className="h-[300vh]">
+    <div ref={containerRef} className="relative h-[300vh]">
       <div
-        className="fixed top-0 w-full h-screen overflow-hidden"
+        className="h-screen w-full overflow-hidden"
         style={{
           background: HERO_BACKGROUND,
-          visibility: heroVisible ? 'visible' : 'hidden',
-          pointerEvents: heroVisible ? 'auto' : 'none',
+          position: heroPinned ? 'fixed' : 'absolute',
+          top: heroPinned ? 0 : 'auto',
+          bottom: heroPinned ? 'auto' : 0,
+          pointerEvents: heroPinned ? 'auto' : 'none',
         }}
       >
         <div ref={floatWrapperRef} className="absolute inset-0 md:-left-[2vw] md:-right-[2vw] will-change-transform">

@@ -4,7 +4,7 @@ import * as React from 'react';
 import { cn } from '@/lib/utils';
 
 interface InteractiveProductCardProps extends React.HTMLAttributes<HTMLDivElement> {
-  imageUrl: string;
+  imageUrl?: string;
   logoUrl?: string;
   logoText?: string;
   title: string;
@@ -12,7 +12,34 @@ interface InteractiveProductCardProps extends React.HTMLAttributes<HTMLDivElemen
   price: string;
   children?: React.ReactNode;
   featured?: boolean;
+  tone?: 'light' | 'dark' | 'warm';
 }
+
+type CardTone = NonNullable<InteractiveProductCardProps['tone']>;
+
+const headerClasses: Record<CardTone, string> = {
+  light: 'border-white/18 bg-[#2a1f1a]/58 text-[#faf5ee]',
+  dark: 'border-[#d4a96a]/35 bg-black/30 text-[#faf5ee]',
+  warm: 'border-[#f1b16b]/24 bg-[#2a1f1a]/55 text-[#faf5ee]',
+};
+
+const logoClasses: Record<CardTone, string> = {
+  light: 'text-primary',
+  dark: 'text-accent-amber',
+  warm: 'text-[#8f4218]',
+};
+
+const priceClasses: Record<CardTone, string> = {
+  light: 'border-primary/35 bg-[#2a1f1a]/62 text-[#f4a261]',
+  dark: 'border-accent-amber/40 bg-accent-amber/16 text-accent-amber',
+  warm: 'border-[#f1b16b]/35 bg-[#2a1f1a]/58 text-[#f1b16b]',
+};
+
+const overlayClasses: Record<CardTone, string> = {
+  light: 'bg-[linear-gradient(180deg,rgba(42,31,26,0.56)_0%,rgba(42,31,26,0.76)_42%,rgba(42,31,26,0.92)_100%)]',
+  dark: 'bg-[linear-gradient(180deg,rgba(31,23,19,0.72)_0%,rgba(31,23,19,0.88)_48%,rgba(31,23,19,0.97)_100%)]',
+  warm: 'bg-[linear-gradient(180deg,rgba(64,34,18,0.58)_0%,rgba(64,34,18,0.8)_48%,rgba(42,24,16,0.94)_100%)]',
+};
 
 export function InteractiveProductCard({
   className,
@@ -24,6 +51,7 @@ export function InteractiveProductCard({
   price,
   children,
   featured,
+  tone = featured ? 'dark' : 'light',
   ...props
 }: InteractiveProductCardProps) {
   const cardRef = React.useRef<HTMLDivElement>(null);
@@ -65,37 +93,42 @@ export function InteractiveProductCard({
       )}
       {...props}
     >
-      <img
-        src={imageUrl}
-        alt=""
-        aria-hidden="true"
-        className="absolute inset-0 h-full w-full object-cover"
-        style={{ transform: 'translateZ(-24px) scale(1.08)' }}
-      />
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(250,245,238,0.18)_0%,rgba(250,245,238,0.82)_48%,rgba(250,245,238,0.96)_100%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_0%,rgba(224,136,80,0.24),transparent_48%)]" />
-      {featured && <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(42,31,26,0.82),rgba(42,31,26,0.96))]" />}
+      {imageUrl && (
+        <img
+          src={imageUrl}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full object-cover"
+          style={{ transform: 'translateZ(-24px) scale(1.08)' }}
+        />
+      )}
+      <div className={cn('absolute inset-0', overlayClasses[tone])} />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_0%,rgba(224,136,80,0.22),transparent_48%)]" />
+      <div className="absolute inset-3 rounded-[1rem] border border-white/20" />
+      <div className="absolute -right-14 -top-14 h-36 w-36 rounded-full border border-white/20 opacity-70" />
+      <div className="absolute -bottom-16 -left-12 h-40 w-40 rounded-full border border-primary/15 opacity-70" />
+      <div className="absolute inset-x-0 top-0 h-24 bg-[linear-gradient(180deg,rgba(255,255,255,0.18),transparent)]" />
 
       <div className="relative z-10 flex h-full flex-1 flex-col p-5" style={{ transform: 'translateZ(36px)' }}>
-        <div className="flex items-start justify-between gap-4 border border-white/25 bg-white/28 p-4 backdrop-blur-xl">
+        <div className={cn('flex items-start justify-between gap-4 border p-4 shadow-[0_10px_34px_rgba(42,31,26,0.08)] backdrop-blur-xl', headerClasses[tone])}>
           <div>
-            <h3 className={cn('font-headline text-2xl font-bold leading-none', featured ? 'text-surface-bright' : 'text-on-surface')}>
+            <h3 className="font-headline text-2xl font-bold leading-none text-[#faf5ee]">
               {title}
             </h3>
-            <p className={cn('mt-1 font-body text-xs', featured ? 'text-surface-bright/62' : 'text-on-surface-variant')}>
+            <p className="mt-1 font-body text-xs text-[#f8ead9]/78">
               {description}
             </p>
           </div>
           {logoUrl ? (
             <img src={logoUrl} alt="MorfApp" className="h-5 w-auto opacity-80" />
           ) : (
-            <span className="font-body text-xs font-extrabold uppercase tracking-[0.16em] text-primary">
+            <span className={cn('font-body text-xs font-extrabold uppercase tracking-[0.16em]', logoClasses[tone])}>
               {logoText}
             </span>
           )}
         </div>
 
-        <div className="mt-4 w-fit border border-primary/20 bg-primary/10 px-4 py-2 text-sm font-bold text-primary backdrop-blur-xl">
+        <div className={cn('mt-4 w-fit border px-4 py-2 text-sm font-bold shadow-[0_8px_24px_rgba(42,31,26,0.08)] backdrop-blur-xl', priceClasses[tone])}>
           {price}
         </div>
 

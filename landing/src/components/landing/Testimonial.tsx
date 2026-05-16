@@ -89,14 +89,13 @@ export function Testimonial() {
         </div>
       </section>
 
-      {/* Desktop version - 300vh sticky carousel */}
+      {/* Desktop version */}
       <div
         ref={containerRef}
         id="testimonial"
-        style={{ height: '100vh' }}
-        className="hidden md:block relative bg-surface-container-low border-t border-outline-variant/30"
+        className="relative hidden bg-surface-container-low border-t border-outline-variant/30 md:block"
       >
-        <div className="sticky top-0 h-screen flex flex-col items-center justify-center overflow-hidden px-6">
+        <div className="flex flex-col items-center justify-center overflow-hidden px-6 py-20">
           <p className="font-body text-[0.7rem] font-bold uppercase tracking-[0.18em] text-primary mb-10">
             Lo que dicen nuestros clientes
           </p>
