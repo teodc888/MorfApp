@@ -18,6 +18,7 @@ export function BurgerScroll() {
 
   const [loaded, setLoaded] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
+  const [heroPinned, setHeroPinned] = useState(true);
 
   const updateCanvasSize = useCallback(() => {
     const canvas = canvasRef.current;
@@ -141,7 +142,9 @@ export function BurgerScroll() {
       const rect = container.getBoundingClientRect();
       const scrollableDistance = rect.height - window.innerHeight;
       const progress = Math.max(0, Math.min(1, -rect.top / scrollableDistance));
-      const frameIndex = Math.min(TOTAL_FRAMES - 1, Math.floor(progress * TOTAL_FRAMES));
+      const frameIndex = Math.min(TOTAL_FRAMES - 1, Math.floor(progress * (TOTAL_FRAMES - 1)));
+
+      setHeroPinned(rect.bottom > window.innerHeight);
 
       if (frameIndex === currentFrameRef.current) return;
 
@@ -166,12 +169,18 @@ export function BurgerScroll() {
   }, [drawFrame, updateCanvasSize]);
 
   return (
-    <div ref={containerRef} className="h-[250svh] md:h-[320vh] lg:h-[360vh]">
+    <div ref={containerRef} className="relative h-[300vh]">
       <div
-        className="sticky top-0 h-[100svh] w-full overflow-hidden md:h-screen"
-        style={{ background: HERO_BACKGROUND }}
+        className="h-screen w-full overflow-hidden"
+        style={{
+          background: HERO_BACKGROUND,
+          position: heroPinned ? 'fixed' : 'absolute',
+          top: heroPinned ? 0 : 'auto',
+          bottom: heroPinned ? 'auto' : 0,
+          pointerEvents: heroPinned ? 'auto' : 'none',
+        }}
       >
-        <div ref={floatWrapperRef} className="absolute inset-y-0 -left-[2vw] -right-[2vw] will-change-transform">
+        <div ref={floatWrapperRef} className="absolute inset-0 md:-left-[2vw] md:-right-[2vw] will-change-transform">
           <canvas
             ref={canvasRef}
             className="block h-full w-full"
