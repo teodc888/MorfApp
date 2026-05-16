@@ -1,142 +1,250 @@
 'use client';
 
-import { useState } from 'react';
-import { useInView } from '@/hooks/useInView';
+import type { CSSProperties, ReactNode } from 'react';
+import { useRef, useState } from 'react';
+import { motion, useMotionValueEvent, useScroll, useTransform } from 'motion/react';
+import { InteractiveProductCard } from '@/components/ui/card-7';
 import { InterestModal } from './InterestModal';
 
-function RevealCard({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
-  const { ref, isVisible } = useInView();
+const basicFeatures = ['1 local', 'Menu y productos ilimitados', 'Pedidos por WhatsApp', 'Carrito con modificadores', 'Delivery y takeaway', 'Subdominio incluido'];
+const proFeatures = ['Todo lo del plan Basico', 'Dominio propio', 'Estadisticas de pedidos', 'Branding avanzado', 'Soporte prioritario'];
+const businessFeatures = ['Todo lo del plan Pro', 'Multiples locales', 'Panel centralizado', 'Reportes avanzados', 'Onboarding personalizado'];
+
+const planImages = {
+  basic: 'https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=1200&auto=format&fit=crop',
+  pro: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=1200&auto=format&fit=crop',
+  business: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=1200&auto=format&fit=crop',
+};
+
+const ICON_STYLE: CSSProperties = { fontSize: 18, fontVariationSettings: "'FILL' 1" };
+
+function Check({ amber }: { amber?: boolean }) {
   return (
-    <div ref={ref} className={`reveal ${isVisible ? 'visible' : ''}`} style={{ transitionDelay: `${delay * 80}ms` }}>
+    <span
+      className="material-symbols-outlined flex-shrink-0"
+      style={{ ...ICON_STYLE, color: amber ? '#d4a96a' : '#c2652a' }}
+    >
+      check_circle
+    </span>
+  );
+}
+
+function FeatureList({ items, amber }: { items: string[]; amber?: boolean }) {
+  return (
+    <ul className="mb-5 flex flex-col gap-2.5">
+      {items.map((feature) => (
+        <li
+          key={feature}
+          className="flex items-center gap-2 font-body text-sm"
+          style={{ color: amber ? '#faf5ee' : '#3a302a' }}
+        >
+          <Check amber={amber} />
+          {feature}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function PlanAction({
+  children,
+  disabled,
+  featured,
+  onClick,
+}: {
+  children: ReactNode;
+  disabled?: boolean;
+  featured?: boolean;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      disabled={disabled}
+      onClick={onClick}
+      className={`w-full border px-4 py-3 font-body text-sm font-bold transition-colors ${
+        featured
+          ? 'border-primary/35 bg-primary/20 text-primary hover:bg-primary hover:text-on-primary disabled:hover:bg-primary/20 disabled:hover:text-primary'
+          : 'border-primary/20 bg-white/30 text-on-surface hover:bg-primary hover:text-on-primary'
+      } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
+    >
       {children}
+    </button>
+  );
+}
+
+function BasicCard({ onCta }: { onCta: () => void }) {
+  return (
+    <InteractiveProductCard
+      imageUrl={planImages.basic}
+      title="Basico"
+      description="Para empezar con el pie derecho."
+      price="$20.000 / mes"
+      className="max-w-none"
+    >
+      <div className="mb-5 border-t border-primary/10 pt-5">
+        <span className="mb-3 inline-block bg-green-100 px-3 py-1 font-body text-xs font-bold text-green-800">
+          Primer mes gratis
+        </span>
+        <p className="font-body text-xs text-on-surface-variant">despues del primer mes</p>
+      </div>
+      <FeatureList items={basicFeatures} />
+      <PlanAction onClick={onCta}>Empezar prueba gratis</PlanAction>
+    </InteractiveProductCard>
+  );
+}
+
+function ProCard() {
+  return (
+    <InteractiveProductCard
+      imageUrl={planImages.pro}
+      title="Pro"
+      description="Para locales que buscan destacar."
+      price="$45.000 / mes"
+      featured
+      className="max-w-none"
+    >
+      <div className="mb-5 border-t border-primary/25 pt-5">
+        <span className="inline-block border border-accent-amber/35 bg-accent-amber/15 px-3 py-1 font-body text-xs font-bold uppercase tracking-[0.12em] text-accent-amber">
+          Mas popular
+        </span>
+      </div>
+      <FeatureList items={proFeatures} amber />
+      <PlanAction featured disabled>Proximamente</PlanAction>
+    </InteractiveProductCard>
+  );
+}
+
+function BusinessCard() {
+  return (
+    <InteractiveProductCard
+      imageUrl={planImages.business}
+      title="Negocio"
+      description="Para cadenas y franquicias."
+      price="A consultar"
+      className="max-w-none"
+    >
+      <div className="mb-5 border-t border-primary/10 pt-5">
+        <span className="inline-block border border-on-surface/10 bg-on-surface/10 px-3 py-1 font-body text-xs font-bold uppercase tracking-[0.12em] text-on-surface-variant">
+          Proximamente
+        </span>
+      </div>
+      <FeatureList items={businessFeatures} />
+      <PlanAction disabled>Contactar</PlanAction>
+    </InteractiveProductCard>
+  );
+}
+
+function PlanCards({ onBasicCta, className }: { onBasicCta: () => void; className: string }) {
+  return (
+    <div className={className}>
+      <BasicCard onCta={onBasicCta} />
+      <ProCard />
+      <BusinessCard />
     </div>
   );
 }
 
 export function Pricing() {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [activePlan, setActivePlan] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const basicFeatures = ['1 local', 'Menú y productos ilimitados', 'Pedidos por WhatsApp', 'Carrito con modificadores', 'Delivery y takeaway', 'Subdominio incluido'];
-  const proFeatures = ['Todo lo del plan Básico', 'Dominio propio', 'Estadísticas de pedidos', 'Branding avanzado', 'Soporte prioritario'];
-  const businessFeatures = ['Todo lo del plan Pro', 'Múltiples locales', 'Panel centralizado', 'Reportes avanzados', 'Onboarding personalizado'];
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ['start start', 'end end'],
+  });
+
+  useMotionValueEvent(scrollYProgress, 'change', (value) => {
+    setActivePlan((current) => {
+      const next = value < 0.33 ? 0 : value < 0.66 ? 1 : 2;
+      return current === next ? current : next;
+    });
+  });
+
+  const x0 = useTransform(scrollYProgress, [0, 0.5, 1], [0, -360, -620]);
+  const sc0 = useTransform(scrollYProgress, [0, 0.38, 0.62, 1], [1.04, 1.04, 0.84, 0.72]);
+  const op0 = useTransform(scrollYProgress, [0, 0.38, 0.62, 1], [1, 1, 0.45, 0.16]);
+
+  const x1 = useTransform(scrollYProgress, [0, 0.5, 1], [360, 0, -360]);
+  const sc1 = useTransform(scrollYProgress, [0, 0.18, 0.38, 0.62, 0.82, 1], [0.84, 0.84, 1.04, 1.04, 0.84, 0.84]);
+  const op1 = useTransform(scrollYProgress, [0, 0.18, 0.38, 0.62, 0.82, 1], [0.45, 0.45, 1, 1, 0.45, 0.45]);
+
+  const x2 = useTransform(scrollYProgress, [0, 0.5, 1], [620, 360, 0]);
+  const sc2 = useTransform(scrollYProgress, [0, 0.38, 0.62, 1], [0.72, 0.84, 0.84, 1.04]);
+  const op2 = useTransform(scrollYProgress, [0, 0.38, 0.62, 1], [0.16, 0.45, 0.45, 1]);
+
+  const dw0 = useTransform(scrollYProgress, [0, 0.28, 0.33], [24, 24, 8]);
+  const dw1 = useTransform(scrollYProgress, [0.28, 0.33, 0.5, 0.66, 0.72], [8, 24, 24, 24, 8]);
+  const dw2 = useTransform(scrollYProgress, [0.66, 0.72, 1], [8, 24, 24]);
+  const hints = ['Scrollea para ver los otros planes', 'Hay un plan mas', 'Todos los planes'];
 
   return (
     <>
-      {selectedPlan && (
-        <InterestModal plan={selectedPlan} onClose={() => setSelectedPlan(null)} />
-      )}
+      {selectedPlan && <InterestModal plan={selectedPlan} onClose={() => setSelectedPlan(null)} />}
 
-      <section className="py-24 px-6 max-w-7xl mx-auto" id="pricing">
-        <style>{`
-          .reveal { opacity: 0; transform: translateY(24px); transition: opacity .6s ease, transform .6s ease; }
-          .reveal.visible { opacity: 1; transform: translateY(0); }
-          .coming-soon-wrap { position: relative; }
-          .coming-soon-wrap .plan-card { filter: blur(3.5px); opacity: 0.5; pointer-events: none; user-select: none; }
-          .coming-soon-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; border-radius: 0.75rem; pointer-events: none; }
-          .coming-soon-overlay span.icon { font-size: 2rem; }
-          .coming-soon-overlay span.label { font-family: 'Manrope', sans-serif; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #3a302a; background: #fff; border: 1.5px solid #d8d0c8; padding: 5px 16px; border-radius: 9999px; box-shadow: 0 2px 8px rgba(58,48,42,.1); }
-        `}</style>
-        <div className="text-center max-w-2xl mx-auto mb-4">
-          <h2 className="font-headline text-4xl lg:text-5xl font-bold text-on-surface mb-6">Planes transparentes</h2>
-          <p className="font-body text-lg text-on-surface-variant">Primer mes gratis para que lo pruebes sin compromiso. Sin tarjeta requerida.</p>
+      <section id="pricing" className="bg-surface-container-low px-4 py-16 md:hidden">
+        <div className="mb-10 text-center">
+          <h2 className="mb-3 font-headline text-[2.15rem] font-bold leading-tight text-on-surface">Planes transparentes</h2>
+          <p className="font-body text-on-surface-variant">Primer mes gratis. Sin tarjeta requerida.</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto mt-16">
-          <RevealCard delay={0}>
-            <div className="plan-card bg-surface-container-lowest p-10 rounded-xl border border-outline-variant shadow-[0_2px_16px_rgba(58,48,42,0.04)] flex flex-col">
-              <div className="flex items-start justify-between mb-2">
-                <h3 className="font-headline text-3xl font-bold text-on-surface">Básico</h3>
-                <span className="inline-flex items-center gap-1 bg-green-100 text-green-800 text-xs font-bold px-3 py-1 rounded-full font-body mt-1">
-                  Primer mes gratis
-                </span>
-              </div>
-              <p className="font-body text-on-surface-variant mb-6 pb-6 border-b border-outline-variant/40 text-sm">Para empezar con el pie derecho.</p>
-              <div className="mb-8">
-                <span className="font-headline text-5xl font-bold text-on-surface">$20.000</span>
-                <span className="font-body text-on-surface-variant text-sm">/mes</span>
-                <p className="font-body text-xs text-on-surface-variant mt-1">después del primer mes</p>
-              </div>
-              <ul className="flex flex-col gap-4 flex-grow mb-8 font-body text-on-surface text-sm">
-                {basicFeatures.map((feature, i) => (
-                  <li key={i} className="flex items-center gap-3">
-                    <span className="material-symbols-outlined text-primary" style={{ fontSize: '20px', fontVariationSettings: "'FILL' 1" }}>
-                      check_circle
-                    </span>
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-              <button
-                onClick={() => setSelectedPlan('Basico')}
-                className="w-full py-4 border-2 border-outline-variant text-on-surface font-bold rounded text-center hover:border-primary hover:text-primary transition-colors font-body block cursor-pointer"
-              >
-                Empezar prueba gratis
-              </button>
-            </div>
-          </RevealCard>
-
-          <RevealCard delay={1}>
-            <div className="coming-soon-wrap">
-              <div className="plan-card bg-primary p-10 rounded-xl border border-primary-container shadow-[0_8px_32px_rgba(194,101,42,0.2)] flex flex-col relative overflow-hidden text-on-primary">
-                <div className="absolute top-0 right-0 bg-primary-container text-on-primary-container text-xs font-bold px-4 py-1 rounded-bl-lg uppercase tracking-wider font-body">
-                  Más Popular
-                </div>
-                <h3 className="font-headline text-3xl font-bold mb-2">Pro</h3>
-                <p className="font-body text-on-primary/80 mb-6 pb-6 border-b border-primary-container text-sm">Para locales que buscan destacar.</p>
-                <div className="mb-8">
-                  <span className="font-headline text-5xl font-bold">$45.000</span>
-                  <span className="font-body text-on-primary/80 text-sm">/mes</span>
-                </div>
-                <ul className="flex flex-col gap-4 flex-grow mb-8 font-body text-sm">
-                  {proFeatures.map((feature, i) => (
-                    <li key={i} className="flex items-center gap-3">
-                      <span className="material-symbols-outlined text-on-primary" style={{ fontSize: '20px', fontVariationSettings: "'FILL' 1" }}>
-                        check_circle
-                      </span>
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-                <button className="w-full py-4 bg-surface-bright text-primary font-bold rounded hover:bg-surface-container-low transition-colors shadow-sm font-body text-center block">
-                  Elegir Pro
-                </button>
-              </div>
-              <div className="coming-soon-overlay">
-                <span className="icon">🔒</span>
-                <span className="label">Próximamente</span>
-              </div>
-            </div>
-          </RevealCard>
-
-          <RevealCard delay={2}>
-            <div className="coming-soon-wrap">
-              <div className="plan-card bg-surface-container-lowest p-10 rounded-xl border border-outline-variant shadow-[0_2px_16px_rgba(58,48,42,0.04)] flex flex-col">
-                <h3 className="font-headline text-3xl font-bold text-on-surface mb-2">Negocio</h3>
-                <p className="font-body text-on-surface-variant mb-6 pb-6 border-b border-outline-variant/40 text-sm">Para cadenas y franquicias.</p>
-                <div className="mb-8">
-                  <span className="font-headline text-4xl font-bold text-on-surface">A consultar</span>
-                </div>
-                <ul className="flex flex-col gap-4 flex-grow mb-8 font-body text-on-surface text-sm">
-                  {businessFeatures.map((feature, i) => (
-                    <li key={i} className="flex items-center gap-3">
-                      <span className="material-symbols-outlined text-primary" style={{ fontSize: '20px', fontVariationSettings: "'FILL' 1" }}>
-                        check_circle
-                      </span>
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-                <button className="w-full py-4 border-2 border-outline-variant text-on-surface font-bold rounded text-center hover:border-primary hover:text-primary transition-colors font-body block">
-                  Contactar
-                </button>
-              </div>
-              <div className="coming-soon-overlay">
-                <span className="icon">🔒</span>
-                <span className="label">Próximamente</span>
-              </div>
-            </div>
-          </RevealCard>
-        </div>
+        <PlanCards onBasicCta={() => setSelectedPlan('Basico')} className="mx-auto flex max-w-sm flex-col gap-6" />
       </section>
+
+      <section className="hidden bg-surface-container-low px-6 py-20 md:block lg:hidden" aria-labelledby="pricing-tablet-title">
+        <div className="mb-10 text-center">
+          <h2 id="pricing-tablet-title" className="mb-3 font-headline text-4xl font-bold text-on-surface">Planes transparentes</h2>
+          <p className="font-body text-on-surface-variant">Primer mes gratis. Sin tarjeta requerida.</p>
+        </div>
+        <PlanCards onBasicCta={() => setSelectedPlan('Basico')} className="grid grid-cols-3 gap-4" />
+      </section>
+
+      <div id="pricing-scroll" ref={containerRef} style={{ height: '320vh' }} className="relative hidden lg:block">
+        <div className="sticky top-0 flex h-screen flex-col items-center justify-center overflow-hidden bg-surface-container-low border-t border-outline-variant/30">
+          <div className="mb-8 px-6 text-center">
+            <h2 className="mb-3 font-headline text-5xl font-bold text-on-surface">Planes transparentes</h2>
+            <p className="font-body text-lg text-on-surface-variant">Primer mes gratis. Sin tarjeta requerida.</p>
+          </div>
+
+          <div className="relative w-full" style={{ height: 560 }}>
+            <motion.div
+              style={{ x: x0, scale: sc0, opacity: op0, position: 'absolute', left: '50%', marginLeft: -170, zIndex: activePlan === 0 ? 30 : 10 }}
+              className="w-[340px]"
+            >
+              <BasicCard onCta={() => setSelectedPlan('Basico')} />
+            </motion.div>
+
+            <motion.div
+              style={{ x: x1, scale: sc1, opacity: op1, position: 'absolute', left: '50%', marginLeft: -170, zIndex: activePlan === 1 ? 30 : 20 }}
+              className="w-[340px]"
+            >
+              <ProCard />
+            </motion.div>
+
+            <motion.div
+              style={{ x: x2, scale: sc2, opacity: op2, position: 'absolute', left: '50%', marginLeft: -170, zIndex: activePlan === 2 ? 30 : 10 }}
+              className="w-[340px]"
+            >
+              <BusinessCard />
+            </motion.div>
+          </div>
+
+          <div className="mt-6 flex items-center gap-2">
+            {([dw0, dw1, dw2] as const).map((width, index) => (
+              <motion.div
+                key={index}
+                style={{
+                  width,
+                  height: 8,
+                  borderRadius: 999,
+                  background: activePlan === index ? '#c2652a' : '#d8d0c8',
+                }}
+              />
+            ))}
+          </div>
+
+          <p className="mt-3 font-body text-xs text-on-surface-variant opacity-70">{hints[activePlan]}</p>
+        </div>
+      </div>
     </>
   );
 }

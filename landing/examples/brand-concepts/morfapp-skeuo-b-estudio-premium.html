@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MorfApp - Concepto B: Estudio premium</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,600;0,700;0,800;1,600;1,700&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #100c0a;
+      --panel: #241711;
+      --panel-2: #342219;
+      --ink: #fff4e3;
+      --muted: #c8ad94;
+      --gold: #d7a65d;
+      --gold-2: #f0c979;
+      --copper: #9e5129;
+      --line: rgba(229, 181, 116, .24);
+      --shadow: 0 30px 90px rgba(0,0,0,.54);
+      --inner: inset 0 1px 0 rgba(255,229,190,.18), inset 0 -18px 34px rgba(0,0,0,.22);
+      --headline: "EB Garamond", Georgia, serif;
+      --body: "Manrope", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; background: var(--bg); }
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: var(--body);
+      background:
+        radial-gradient(circle at 72% 36%, rgba(216, 159, 83, .30), transparent 30rem),
+        radial-gradient(circle at 14% 12%, rgba(156, 75, 40, .20), transparent 22rem),
+        linear-gradient(145deg, #2c1b14 0%, #100c0a 62%);
+    }
+    a { color: inherit; text-decoration: none; }
+    .nav {
+      position: sticky;
+      top: 18px;
+      z-index: 20;
+      width: min(1120px, calc(100% - 32px));
+      margin: 18px auto 0;
+      height: 62px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px 0 22px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(58,41,31,.88), rgba(29,19,14,.88));
+      backdrop-filter: blur(18px);
+      box-shadow: var(--inner), 0 18px 50px rgba(0,0,0,.36);
+    }
+    .brand {
+      font-family: var(--headline);
+      font-size: 1.72rem;
+      font-style: italic;
+      font-weight: 800;
+      color: var(--gold-2);
+    }
+    .nav-links {
+      display: flex;
+      gap: 24px;
+      color: var(--muted);
+      font-size: .84rem;
+      font-weight: 700;
+    }
+    .button, .nav-cta {
+      display: inline-flex;
+      min-height: 46px;
+      align-items: center;
+      justify-content: center;
+      padding: 0 22px;
+      border: 1px solid rgba(247, 210, 142, .24);
+      border-radius: 10px;
+      background: linear-gradient(#efc878, #a56932);
+      color: #25160d;
+      font-weight: 900;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.45), inset 0 -12px 24px rgba(92,43,13,.18), 0 18px 40px rgba(214,155,84,.22);
+    }
+    .hero {
+      min-height: calc(100vh - 80px);
+      display: grid;
+      grid-template-columns: minmax(0, .98fr) minmax(350px, 1fr);
+      align-items: center;
+      gap: 64px;
+      width: min(1120px, calc(100% - 36px));
+      margin: 0 auto;
+      padding: 78px 0 96px;
+    }
+    .eyebrow {
+      display: inline-flex;
+      padding: 8px 12px;
+      border-radius: 9px;
+      background: linear-gradient(#3b281f, #22150f);
+      border: 1px solid var(--line);
+      color: var(--gold-2);
+      font-size: .72rem;
+      font-weight: 900;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+      box-shadow: var(--inner), 0 12px 28px rgba(0,0,0,.24);
+    }
+    h1 {
+      margin: 22px 0 0;
+      font-family: var(--headline);
+      font-size: clamp(3.2rem, 7.6vw, 7.1rem);
+      line-height: .9;
+      letter-spacing: 0;
+    }
+    h1 em { color: var(--gold-2); text-shadow: 0 0 32px rgba(218,167,91,.24); }
+    .lead {
+      max-width: 570px;
+      margin: 24px 0 0;
+      color: var(--muted);
+      font-size: clamp(1rem, 1.35vw, 1.15rem);
+      line-height: 1.75;
+      font-weight: 600;
+    }
+    .actions { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 34px; }
+    .button.secondary {
+      color: var(--ink);
+      background: linear-gradient(#3a281e, #21150f);
+      border-color: var(--line);
+      box-shadow: var(--inner), 0 14px 36px rgba(0,0,0,.26);
+    }
+    .stage {
+      min-height: 560px;
+      display: grid;
+      place-items: center;
+      position: relative;
+      perspective: 900px;
+    }
+    .studio-card {
+      position: relative;
+      width: min(430px, 82vw);
+      aspect-ratio: .82;
+      border-radius: 34px;
+      background: linear-gradient(145deg, #4b2f20, #1d120d);
+      border: 1px solid rgba(239, 198, 124, .26);
+      box-shadow: inset 14px 14px 36px rgba(255, 216, 151, .10), inset -26px -30px 48px rgba(0,0,0,.38), 0 46px 100px rgba(0,0,0,.62);
+      transform: rotateY(-10deg) rotateX(4deg) rotateZ(2deg);
+      animation: premiumFloat 6s ease-in-out infinite;
+      overflow: hidden;
+    }
+    .studio-card::before {
+      content: "";
+      position: absolute;
+      inset: 18px;
+      border-radius: 26px;
+      border: 1px solid rgba(255, 220, 160, .18);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.14);
+    }
+    .dish {
+      position: absolute;
+      left: 50%;
+      top: 18%;
+      width: 260px;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      transform: translateX(-50%);
+      background: radial-gradient(circle at 38% 32%, #fff0c2, #ba6e34 42%, #351912 78%);
+      box-shadow: inset 16px 18px 34px rgba(255, 231, 169, .30), inset -26px -28px 48px rgba(0,0,0,.50), 0 28px 56px rgba(0,0,0,.46);
+    }
+    .ui-slab {
+      position: absolute;
+      left: 36px;
+      right: 36px;
+      bottom: 36px;
+      padding: 20px;
+      border-radius: 20px;
+      background: rgba(16, 10, 7, .58);
+      border: 1px solid rgba(230, 180, 104, .20);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 18px 44px rgba(0,0,0,.35);
+      backdrop-filter: blur(12px);
+    }
+    .line { height: 10px; border-radius: 999px; background: rgba(255,244,227,.18); margin-bottom: 10px; }
+    .line.short { width: 58%; background: var(--gold); }
+    .price { font-family: var(--headline); font-size: 2.8rem; font-weight: 800; color: var(--gold-2); }
+    .tag {
+      position: absolute;
+      padding: 10px 13px;
+      border-radius: 10px;
+      background: linear-gradient(#3b281e, #21140f);
+      border: 1px solid var(--line);
+      box-shadow: var(--inner), 0 18px 40px rgba(0,0,0,.34);
+      color: var(--muted);
+      font-size: .78rem;
+      font-weight: 800;
+    }
+    .t1 { top: 10%; right: 1%; }
+    .t2 { bottom: 16%; left: 1%; }
+    .section {
+      padding: 104px 24px;
+      background: linear-gradient(180deg, rgba(16,12,10,.0), #100c0a 24%, #17100d 100%);
+      border-top: 1px solid rgba(229,181,116,.13);
+    }
+    .inner { width: min(1040px, 100%); margin: 0 auto; }
+    h2 {
+      margin: 0 0 18px;
+      font-family: var(--headline);
+      font-size: clamp(2.5rem, 5vw, 4.8rem);
+      line-height: .96;
+    }
+    .flow, .tokens, .plans {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      margin-top: 38px;
+    }
+    .tokens { grid-template-columns: 1.1fr .9fr; }
+    .tile, .plan {
+      padding: 26px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: linear-gradient(155deg, rgba(58,38,28,.88), rgba(25,16,12,.88));
+      box-shadow: var(--inner), 0 24px 54px rgba(0,0,0,.30);
+    }
+    .tile h3, .plan h3 { margin: 0 0 8px; font-family: var(--headline); font-size: 2rem; }
+    .tile p, .plan p { margin: 0; color: var(--muted); line-height: 1.58; }
+    .swatches { display: flex; gap: 10px; flex-wrap: wrap; }
+    .swatch {
+      width: 72px;
+      height: 72px;
+      border-radius: 13px;
+      border: 1px solid var(--line);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 12px 24px rgba(0,0,0,.24);
+    }
+    .plan {
+      min-height: 280px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .plan.featured {
+      background: linear-gradient(160deg, #efc878, #8e4a24);
+      color: #21140e;
+    }
+    .plan.featured p { color: rgba(33,20,14,.78); }
+    .amount { font-family: var(--headline); font-size: 2.6rem; font-weight: 800; color: var(--gold-2); }
+    .plan.featured .amount { color: #21140e; }
+    @keyframes premiumFloat { 0%, 100% { transform: rotateY(-10deg) rotateX(4deg) rotateZ(2deg) translateY(0); } 50% { transform: rotateY(-6deg) rotateX(5deg) rotateZ(2deg) translateY(-16px); } }
+    @media (max-width: 860px) {
+      .nav-links, .nav-cta { display: none; }
+      .hero { grid-template-columns: 1fr; padding-top: 56px; }
+      .stage { min-height: 420px; }
+      .flow, .tokens, .plans { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="nav">
+    <a class="brand" href="#">MorfApp</a>
+    <nav class="nav-links" aria-label="Principal">
+      <a href="#flow">Funciones</a>
+      <a href="#tokens">Identidad</a>
+      <a href="#plans">Planes</a>
+    </nav>
+    <a class="nav-cta" href="#plans">Solicitar demo</a>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <span class="eyebrow">Sin comisiones ocultas</span>
+        <h1>Una carta online<br>con presencia<br><em>premium</em></h1>
+        <p class="lead">Una direccion boutique para locales que quieren verse mas sofisticados. Skeuomorphism oscuro, metal ambar y profundidad cinematografica.</p>
+        <div class="actions">
+          <a class="button" href="#plans">Ver planes</a>
+          <a class="button secondary" href="#flow">Explorar scroll</a>
+        </div>
+      </div>
+
+      <div class="stage" aria-label="Mock visual premium">
+        <div class="studio-card">
+          <div class="dish"></div>
+          <div class="ui-slab">
+            <div class="line short"></div>
+            <div class="line"></div>
+            <div class="line" style="width:78%"></div>
+            <div class="price">$45.000</div>
+          </div>
+        </div>
+        <div class="tag t1">Branding avanzado</div>
+        <div class="tag t2">Dominio propio</div>
+      </div>
+    </section>
+
+    <section class="section" id="flow">
+      <div class="inner">
+        <h2>Scroll como escena de estudio.</h2>
+        <p class="lead">El producto aparece iluminado, las secciones entran como placas fisicas y el plan Pro puede convertirse en el momento visual mas fuerte.</p>
+        <div class="flow">
+          <article class="tile"><h3>Luz</h3><p>Hero con spotlight ambar, producto 3D y copy editorial.</p></article>
+          <article class="tile"><h3>Profundidad</h3><p>Cards oscuras con bisel, metal y relieve controlado.</p></article>
+          <article class="tile"><h3>Conversion</h3><p>Pricing destacado como pieza premium, no como tabla generica.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="tokens">
+      <div class="inner">
+        <h2>Tokens de marca</h2>
+        <div class="tokens">
+          <article class="tile"><h3>Materiales</h3><p>Cuero oscuro, metal ambar, cobre, vidrio ahumado y sombras densas. Radios entre 10px y 18px.</p></article>
+          <article class="tile">
+            <h3>Colores</h3>
+            <div class="swatches">
+              <div class="swatch" style="background:#100c0a"></div>
+              <div class="swatch" style="background:#342219"></div>
+              <div class="swatch" style="background:#d7a65d"></div>
+              <div class="swatch" style="background:#9e5129"></div>
+              <div class="swatch" style="background:#fff4e3"></div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="plans">
+      <div class="inner">
+        <h2>Como escala a planes</h2>
+        <div class="plans">
+          <article class="plan"><h3>Basico</h3><p>Menu digital y pedidos por WhatsApp.</p><div class="amount">$20.000</div></article>
+          <article class="plan featured"><h3>Pro</h3><p>Branding avanzado, dominio y estadisticas.</p><div class="amount">$45.000</div></article>
+          <article class="plan"><h3>Negocio</h3><p>Multiples locales y onboarding personalizado.</p><div class="amount">A consultar</div></article>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

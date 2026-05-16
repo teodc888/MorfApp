@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MorfApp - Concepto C: SaaS tactil</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,600;0,700;0,800;1,600;1,700&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f5f0e8;
+      --paper: #fffaf1;
+      --panel: #ffffff;
+      --ink: #332b25;
+      --muted: #70665d;
+      --primary: #c26028;
+      --primary-2: #e38342;
+      --green: #25d366;
+      --teal: #2f9d8d;
+      --line: #ddcdbc;
+      --grid: rgba(62, 50, 41, .055);
+      --shadow: 0 18px 44px rgba(58, 45, 35, .12);
+      --inner: inset 0 1px 0 rgba(255,255,255,.95), inset 0 -10px 22px rgba(110,79,50,.06);
+      --headline: "EB Garamond", Georgia, serif;
+      --body: "Manrope", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: var(--body);
+      background:
+        linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+        linear-gradient(180deg, var(--grid) 1px, transparent 1px),
+        linear-gradient(135deg, #fffaf1 0%, #f5f0e8 58%, #ead7c1 100%);
+      background-size: 26px 26px, 26px 26px, auto;
+    }
+    a { color: inherit; text-decoration: none; }
+    .nav {
+      position: sticky;
+      top: 18px;
+      z-index: 20;
+      width: min(1120px, calc(100% - 32px));
+      margin: 18px auto 0;
+      height: 62px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px 0 22px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255,250,241,.84);
+      backdrop-filter: blur(16px);
+      box-shadow: var(--inner), 0 14px 32px rgba(63,47,34,.09);
+    }
+    .brand {
+      font-family: var(--headline);
+      font-size: 1.72rem;
+      font-style: italic;
+      font-weight: 800;
+      color: var(--primary);
+    }
+    .nav-links {
+      display: flex;
+      gap: 24px;
+      color: var(--muted);
+      font-size: .84rem;
+      font-weight: 800;
+    }
+    .button, .nav-cta {
+      display: inline-flex;
+      min-height: 46px;
+      align-items: center;
+      justify-content: center;
+      padding: 0 22px;
+      border: 1px solid rgba(161, 75, 30, .20);
+      border-radius: 12px;
+      background: linear-gradient(#e98745, #be5b25);
+      color: white;
+      font-weight: 900;
+      box-shadow: var(--inner), 0 16px 34px rgba(194,96,40,.22);
+    }
+    .hero {
+      min-height: calc(100vh - 80px);
+      display: grid;
+      grid-template-columns: minmax(0, .95fr) minmax(360px, 1fr);
+      align-items: center;
+      gap: 56px;
+      width: min(1120px, calc(100% - 36px));
+      margin: 0 auto;
+      padding: 74px 0 92px;
+    }
+    .badge {
+      display: inline-flex;
+      padding: 8px 13px;
+      border-radius: 999px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--inner), 0 8px 18px rgba(63,47,34,.08);
+      color: var(--primary);
+      font-size: .72rem;
+      font-weight: 900;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 22px 0 0;
+      font-family: var(--headline);
+      font-size: clamp(3.3rem, 7.8vw, 7.2rem);
+      line-height: .9;
+      letter-spacing: 0;
+    }
+    h1 em { color: var(--primary); }
+    .lead {
+      max-width: 580px;
+      margin: 24px 0 0;
+      color: var(--muted);
+      font-size: clamp(1rem, 1.35vw, 1.16rem);
+      line-height: 1.72;
+      font-weight: 600;
+    }
+    .actions { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 34px; }
+    .button.secondary {
+      background: var(--panel);
+      color: var(--ink);
+      border-color: var(--line);
+      box-shadow: var(--inner), 0 12px 28px rgba(63,47,34,.08);
+    }
+    .device-stage {
+      min-height: 560px;
+      position: relative;
+      display: grid;
+      place-items: center;
+    }
+    .device {
+      width: min(430px, 84vw);
+      min-height: 520px;
+      border-radius: 34px;
+      border: 1px solid var(--line);
+      background: linear-gradient(#fffdf8, #f2e4d2);
+      box-shadow: var(--inner), 0 36px 80px rgba(70,51,36,.20);
+      padding: 22px;
+      animation: float 5.8s ease-in-out infinite;
+    }
+    .browser-bar {
+      height: 44px;
+      border-radius: 15px;
+      background: #f2e8db;
+      border: 1px solid #ddcdbc;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 0 14px;
+      box-shadow: inset 0 1px 0 #fff, inset 0 -8px 16px rgba(84,61,40,.05);
+    }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: #d6bda3; }
+    .menu-card {
+      margin-top: 18px;
+      border-radius: 24px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--inner), 0 18px 38px rgba(62,47,36,.10);
+      overflow: hidden;
+    }
+    .menu-hero {
+      height: 150px;
+      background:
+        radial-gradient(circle at 58% 38%, rgba(255,255,255,.62), transparent 30%),
+        linear-gradient(135deg, #f0b15c, #bd5b25 58%, #503020);
+      position: relative;
+    }
+    .menu-hero::after {
+      content: "";
+      position: absolute;
+      right: 24px;
+      bottom: -34px;
+      width: 118px;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #fff0c4, #c96b2d 44%, #3c2116 78%);
+      box-shadow: inset 10px 12px 22px rgba(255,231,170,.34), inset -18px -18px 30px rgba(0,0,0,.32), 0 18px 32px rgba(64,39,24,.24);
+    }
+    .menu-content { padding: 24px; }
+    .row {
+      display: grid;
+      grid-template-columns: 54px 1fr auto;
+      gap: 14px;
+      align-items: center;
+      padding: 13px 0;
+      border-bottom: 1px solid #eadbc9;
+    }
+    .thumb {
+      width: 54px;
+      aspect-ratio: 1;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #f7d28e, #be5b25);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.55), inset 0 -10px 18px rgba(90,39,15,.12);
+    }
+    .row strong { display: block; font-size: .9rem; }
+    .row span { color: var(--muted); font-size: .76rem; }
+    .mini-button {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 11px;
+      background: linear-gradient(#f18b48, #bd5b25);
+      color: #fff;
+      font-weight: 900;
+      box-shadow: var(--inner), 0 10px 20px rgba(194,96,40,.20);
+    }
+    .chip {
+      position: absolute;
+      padding: 11px 14px;
+      border-radius: 15px;
+      background: rgba(255,255,255,.86);
+      border: 1px solid var(--line);
+      box-shadow: var(--inner), 0 16px 32px rgba(62,47,36,.11);
+      color: var(--muted);
+      font-size: .78rem;
+      font-weight: 900;
+    }
+    .c1 { top: 12%; right: 0; }
+    .c2 { left: 0; bottom: 12%; }
+    .section {
+      padding: 102px 24px;
+      background: linear-gradient(180deg, rgba(255,250,241,.30), #f5f0e8 18%, #fffaf1 100%);
+      border-top: 1px solid var(--line);
+    }
+    .inner { width: min(1040px, 100%); margin: 0 auto; }
+    h2 {
+      margin: 0 0 18px;
+      font-family: var(--headline);
+      font-size: clamp(2.5rem, 5vw, 4.8rem);
+      line-height: .96;
+    }
+    .flow, .tokens, .plans {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      margin-top: 38px;
+    }
+    .tokens { grid-template-columns: 1.1fr .9fr; }
+    .tile, .plan {
+      padding: 26px;
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.78);
+      box-shadow: var(--inner), var(--shadow);
+    }
+    .tile h3, .plan h3 { margin: 0 0 8px; font-family: var(--headline); font-size: 2rem; }
+    .tile p, .plan p { margin: 0; color: var(--muted); line-height: 1.58; }
+    .swatches { display: flex; gap: 10px; flex-wrap: wrap; }
+    .swatch {
+      width: 72px;
+      height: 72px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.72), 0 12px 24px rgba(62,47,36,.10);
+    }
+    .plan {
+      min-height: 280px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .plan.featured {
+      background: linear-gradient(#342a23, #1c1612);
+      color: #fffaf1;
+      border-color: rgba(194,96,40,.28);
+    }
+    .amount { font-family: var(--headline); font-size: 2.6rem; font-weight: 800; color: var(--primary); }
+    .plan.featured .amount { color: #f2b66c; }
+    @keyframes float { 0%, 100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-14px) rotate(-1deg); } }
+    @media (max-width: 860px) {
+      .nav-links, .nav-cta { display: none; }
+      .hero { grid-template-columns: 1fr; padding-top: 56px; }
+      .device-stage { min-height: 440px; }
+      .device { min-height: 460px; }
+      .flow, .tokens, .plans { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="nav">
+    <a class="brand" href="#">MorfApp</a>
+    <nav class="nav-links" aria-label="Principal">
+      <a href="#flow">Funciones</a>
+      <a href="#tokens">Identidad</a>
+      <a href="#plans">Planes</a>
+    </nav>
+    <a class="nav-cta" href="#plans">Empezar gratis</a>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <span class="badge">Listo en 5 minutos</span>
+        <h1>Tu local online,<br>simple y<br><em>apetecible</em></h1>
+        <p class="lead">Una direccion clara y profesional: interfaz SaaS con relieve moderado, pensada para explicar producto, funciones y valor sin perder calidez gastronomica.</p>
+        <div class="actions">
+          <a class="button" href="#plans">Ver planes</a>
+          <a class="button secondary" href="#flow">Ver funciones</a>
+        </div>
+      </div>
+
+      <div class="device-stage" aria-label="Mock de menu digital">
+        <div class="device">
+          <div class="browser-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+          <div class="menu-card">
+            <div class="menu-hero"></div>
+            <div class="menu-content">
+              <div class="row"><div class="thumb"></div><div><strong>Combo Morf</strong><span>Pan brioche, cheddar y papas</span></div><div class="mini-button">+</div></div>
+              <div class="row"><div class="thumb" style="background:linear-gradient(135deg,#8dc85d,#2f8d43)"></div><div><strong>Ensalada fresca</strong><span>Opciones y extras</span></div><div class="mini-button">+</div></div>
+              <div class="row"><div class="thumb" style="background:linear-gradient(135deg,#ffd86a,#d78d25)"></div><div><strong>Postre del dia</strong><span>Disponible hasta agotar stock</span></div><div class="mini-button">+</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="chip c1">Panel tactil</div>
+        <div class="chip c2">WhatsApp directo</div>
+      </div>
+    </section>
+
+    <section class="section" id="flow">
+      <div class="inner">
+        <h2>Scroll claro, util y tactil.</h2>
+        <p class="lead">El hero puede mantener la idea actual de producto en movimiento, mientras las secciones explican beneficios con paneles que parecen fisicos pero siguen siendo limpios.</p>
+        <div class="flow">
+          <article class="tile"><h3>Producto</h3><p>Menu digital visible desde el primer viewport.</p></article>
+          <article class="tile"><h3>Funcion</h3><p>Cards con iconos, chips y controles con volumen moderado.</p></article>
+          <article class="tile"><h3>Accion</h3><p>CTAs claros, grandes y tactiles sin exceso ornamental.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="tokens">
+      <div class="inner">
+        <h2>Tokens de marca</h2>
+        <div class="tokens">
+          <article class="tile"><h3>Materiales</h3><p>Papel crema, panel blanco, bisel suave, grilla sutil, botones con sombra interna. Radios entre 12px y 22px.</p></article>
+          <article class="tile">
+            <h3>Colores</h3>
+            <div class="swatches">
+              <div class="swatch" style="background:#f5f0e8"></div>
+              <div class="swatch" style="background:#ffffff"></div>
+              <div class="swatch" style="background:#c26028"></div>
+              <div class="swatch" style="background:#2f9d8d"></div>
+              <div class="swatch" style="background:#332b25"></div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="plans">
+      <div class="inner">
+        <h2>Como escala a planes</h2>
+        <div class="plans">
+          <article class="plan"><h3>Basico</h3><p>Menu, productos ilimitados y WhatsApp.</p><div class="amount">$20.000</div></article>
+          <article class="plan featured"><h3>Pro</h3><p>Branding avanzado y estadisticas.</p><div class="amount">$45.000</div></article>
+          <article class="plan"><h3>Negocio</h3><p>Multiples locales y panel centralizado.</p><div class="amount">A consultar</div></article>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
