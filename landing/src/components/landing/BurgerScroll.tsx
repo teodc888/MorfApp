@@ -144,8 +144,8 @@ export function BurgerScroll() {
       const progress = Math.max(0, Math.min(1, -rect.top / scrollableDistance));
       const frameIndex = Math.min(TOTAL_FRAMES - 1, Math.floor(progress * TOTAL_FRAMES));
 
-      // Hide fixed element when progress > 0.85 to prevent overlap with Features
-      setHeroVisible(progress < 0.85);
+      // Disable interactions when progress > 0.85, but keep last frame visible
+      setHeroVisible(progress < 1.0);
 
       if (frameIndex === currentFrameRef.current) return;
 
@@ -175,8 +175,9 @@ export function BurgerScroll() {
         className="fixed top-0 w-full h-screen overflow-hidden"
         style={{
           background: HERO_BACKGROUND,
-          visibility: heroVisible ? 'visible' : 'hidden',
+          opacity: heroVisible ? 1 : 0,
           pointerEvents: heroVisible ? 'auto' : 'none',
+          transition: 'opacity 0.6s ease-out',
         }}
       >
         <div ref={floatWrapperRef} className="absolute inset-0 md:-left-[2vw] md:-right-[2vw] will-change-transform">
