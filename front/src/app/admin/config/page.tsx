@@ -283,11 +283,6 @@ export default function ConfigPage() {
           </button>
         </Section>
 
-        <div style={{ position: 'sticky', bottom: 0, padding: '12px 0 0', background: 'linear-gradient(to top, var(--bg) 60%, transparent)' }}>
-          <button className="btn btn-primary btn-block" disabled={localSaving && deliverySaving && hoursSaving} onClick={() => { saveLocal(); saveDelivery(); saveHours() }}>
-            Guardar configuración
-          </button>
-        </div>
       </div>
 
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>

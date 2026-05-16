@@ -445,6 +445,16 @@ export async function deleteSupplier(id: string): Promise<void> {
   return assertOk(res)
 }
 
+export async function restoreSupplier(id: string): Promise<void> {
+  const res = await adminFetch(`/api/admin/suppliers/${id}/restore`, { method: 'PATCH' })
+  return assertOk(res)
+}
+
+export async function getInactiveSuppliers(): Promise<SupplierDto[]> {
+  const res = await adminFetch('/api/admin/suppliers/inactive')
+  return parseJson<SupplierDto[]>(res)
+}
+
 export async function getSupplierDebtDetail(id: string): Promise<SupplierDebtDetailDto> {
   const res = await adminFetch(`/api/admin/suppliers/${id}/debt-detail`)
   return parseJson<SupplierDebtDetailDto>(res)
