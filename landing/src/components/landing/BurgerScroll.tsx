@@ -175,9 +175,8 @@ export function BurgerScroll() {
         className="fixed top-0 w-full h-screen overflow-hidden"
         style={{
           background: HERO_BACKGROUND,
-          opacity: heroVisible ? 1 : 0,
+          visibility: heroVisible ? 'visible' : 'hidden',
           pointerEvents: heroVisible ? 'auto' : 'none',
-          transition: 'opacity 0.6s ease-out',
         }}
       >
         <div ref={floatWrapperRef} className="absolute inset-0 md:-left-[2vw] md:-right-[2vw] will-change-transform">
