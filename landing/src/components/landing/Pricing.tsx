@@ -198,7 +198,7 @@ export function Pricing() {
         <PlanCards onBasicCta={() => setSelectedPlan('Basico')} className="grid grid-cols-3 gap-4" />
       </section>
 
-      <div id="pricing-scroll" ref={containerRef} style={{ height: '180vh' }} className="relative hidden lg:block">
+      <div id="pricing-scroll" ref={containerRef} style={{ height: '140vh' }} className="relative hidden lg:block">
         <div className="sticky top-0 flex h-screen flex-col items-center justify-center overflow-hidden bg-surface-container-low border-t border-outline-variant/30">
           <div className="mb-8 px-6 text-center">
             <h2 className="mb-3 font-headline text-5xl font-bold text-on-surface">Planes transparentes</h2>

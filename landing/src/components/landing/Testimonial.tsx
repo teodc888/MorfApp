@@ -93,7 +93,7 @@ export function Testimonial() {
       <div
         ref={containerRef}
         id="testimonial"
-        style={{ height: '160vh' }}
+        style={{ height: '100vh' }}
         className="hidden md:block relative bg-surface-container-low border-t border-outline-variant/30"
       >
         <div className="sticky top-0 h-screen flex flex-col items-center justify-center overflow-hidden px-6">
