@@ -68,6 +68,7 @@ export default function InsumosPage() {
   const [purchaseSaving, setPurchaseSaving] = useState(false)
 
   const [movementsLoading, setMovementsLoading] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
 
   const load = useCallback(async () => {
     try {
@@ -221,6 +222,7 @@ export default function InsumosPage() {
 
   const lowStockCount = supplies.filter(s => s.currentStock > 0 && s.currentStock < 5).length
   const outOfStockCount = supplies.filter(s => s.currentStock <= 0).length
+  const filteredSupplies = supplies.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()))
 
   return (
     <div style={{ fontFamily: 'var(--sans)', minHeight: '100vh', background: 'var(--bg)' }}>
@@ -297,6 +299,8 @@ export default function InsumosPage() {
                 className="input"
                 style={{ paddingLeft: 38 }}
                 placeholder="Buscar insumo..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
           </div>
@@ -307,8 +311,13 @@ export default function InsumosPage() {
                 <div style={{ fontSize: 28, marginBottom: 8 }}>📦</div>
                 <div className="text-sm">No hay insumos todavía</div>
               </div>
+            ) : filteredSupplies.length === 0 ? (
+              <div className="card" style={{ padding: 28, textAlign: 'center', color: 'var(--muted)' }}>
+                <div style={{ fontSize: 28, marginBottom: 8 }}>🔍</div>
+                <div className="text-sm">Sin resultados para &quot;{searchQuery}&quot;</div>
+              </div>
             ) : (
-              supplies.map((s) => (
+              filteredSupplies.map((s) => (
                 <button
                   key={s.id}
                   className="card tap"
@@ -368,21 +377,42 @@ export default function InsumosPage() {
           <div className="card" style={{ padding: '16px' }}>
             <h2 className="serif" style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', margin: '0 0 12px 0' }}>Registrar compra</h2>
             <form onSubmit={savePurchase} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div className="field">
                   <label>Insumo <span style={{ color: 'var(--error)', fontSize: 12, fontWeight: 600 }}>(Obligatorio)</span></label>
-                  <select className="select" value={purchaseForm.supplyId} onChange={(e) => setPurchaseForm((f) => ({ ...f, supplyId: e.target.value }))}>
+                  <select
+                    className="select"
+                    value={purchaseForm.supplyId}
+                    onChange={(e) => {
+                      const selected = supplies.find((s) => s.id === e.target.value)
+                      setPurchaseForm((f) => ({
+                        ...f,
+                        supplyId: e.target.value,
+                        supplierId: selected?.supplierId ?? '',
+                      }))
+                    }}
+                  >
                     <option value="">Seleccionar insumo</option>
                     {supplies.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </div>
-                <div className="field">
-                  <label>Proveedor <span style={{ color: 'var(--error)', fontSize: 12, fontWeight: 600 }}>(Obligatorio)</span></label>
-                  <select className="select" value={purchaseForm.supplierId} onChange={(e) => setPurchaseForm((f) => ({ ...f, supplierId: e.target.value }))}>
-                    <option value="">Seleccionar proveedor</option>
-                    {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                  </select>
-                </div>
+                {purchaseForm.supplierId && (
+                  <div className="field">
+                    <label style={{ color: 'var(--muted)' }}>Proveedor</label>
+                    <div style={{
+                      padding: '10px 14px',
+                      background: 'var(--surface-container)',
+                      borderRadius: 10,
+                      fontSize: 14,
+                      color: 'var(--text)',
+                      fontWeight: 500,
+                    }}>
+                      {suppliers.find((s) => s.id === purchaseForm.supplierId)?.name ?? '—'}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <div className="field">
                   <label>Cantidad <span style={{ color: 'var(--error)', fontSize: 12, fontWeight: 600 }}>(Obligatorio)</span></label>
                   <input className="input" type="number" step="0.001" placeholder="0" value={purchaseForm.quantity} onChange={(e) => setPurchaseForm((f) => ({ ...f, quantity: e.target.value }))} />
@@ -470,7 +500,7 @@ export default function InsumosPage() {
                       {positive ? '↑' : '↓'}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="text-sm fw-600" style={{ color: 'var(--text)' }}>Insumo</div>
+                      <div className="text-sm fw-600" style={{ color: 'var(--text)' }}>{m.supplyName || 'Insumo'}</div>
                       <div className="text-xs muted">{REASON_LABELS[m.reason] || m.reason} · {formatDate(m.createdAt)}</div>
                     </div>
                     <div className="serif" style={{ fontWeight: 700, color: positive ? 'var(--success)' : 'var(--error)' }}>
@@ -526,6 +556,18 @@ export default function InsumosPage() {
                   {supplySaving ? 'Guardando...' : 'Guardar'}
                 </button>
               </div>
+              {supplyModal.editing && (
+                <button
+                  className="btn btn-danger btn-block"
+                  style={{ marginTop: 8 }}
+                  onClick={() => {
+                    setConfirmDialog({ open: true, type: 'delete', id: supplyModal.editing!.id, name: supplyModal.editing!.name })
+                    setSupplyModal({ open: false, editing: null })
+                  }}
+                >
+                  Dar de baja insumo
+                </button>
+              )}
             </div>
           </div>
         </div>
