@@ -56,30 +56,36 @@ export function Testimonial() {
 
   return (
     <>
-      {/* Mobile version */}
-      <section className="md:hidden bg-surface-container-low border-t border-outline-variant/30 py-16 px-5 text-center">
-        <p className="font-body text-[0.68rem] font-bold uppercase tracking-[0.16em] text-primary mb-7">
+      {/* Mobile version — muestra los tres testimonios apilados */}
+      <section className="md:hidden bg-surface-container-low border-t border-outline-variant/30 py-14 px-5">
+        <p className="font-body text-[0.68rem] font-bold uppercase tracking-[0.16em] text-primary mb-10 text-center">
           Lo que dicen nuestros clientes
         </p>
-        <div className="relative max-w-xl mx-auto mb-5 px-4">
-          <span className="absolute -left-1 -top-4 font-headline text-[4.5rem] leading-none text-primary/[0.12] font-bold select-none">"</span>
-          <blockquote className="font-headline italic font-semibold text-on-surface leading-relaxed text-[1.45rem]">
-            {testimonials[0].quote}
-          </blockquote>
-        </div>
-        <div className="flex items-center justify-center gap-2 mb-4">
-          {[...Array(5)].map((_, i) => (
-            <svg key={i} className="w-4 h-4 text-primary" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-            </svg>
+        <div className="mx-auto flex max-w-md flex-col">
+          {testimonials.map((t, i) => (
+            <div
+              key={i}
+              className={`py-8 ${i > 0 ? 'border-t border-dashed border-outline-variant/50' : 'pt-0'}`}
+            >
+              <div className="flex items-center gap-1 mb-3">
+                {[...Array(5)].map((_, j) => (
+                  <svg key={j} className="w-3.5 h-3.5 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                  </svg>
+                ))}
+              </div>
+              <blockquote className="font-headline italic font-semibold text-on-surface leading-relaxed text-[1.18rem] mb-4">
+                &ldquo;{t.quote}&rdquo;
+              </blockquote>
+              <div className="flex items-center gap-3">
+                <img src={t.avatar} alt={t.author} className="w-9 h-9 flex-shrink-0 rounded-full object-cover" />
+                <div>
+                  <p className="font-body text-sm font-semibold leading-tight text-on-surface">{t.author}</p>
+                  <p className="mt-0.5 font-body text-[0.65rem] leading-tight text-on-surface-variant">{t.role}</p>
+                </div>
+              </div>
+            </div>
           ))}
-        </div>
-        <p className="font-body text-[0.66rem] font-semibold uppercase tracking-[0.14em] text-on-surface-variant mb-8">
-          {testimonials[0].role}
-        </p>
-        <div className="flex items-center justify-center gap-2">
-          <img src={testimonials[0].avatar} alt={testimonials[0].author} className="w-10 h-10 rounded-full object-cover" />
-          <span className="font-body font-semibold text-on-surface">{testimonials[0].author}</span>
         </div>
       </section>
 
@@ -87,7 +93,7 @@ export function Testimonial() {
       <div
         ref={containerRef}
         id="testimonial"
-        style={{ height: '300vh' }}
+        style={{ height: '160vh' }}
         className="hidden md:block relative bg-surface-container-low border-t border-outline-variant/30"
       >
         <div className="sticky top-0 h-screen flex flex-col items-center justify-center overflow-hidden px-6">

@@ -46,8 +46,8 @@ function FeatureRow({
         <p className="font-body text-on-surface-variant text-sm leading-relaxed">{feature.desc}</p>
       </div>
 
-      {/* Ícono */}
-      <div className={`px-6 pb-8 md:p-12 flex justify-start md:justify-center items-center ${!isEven ? 'md:order-1' : ''}`}>
+      {/* Ícono — aparece primero en mobile, alterna en desktop */}
+      <div className={`px-6 py-8 md:p-12 flex justify-start md:justify-center items-center order-first ${!isEven ? 'md:order-1' : 'md:order-none'}`}>
         <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center shadow-[0_8px_28px_rgba(194,101,42,0.28)] md:h-20 md:w-20">
           <span className="material-symbols-outlined text-white" style={{ fontSize: 30, fontVariationSettings: "'FILL' 1" }}>
             {feature.icon}
@@ -134,12 +134,12 @@ export function Features() {
 
   return (
     <section id="features" className="bg-surface-container-low border-b border-outline-variant/30">
-      <div className="text-center max-w-xl mx-auto px-5 pt-12 pb-12 reveal visible md:px-6 md:pt-20 md:pb-20">
+      <div className="text-center max-w-xl mx-auto px-5 pt-8 pb-8 reveal visible md:px-6 md:pt-12 md:pb-12">
         <h2 className="font-headline text-[2.15rem] lg:text-5xl font-bold text-on-surface mb-4 leading-tight">Simplicidad que vende</h2>
         <p className="font-body text-base text-on-surface-variant md:text-lg">Diseñado para resaltar lo mejor de tu gastronomía sin complicaciones técnicas.</p>
       </div>
 
-      <div className="relative mx-auto max-w-[880px] px-3 pb-16 md:px-0 md:pb-24">
+      <div className="relative mx-auto max-w-[880px] px-3 pb-12 md:px-0 md:pb-16">
         <div className="features-spine" id="featureSpine" />
         {features.map((f, i) => (
           <div key={i} data-feature-row>

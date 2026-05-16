@@ -182,7 +182,7 @@ export function Pricing() {
     <>
       {selectedPlan && <InterestModal plan={selectedPlan} onClose={() => setSelectedPlan(null)} />}
 
-      <section id="pricing" className="bg-surface-container-low px-4 py-16 md:hidden">
+      <section id="pricing" className="bg-surface-container-low px-4 py-12 md:hidden">
         <div className="mb-10 text-center">
           <h2 className="mb-3 font-headline text-[2.15rem] font-bold leading-tight text-on-surface">Planes transparentes</h2>
           <p className="font-body text-on-surface-variant">Primer mes gratis. Sin tarjeta requerida.</p>
@@ -190,7 +190,7 @@ export function Pricing() {
         <PlanCards onBasicCta={() => setSelectedPlan('Basico')} className="mx-auto flex max-w-sm flex-col gap-6" />
       </section>
 
-      <section className="hidden bg-surface-container-low px-6 py-20 md:block lg:hidden" aria-labelledby="pricing-tablet-title">
+      <section className="hidden bg-surface-container-low px-6 py-16 md:block lg:hidden" aria-labelledby="pricing-tablet-title">
         <div className="mb-10 text-center">
           <h2 id="pricing-tablet-title" className="mb-3 font-headline text-4xl font-bold text-on-surface">Planes transparentes</h2>
           <p className="font-body text-on-surface-variant">Primer mes gratis. Sin tarjeta requerida.</p>
@@ -198,7 +198,7 @@ export function Pricing() {
         <PlanCards onBasicCta={() => setSelectedPlan('Basico')} className="grid grid-cols-3 gap-4" />
       </section>
 
-      <div id="pricing-scroll" ref={containerRef} style={{ height: '320vh' }} className="relative hidden lg:block">
+      <div id="pricing-scroll" ref={containerRef} style={{ height: '180vh' }} className="relative hidden lg:block">
         <div className="sticky top-0 flex h-screen flex-col items-center justify-center overflow-hidden bg-surface-container-low border-t border-outline-variant/30">
           <div className="mb-8 px-6 text-center">
             <h2 className="mb-3 font-headline text-5xl font-bold text-on-surface">Planes transparentes</h2>

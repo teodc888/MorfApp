@@ -6,7 +6,7 @@ export function CTA() {
   const { ref, isVisible } = useInView();
 
   return (
-    <section className="py-16 px-4 relative overflow-hidden md:px-6 md:py-24" id="contact">
+    <section className="py-12 px-4 relative overflow-hidden md:px-6 md:py-16" id="contact">
       <div
         className="absolute inset-0 pointer-events-none"
         style={{

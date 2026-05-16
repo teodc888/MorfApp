@@ -166,12 +166,12 @@ export function BurgerScroll() {
   }, [drawFrame, updateCanvasSize]);
 
   return (
-    <div ref={containerRef} className="h-[250svh] md:h-[320vh] lg:h-[360vh]">
+    <div ref={containerRef} className="h-[160svh] md:h-[180vh] lg:h-[200vh]">
       <div
         className="sticky top-0 h-[100svh] w-full overflow-hidden md:h-screen"
         style={{ background: HERO_BACKGROUND }}
       >
-        <div ref={floatWrapperRef} className="absolute inset-y-0 -left-[2vw] -right-[2vw] will-change-transform">
+        <div ref={floatWrapperRef} className="absolute inset-0 md:-left-[2vw] md:-right-[2vw] will-change-transform">
           <canvas
             ref={canvasRef}
             className="block h-full w-full"
