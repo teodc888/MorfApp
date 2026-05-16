@@ -18,6 +18,7 @@ export function BurgerScroll() {
 
   const [loaded, setLoaded] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
+  const [heroVisible, setHeroVisible] = useState(true);
 
   const updateCanvasSize = useCallback(() => {
     const canvas = canvasRef.current;
@@ -165,11 +166,27 @@ export function BurgerScroll() {
     return () => window.removeEventListener('resize', handleResize);
   }, [drawFrame, updateCanvasSize]);
 
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setHeroVisible(entry.isIntersecting),
+      { threshold: 0 }
+    );
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div ref={containerRef} className="h-[300vh]">
       <div
-        className="sticky top-0 h-[100svh] w-full overflow-hidden md:h-screen"
-        style={{ background: HERO_BACKGROUND }}
+        className="fixed top-0 w-full h-screen overflow-hidden"
+        style={{
+          background: HERO_BACKGROUND,
+          visibility: heroVisible ? 'visible' : 'hidden',
+          pointerEvents: heroVisible ? 'auto' : 'none',
+        }}
       >
         <div ref={floatWrapperRef} className="absolute inset-0 md:-left-[2vw] md:-right-[2vw] will-change-transform">
           <canvas
