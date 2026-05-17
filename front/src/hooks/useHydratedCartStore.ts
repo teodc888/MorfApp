@@ -13,7 +13,6 @@ export function useItemCount() {
     setItemCount(count)
 
     const unsubscribe = useCartStore.subscribe(
-      (state) => state.items,
       () => {
         setItemCount(useCartStore.getState().itemCount())
       },
@@ -35,7 +34,6 @@ export function useCartTotal() {
     setTotal(currentTotal)
 
     const unsubscribe = useCartStore.subscribe(
-      (state) => state.items,
       () => {
         setTotal(useCartStore.getState().total())
       },
