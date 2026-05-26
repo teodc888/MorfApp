@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import { isPlanPro } from '@/lib/auth'
 import {
   getSuppliers,
   getInactiveSuppliers,
@@ -22,6 +24,7 @@ type PaymentForm = { purchase: SupplierDebtPurchaseDto; amount: string; notes: s
 const EMPTY_FORM: SupplierForm = { name: '', phone: '', address: '', notes: '' }
 
 export default function ProveedoresPage() {
+  const router = useRouter()
   const [suppliers, setSuppliers] = useState<SupplierDto[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -48,6 +51,11 @@ export default function ProveedoresPage() {
       setLoading(false)
     }
   }, [])
+
+  // Guard: redirigir si no tiene plan Pro/Negocio
+  useEffect(() => {
+    if (!isPlanPro()) router.replace('/admin/menu')
+  }, [router])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -189,8 +197,10 @@ export default function ProveedoresPage() {
   const totalDebt = suppliers.reduce((sum, s) => sum + s.totalDebt, 0)
   const withDebt = suppliers.filter(s => s.totalDebt > 0).length
 
+  if (!isPlanPro()) return null
+
   return (
-    <div style={{ fontFamily: 'var(--sans)', minHeight: '100vh', background: 'var(--bg)' }}>
+    <div style={{ fontFamily: 'var(--sans)' }}>
       {/* Page header */}
       <div style={{ padding: '4px 22px 18px' }}>
         <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>

@@ -60,6 +60,9 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        // Convierte todos los DateTime entrantes a Kind=Utc (requerido por Npgsql 8+)
+        options.JsonSerializerOptions.Converters.Add(new MorfApp.Api.UtcDateTimeConverter());
+        options.JsonSerializerOptions.Converters.Add(new MorfApp.Api.UtcNullableDateTimeConverter());
     });
 
 builder.Services.Configure<ApiBehaviorOptions>(options =>
@@ -182,6 +185,31 @@ if (string.IsNullOrWhiteSpace(uploadsPath))
 Directory.CreateDirectory(uploadsPath);
 
 app.UseCors();
+
+// Global exception handler — must ir DESPUÉS de UseCors para que los headers CORS ya estén seteados
+// Evita que el browser vea "CORS error" en lugar del verdadero error 500
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next(context);
+    }
+    catch (Exception ex)
+    {
+        if (!context.Response.HasStarted)
+        {
+            context.Response.StatusCode = 500;
+            context.Response.ContentType = "application/json";
+            var payload = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                message = "Error interno del servidor",
+                detail = ex.Message
+            });
+            await context.Response.WriteAsync(payload);
+        }
+    }
+});
+
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(uploadsPath),

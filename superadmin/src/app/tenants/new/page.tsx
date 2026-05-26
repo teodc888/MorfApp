@@ -85,16 +85,19 @@ export default function NewTenantPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Slug (URL)</label>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-400">morfapp.app/</span>
+              <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500">
                 <input
                   required
                   value={form.slug}
                   onChange={e => set('slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                  className="flex-1 px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="flex-1 px-3 py-2.5 text-sm outline-none"
                   placeholder="burger-co"
                 />
+                <span className="px-3 py-2.5 text-sm text-gray-400 bg-gray-50 border-l border-gray-300 whitespace-nowrap">.morfapp.app</span>
               </div>
+              {form.slug && (
+                <p className="text-xs text-indigo-500 mt-1">→ {form.slug}.morfapp.app</p>
+              )}
             </div>
           </div>
         </div>

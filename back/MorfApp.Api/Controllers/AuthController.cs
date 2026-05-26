@@ -43,6 +43,7 @@ public class AuthController(IAppDbContext db, IConfiguration config) : Controlle
     {
         var stored = await db.RefreshTokens
             .Include(r => r.AdminUser)
+            .ThenInclude(u => u.Tenant)
             .FirstOrDefaultAsync(r => r.Token == req.RefreshToken && !r.IsRevoked);
 
         if (stored is null || stored.ExpiresAt < DateTime.UtcNow)
@@ -123,6 +124,9 @@ public class AuthController(IAppDbContext db, IConfiguration config) : Controlle
 
         if (user.Tenant?.Slug is not null)
             claims.Add(new("tenant_slug", user.Tenant.Slug));
+
+        if (user.Tenant?.Plan is not null)
+            claims.Add(new("tenant_plan", user.Tenant.Plan.ToString()));
 
         var token = new JwtSecurityToken(
             claims: claims,

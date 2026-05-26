@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flujo de Trabajo con Agentes — MorfApp</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f0f11;
+      color: #e4e4e7;
+      line-height: 1.6;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      padding: 60px 24px;
+      text-align: center;
+      border-bottom: 1px solid #27272a;
+    }
+    header .badge {
+      display: inline-block;
+      background: #7c3aed22;
+      border: 1px solid #7c3aed55;
+      color: #a78bfa;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 99px;
+      margin-bottom: 20px;
+    }
+    header h1 {
+      font-size: clamp(28px, 5vw, 48px);
+      font-weight: 800;
+      background: linear-gradient(135deg, #fff 0%, #a78bfa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 12px;
+    }
+    header p {
+      color: #a1a1aa;
+      font-size: 18px;
+      max-width: 560px;
+      margin: 0 auto;
+    }
+
+    /* ── Layout ── */
+    .container { max-width: 960px; margin: 0 auto; padding: 48px 24px; }
+
+    /* ── Sections ── */
+    section { margin-bottom: 64px; }
+    section h2 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    section h2 .num {
+      width: 32px;
+      height: 32px;
+      background: #7c3aed;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+    .card h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card p { color: #a1a1aa; font-size: 14px; }
+
+    /* ── Grid de agentes ── */
+    .agents-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .agent-card {
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 12px;
+      padding: 20px;
+      border-left: 3px solid var(--accent);
+    }
+    .agent-card h4 {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      margin-bottom: 4px;
+    }
+    .agent-card p { color: #a1a1aa; font-size: 13px; }
+    .agent-card .tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-top: 8px;
+    }
+
+    /* ── Árbol jerárquico ── */
+    .tree {
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 12px;
+      padding: 28px 32px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 14px;
+      line-height: 2;
+    }
+    .tree .root { color: #a78bfa; font-weight: 700; font-size: 16px; }
+    .tree .orch { color: #60a5fa; font-weight: 600; }
+    .tree .agent { color: #34d399; }
+    .tree .label {
+      color: #52525b;
+      font-size: 12px;
+      margin-left: 6px;
+    }
+
+    /* ── Flujo paso a paso ── */
+    .steps { display: flex; flex-direction: column; gap: 0; }
+    .step {
+      display: flex;
+      gap: 20px;
+      position: relative;
+    }
+    .step:not(:last-child)::before {
+      content: '';
+      position: absolute;
+      left: 19px;
+      top: 44px;
+      bottom: -16px;
+      width: 2px;
+      background: #27272a;
+    }
+    .step-num {
+      width: 40px;
+      height: 40px;
+      background: #7c3aed;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 15px;
+      flex-shrink: 0;
+      margin-top: 2px;
+      position: relative;
+      z-index: 1;
+    }
+    .step-content { padding-bottom: 32px; flex: 1; }
+    .step-content h4 { font-size: 16px; font-weight: 600; color: #fff; margin-bottom: 6px; }
+    .step-content p { color: #a1a1aa; font-size: 14px; }
+
+    /* ── Code blocks ── */
+    .code-block {
+      background: #0d0d0f;
+      border: 1px solid #27272a;
+      border-radius: 10px;
+      padding: 20px 24px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 14px;
+      line-height: 1.8;
+      margin-top: 12px;
+      overflow-x: auto;
+    }
+    .code-block .cmd { color: #a78bfa; }
+    .code-block .comment { color: #52525b; }
+    .code-block .str { color: #34d399; }
+    .code-block .key { color: #60a5fa; }
+    .code-block .val { color: #f472b6; }
+
+    /* ── Modelo selector ── */
+    .model-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+    }
+    .model-card {
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+    .model-card .icon { font-size: 32px; margin-bottom: 10px; }
+    .model-card h4 { font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+    .model-card .cmd-pill {
+      display: inline-block;
+      background: #27272a;
+      border-radius: 6px;
+      padding: 3px 10px;
+      font-family: monospace;
+      font-size: 13px;
+      color: #a78bfa;
+      margin: 8px 0;
+    }
+    .model-card p { color: #a1a1aa; font-size: 13px; }
+
+    /* ── Alert box ── */
+    .alert {
+      background: #0c1a0c;
+      border: 1px solid #166534;
+      border-radius: 10px;
+      padding: 16px 20px;
+      color: #86efac;
+      font-size: 14px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .alert-warn {
+      background: #1c1200;
+      border-color: #713f12;
+      color: #fbbf24;
+    }
+
+    /* ── Ejemplo real ── */
+    .example-box {
+      background: #0d0d0f;
+      border: 1px solid #27272a;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .example-header {
+      background: #18181b;
+      padding: 12px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #71717a;
+      border-bottom: 1px solid #27272a;
+      font-family: monospace;
+    }
+    .example-body { padding: 20px; }
+    .msg {
+      margin-bottom: 16px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .msg .avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .msg.user .avatar { background: #7c3aed; }
+    .msg.agent .avatar { background: #1d4ed8; }
+    .msg .bubble {
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 13px;
+      line-height: 1.6;
+      flex: 1;
+    }
+    .msg.user .bubble { border-color: #7c3aed44; }
+    .msg .sender { font-weight: 600; font-size: 11px; color: #71717a; margin-bottom: 4px; }
+    .check { color: #52525b; }
+    .check.done { color: #34d399; }
+    .approve-btn {
+      display: inline-block;
+      background: #7c3aed;
+      color: #fff;
+      padding: 6px 16px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 10px;
+    }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid #27272a;
+      padding: 32px 24px;
+      text-align: center;
+      color: #52525b;
+      font-size: 13px;
+    }
+
+    /* ── Divider ── */
+    .divider {
+      height: 1px;
+      background: #27272a;
+      margin: 48px 0;
+    }
+
+    /* ── Tags ── */
+    .tag-no-code { background: #1e1b4b; color: #a78bfa; }
+    .tag-writes-code { background: #052e16; color: #34d399; }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .tree { font-size: 12px; padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="badge">MorfApp Agents</div>
+  <h1>Flujo de Trabajo con Agentes</h1>
+  <p>Sistema de orquestadores jerárquico para desarrollar MorfApp de forma consistente y controlada</p>
+</header>
+
+<div class="container">
+
+  <!-- ── 1. Qué es esto ── -->
+  <section>
+    <h2><span class="num">1</span> ¿Qué es este sistema?</h2>
+    <p style="color:#a1a1aa; margin-bottom: 20px;">
+      En lugar de escribir código directamente, usamos un sistema de <strong style="color:#fff">agentes especializados</strong> que trabajan en capas. Primero analizan el código existente y te muestran un plan. <em>Vos aprobás el plan</em> antes de que se toque una sola línea de código.
+    </p>
+    <div class="alert">
+      <span>✅</span>
+      <span><strong>La regla clave:</strong> Los orquestadores solo analizan y planifican — nunca escriben código. Los agentes de implementación solo ejecutan lo que el plan aprobado dice.</span>
+    </div>
+  </section>
+
+  <!-- ── 2. Jerarquía ── -->
+  <section>
+    <h2><span class="num">2</span> Jerarquía de agentes</h2>
+    <div class="tree">
+      <div class="root">📋 /morf "tu requerimiento"</div>
+      <div style="margin-left: 24px;">
+        <div class="orch">└── 🧠 morf-master <span class="label">← analiza y delega</span></div>
+        <div style="margin-left: 28px;">
+          <div class="orch">├── ⚙️ morf-back-orchestrator <span class="label">← genera plan → espera OK</span></div>
+          <div style="margin-left: 28px;">
+            <div class="agent">├── morf-back-entity <span class="label">→ entidades .NET</span></div>
+            <div class="agent">├── morf-back-migration <span class="label">→ migraciones EF Core</span></div>
+            <div class="agent">├── morf-back-controller <span class="label">→ endpoints + DTOs</span></div>
+            <div class="agent">└── morf-back-test <span class="label">→ tests xUnit</span></div>
+          </div>
+          <div class="orch">├── 🎨 morf-front-orchestrator <span class="label">← genera plan → espera OK</span></div>
+          <div style="margin-left: 28px;">
+            <div class="agent">├── morf-front-page <span class="label">→ páginas admin panel</span></div>
+            <div class="agent">├── morf-front-component <span class="label">→ componentes UI</span></div>
+            <div class="agent">└── morf-front-api <span class="label">→ admin-api.ts + tipos</span></div>
+          </div>
+          <div class="orch">├── 👑 morf-superadmin-orchestrator <span class="label">← genera plan → espera OK</span></div>
+          <div style="margin-left: 28px;">
+            <div class="agent">├── morf-superadmin-page <span class="label">→ páginas superadmin</span></div>
+            <div class="agent">└── morf-superadmin-api <span class="label">→ superadmin-api.ts</span></div>
+          </div>
+          <div class="orch">└── 🚀 morf-devops-orchestrator <span class="label">← genera plan → espera OK</span></div>
+          <div style="margin-left: 28px;">
+            <div class="agent">├── morf-devops-pipeline <span class="label">→ Jenkinsfiles</span></div>
+            <div class="agent">└── morf-devops-config <span class="label">→ variables + config server</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+      <div style="display:flex; align-items:center; gap:6px; font-size:13px;">
+        <span style="color:#60a5fa;">■</span> <span style="color:#a1a1aa;">Orquestadores (solo analizan y planifican)</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px; font-size:13px;">
+        <span style="color:#34d399;">■</span> <span style="color:#a1a1aa;">Agentes de implementación (escriben código)</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 3. Cómo usarlo ── -->
+  <section>
+    <h2><span class="num">3</span> Cómo usarlo — paso a paso</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h4>Elegí el modelo según la complejidad</h4>
+          <p>Antes de arrancar, elegí qué tan potente querés que sea el agente. Todos los agentes heredan este modelo automáticamente.</p>
+          <div class="code-block">
+<span class="comment"># Escribe esto en el chat de Claude Code</span>
+<span class="cmd">/model haiku</span>      <span class="comment">   # rápido y barato — para cosas simples</span>
+<span class="cmd">/model sonnet</span>     <span class="comment">   # balance calidad/velocidad — uso diario</span>
+<span class="cmd">/model opusplan</span>   <span class="comment">   # máxima calidad — para cosas complejas</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h4>Escribí tu requerimiento con /morf</h4>
+          <p>Describí en lenguaje natural lo que necesitás. No hace falta saber qué archivos tocar — el sistema lo descubre solo.</p>
+          <div class="code-block">
+<span class="comment"># Ejemplos de uso</span>
+<span class="cmd">/morf</span> <span class="str">quiero agregar un campo 'descripción' al tenant</span>
+<span class="cmd">/morf</span> <span class="str">crear endpoint para pausar/activar un producto</span>
+<span class="cmd">/morf</span> <span class="str">agregar filtro por fecha en la vista de pedidos</span>
+<span class="cmd">/morf</span> <span class="str">el superadmin necesita ver los logs de actividad</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h4>Revisá el plan que te genera el orquestador</h4>
+          <p>El sistema lee el código real del proyecto, analiza el impacto y te genera un plan con archivos específicos y tareas en orden. <strong style="color:#fff">Todavía no se tocó nada.</strong></p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <h4>Aprobás o pedís cambios</h4>
+          <p>El orquestador te pregunta explícitamente si aprobás. Podés decir S, pedir ajustes, o cancelar. Solo con tu OK se ejecuta algo.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num" style="background:#34d399; color:#000;">5</div>
+        <div class="step-content">
+          <h4>Los agentes ejecutan el código</h4>
+          <p>Con el plan aprobado, los agentes especializados escriben el código en el orden correcto (entity → migration → controller → frontend).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 4. Ejemplo real ── -->
+  <section>
+    <h2><span class="num">4</span> Ejemplo real de una sesión</h2>
+    <div class="example-box">
+      <div class="example-header">Claude Code — Sesión de trabajo</div>
+      <div class="example-body">
+
+        <div class="msg user">
+          <div class="avatar">👤</div>
+          <div class="bubble">
+            <div class="sender">Vos</div>
+            /model sonnet<br>
+            /morf quiero agregar un campo 'descripción corta' al tenant que se muestre en el storefront
+          </div>
+        </div>
+
+        <div class="msg agent">
+          <div class="avatar">🧠</div>
+          <div class="bubble">
+            <div class="sender">morf-master</div>
+            Este requerimiento impacta <strong>backend</strong> (entidad + migración + endpoint) y <strong>frontend</strong> (storefront + admin config). Invocando ambos orquestadores...
+          </div>
+        </div>
+
+        <div class="msg agent">
+          <div class="avatar">⚙️</div>
+          <div class="bubble">
+            <div class="sender">morf-back-orchestrator</div>
+            Analicé <code>Tenant.cs</code>, <code>AdminController.cs</code> y <code>StoreController.cs</code>.<br><br>
+            <strong>Plan Backend:</strong><br>
+            <span class="check">☐</span> 1. [morf-back-entity] Agregar <code>ShortDescription?</code> a <code>Tenant.cs</code><br>
+            <span class="check">☐</span> 2. [morf-back-migration] Generar <code>AddShortDescriptionToTenant</code><br>
+            <span class="check">☐</span> 3. [morf-back-controller] Exponer en <code>TenantInfoDto</code> y <code>PUT /api/admin/me</code><br>
+            <span class="check">☐</span> 4. [morf-back-controller] Incluir en respuesta de <code>StoreController</code><br><br>
+            <strong>¿Aprobás este plan para el backend?</strong>
+            <div><span class="approve-btn">S — Aprobar</span></div>
+          </div>
+        </div>
+
+        <div class="msg user">
+          <div class="avatar">👤</div>
+          <div class="bubble">
+            <div class="sender">Vos</div>
+            S
+          </div>
+        </div>
+
+        <div class="msg agent">
+          <div class="avatar">⚙️</div>
+          <div class="bubble">
+            <div class="sender">morf-back-orchestrator → agentes</div>
+            <span class="check done">✓</span> 1. Entidad actualizada — <code>ShortDescription?</code> agregado<br>
+            <span class="check done">✓</span> 2. Migración generada — <code>20260516_AddShortDescriptionToTenant</code><br>
+            <span class="check done">✓</span> 3. DTO y endpoint actualizados<br>
+            <span class="check done">✓</span> 4. StoreController actualizado<br><br>
+            Backend listo. El orquestador de frontend puede continuar.
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 5. Modelos ── -->
+  <section>
+    <h2><span class="num">5</span> Elegir el modelo correcto</h2>
+    <div class="model-grid">
+      <div class="model-card">
+        <div class="icon">⚡</div>
+        <h4>Haiku</h4>
+        <div class="cmd-pill">/model haiku</div>
+        <p>Tareas simples y repetitivas. Más rápido, más barato. Ideal para pequeños ajustes de texto, typos, renombrar cosas.</p>
+      </div>
+      <div class="model-card">
+        <div class="icon">⚖️</div>
+        <h4>Sonnet</h4>
+        <div class="cmd-pill">/model sonnet</div>
+        <p><strong style="color:#fff">Uso diario recomendado.</strong> Buen balance entre calidad y velocidad. Para features completas, nuevos endpoints, páginas del admin.</p>
+      </div>
+      <div class="model-card">
+        <div class="icon">🧠</div>
+        <h4>Opus (plan mode)</h4>
+        <div class="cmd-pill">/model opusplan</div>
+        <p>Para decisiones de arquitectura, refactors grandes, o cuando algo es complejo y querés la mejor calidad posible.</p>
+      </div>
+    </div>
+    <div class="alert" style="margin-top: 16px;">
+      <span>💡</span>
+      <span>Cuando cambiás el modelo con <code>/model</code>, <strong>todos los agentes</strong> heredan ese modelo automáticamente. No hay que configurar nada más.</span>
+    </div>
+  </section>
+
+  <!-- ── 6. Proyectos ── -->
+  <section>
+    <h2><span class="num">6</span> Qué hace cada orquestador</h2>
+    <div class="agents-grid">
+      <div class="agent-card" style="--accent: #60a5fa;">
+        <h4>morf-back-orchestrator</h4>
+        <p>Gestiona el backend .NET 9. Trabaja en entidades, migraciones EF Core, endpoints REST y tests xUnit.</p>
+        <span class="tag tag-no-code">No escribe código</span>
+      </div>
+      <div class="agent-card" style="--accent: #f472b6;">
+        <h4>morf-front-orchestrator</h4>
+        <p>Gestiona el admin panel Next.js. Páginas, componentes UI, tipos TypeScript y llamadas a la API.</p>
+        <span class="tag tag-no-code">No escribe código</span>
+      </div>
+      <div class="agent-card" style="--accent: #fbbf24;">
+        <h4>morf-superadmin-orchestrator</h4>
+        <p>Gestiona el SuperAdmin standalone (app separada). Lista de tenants, creación, edición y configuración global.</p>
+        <span class="tag tag-no-code">No escribe código</span>
+      </div>
+      <div class="agent-card" style="--accent: #34d399;">
+        <h4>morf-devops-orchestrator</h4>
+        <p>Gestiona Jenkinsfiles, scripts de deployment y configuraciones del servidor en producción y PRE.</p>
+        <span class="tag tag-no-code">No escribe código</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 7. Tips ── -->
+  <section>
+    <h2><span class="num">7</span> Tips importantes</h2>
+    <div class="card">
+      <h3>🔀 El sistema detecta automáticamente qué proyectos afecta</h3>
+      <p>No hace falta decirle "esto es del backend". Describí el requerimiento en lenguaje normal y el <code>morf-master</code> decide qué orquestadores invocar.</p>
+    </div>
+    <div class="card">
+      <h3>✏️ Podés pedir cambios al plan antes de aprobar</h3>
+      <p>Si el orquestador te muestra un plan y algo no te convence, decile exactamente qué cambiar. El plan se ajusta antes de ejecutarse.</p>
+    </div>
+    <div class="card">
+      <h3>🌿 Rama development para el día a día</h3>
+      <p>Estamos trabajando sobre la rama <code>development</code>. Cuando algo está probado en PRE y listo, se mergea a <code>master</code> que dispara el deploy a PROD.</p>
+    </div>
+    <div class="alert alert-warn" style="margin-top: 16px;">
+      <span>⚠️</span>
+      <span><strong>Para cambios en el pipeline de PROD:</strong> el orquestador te va a pedir una confirmación extra antes de tocar <code>Jenkinsfile.prod</code>. Siempre revisá dos veces estos cambios.</span>
+    </div>
+  </section>
+
+  <!-- ── 8. Archivos ── -->
+  <section>
+    <h2><span class="num">8</span> Dónde están los archivos de agentes</h2>
+    <div class="code-block">
+<span class="key">.claude/</span>
+  <span class="key">commands/</span>
+    <span class="val">morf.md</span>                    <span class="comment">← /morf (punto de entrada)</span>
+  <span class="key">agents/morf/</span>
+    <span class="val">master.md</span>                  <span class="comment">← Orquestador Maestro</span>
+    <span class="val">back-orchestrator.md</span>       <span class="comment">← Orquestador Backend</span>
+    <span class="val">front-orchestrator.md</span>      <span class="comment">← Orquestador Frontend</span>
+    <span class="val">superadmin-orchestrator.md</span> <span class="comment">← Orquestador SuperAdmin</span>
+    <span class="val">devops-orchestrator.md</span>     <span class="comment">← Orquestador DevOps</span>
+    <span class="val">back-entity.md</span>             <span class="comment">← Entidades .NET</span>
+    <span class="val">back-migration.md</span>          <span class="comment">← Migraciones EF Core</span>
+    <span class="val">back-controller.md</span>         <span class="comment">← Endpoints + DTOs</span>
+    <span class="val">back-test.md</span>               <span class="comment">← Tests xUnit</span>
+    <span class="val">front-page.md</span>              <span class="comment">← Páginas admin</span>
+    <span class="val">front-component.md</span>         <span class="comment">← Componentes UI</span>
+    <span class="val">front-api.md</span>               <span class="comment">← admin-api.ts + tipos</span>
+    <span class="val">superadmin-page.md</span>         <span class="comment">← Páginas superadmin</span>
+    <span class="val">superadmin-api.md</span>          <span class="comment">← superadmin-api.ts</span>
+    <span class="val">devops-pipeline.md</span>         <span class="comment">← Jenkinsfiles</span>
+    <span class="val">devops-config.md</span>           <span class="comment">← Variables + config server</span>
+    </div>
+    <p style="color:#71717a; font-size:13px; margin-top: 12px;">Para modificar el comportamiento de cualquier agente, editá su archivo <code>.md</code> correspondiente. Para cambiar el modelo de todos, solo cambiá el <code>/model</code> en la sesión.</p>
+  </section>
+
+</div>
+
+<footer>
+  MorfApp — Sistema de Agentes v1.0 &nbsp;·&nbsp; Creado con Claude Code
+</footer>
+
+</body>
+</html>

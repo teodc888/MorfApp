@@ -3,16 +3,16 @@
 import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { isAuthenticated, getTenantFromToken } from '@/lib/auth'
+import { isAuthenticated, getTenantFromToken, isPlanPro } from '@/lib/auth'
 
 const NAV_ADMIN = [
-  { href: 'orders',      label: 'Pedidos',       icon: 'receipt_long'    },
-  { href: 'metrics',     label: 'Métricas',      icon: 'bar_chart'       },
-  { href: 'menu',        label: 'Carta',          icon: 'restaurant_menu' },
-  { href: 'modifiers',   label: 'Opciones',       icon: 'tune'            },
-  { href: 'promotions',  label: 'Promos',         icon: 'redeem'          },
-  { href: 'proveedores', label: 'Proveedores',    icon: 'local_shipping'  },
-  { href: 'insumos',     label: 'Insumos',        icon: 'inventory_2'     },
+  { href: 'orders',      label: 'Pedidos',       icon: 'receipt_long',    proOnly: false },
+  { href: 'metrics',     label: 'Métricas',      icon: 'bar_chart',       proOnly: false },
+  { href: 'menu',        label: 'Carta',          icon: 'restaurant_menu', proOnly: false },
+  { href: 'modifiers',   label: 'Opciones',       icon: 'tune',            proOnly: false },
+  { href: 'promotions',  label: 'Promos',         icon: 'redeem',          proOnly: false },
+  { href: 'proveedores', label: 'Proveedores',    icon: 'local_shipping',  proOnly: true  },
+  { href: 'insumos',     label: 'Insumos',        icon: 'inventory_2',     proOnly: true  },
 ]
 
 const NAV_CONFIG = [
@@ -23,6 +23,20 @@ const NAV_CONFIG = [
 
 function initials(name: string) {
   return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+}
+
+function PlanBadge({ proPlan }: { proPlan: boolean }) {
+  return (
+    <span style={{
+      display: 'inline-block',
+      fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
+      textTransform: 'uppercase', padding: '2px 7px', borderRadius: 20,
+      background: proPlan ? 'linear-gradient(90deg,#f97316,#fb923c)' : 'var(--outline-soft)',
+      color: proPlan ? '#fff' : 'var(--muted)',
+    }}>
+      {proPlan ? 'Pro' : 'Básico'}
+    </span>
+  )
 }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -53,6 +67,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   const tenant = getTenantFromToken() || 'Mi negocio'
+  const proPlan = isPlanPro()
+
+  const visibleNavAdmin = NAV_ADMIN.filter(item => !item.proOnly || proPlan)
 
   const isActive = (href: string) => pathname.includes(`${base}/${href}`)
 
@@ -80,7 +97,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div style={{ paddingLeft: 14, marginBottom: 10, fontSize: 12, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Administración
             </div>
-            {NAV_ADMIN.map(item => {
+            {visibleNavAdmin.map(item => {
               const active = isActive(item.href)
               return (
                 <Link key={item.href} href={`${base}/${item.href}`} style={{
@@ -133,8 +150,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               display: 'grid', placeItems: 'center',
               fontFamily: 'var(--serif)', fontWeight: 700, fontSize: 14,
             }}>{initials(tenant)}</div>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160 }}>{tenant}</span>
+              <PlanBadge proPlan={proPlan} />
             </div>
           </div>
         </div>
@@ -157,7 +175,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <div style={{ paddingLeft: 14, marginBottom: 10, fontSize: 12, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   Administración
                 </div>
-                {NAV_ADMIN.map(item => {
+                {visibleNavAdmin.map(item => {
                   const active = isActive(item.href)
                   return (
                     <Link key={item.href} href={`${base}/${item.href}`} onClick={() => setDrawerOpen(false)} style={{
@@ -243,7 +261,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Page content */}
         <main style={{ flex: 1, padding: '24px 16px 24px' }} className="md:p-8 md:pt-8 md:pb-8">
-          {children}
+          <div style={{ maxWidth: 960, margin: '0 auto', width: '100%' }}>
+            {children}
+          </div>
         </main>
       </div>
 

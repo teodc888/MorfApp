@@ -283,41 +283,24 @@ export function ProductModal({ product, categoryEmoji, onClose }: Props) {
           boxShadow: STITCH.shadowElev,
           transform: `translateY(${dragY}px)`,
           transition: isDragging ? 'none' : 'transform 0.3s ease-out',
-          touchAction: 'none',
         }}
-        onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
       >
-        <div className="flex-shrink-0 flex justify-between items-center px-4 pt-3 pb-1" style={{ borderBottom: `1px solid ${STITCH.border}` }}>
-          <div className="w-10" />
-          <button
-            onClick={handleClose}
-            className="p-1 hover:bg-zinc-100 rounded-full transition-colors"
-            aria-label="Cerrar modal"
-          >
-            <svg
-              className="w-6 h-6 hover:text-zinc-600"
-              style={{ color: STITCH.muted }}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
+        {/* Drag pill — solo el handle arrastra el modal */}
+        <div
+          className="flex-shrink-0 flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing"
+          style={{ touchAction: 'none' }}
+          onMouseDown={handleMouseDown}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          <div className="w-10 h-1 rounded-full" style={{ backgroundColor: STITCH.border }} />
         </div>
 
-        <div className="overflow-hidden flex-1 px-4 pb-2 min-h-0">
+        <div className="overflow-y-auto flex-1 px-4 pb-2 min-h-0">
           <div className="flex justify-center mb-4">
             {product.imageUrl ? (
               <Image

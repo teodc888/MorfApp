@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import Image from 'next/image'
 import type { TenantPublic, CartItem, SelectedOption } from '@/types/store'
 import { useCartStore } from '@/store/cart'
 import { formatPrice, buildWhatsAppMessage } from '@/lib/utils'
@@ -318,26 +317,26 @@ export function CartModal({ tenant, onClose }: Props) {
           maxHeight: '92dvh',
           transform: `translateY(${dragY}px)`,
           transition: isDragging ? 'none' : 'transform 0.3s ease-out',
-          touchAction: 'none',
         }}
-        onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
       >
-        {/* Header - Stitch Design: sticky top, cream bg */}
-        <div className="flex-shrink-0 flex items-center justify-between px-4 pt-4 pb-2 sticky top-0" style={{ backgroundColor: DS.surface, borderBottom: `1px solid ${DS.border}`}}>
-          <h2 className="font-bold text-base" style={{ color: DS.text, fontFamily: 'Plus Jakarta Sans, sans-serif' }}>Tu Pedido</h2>
-          <button
-            onClick={handleClose}
-            className="p-1 rounded-full transition-colors"
-            style={{ color: DS.textMuted }}
+        {/* Header - drag pill + título (solo el handle arrastra) */}
+        <div className="flex-shrink-0 sticky top-0" style={{ backgroundColor: DS.surface }}>
+          <div
+            className="flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing"
+            style={{ touchAction: 'none' }}
+            onMouseDown={handleMouseDown}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
           >
-            ✕
-          </button>
+            <div className="w-10 h-1 rounded-full" style={{ backgroundColor: DS.border }} />
+          </div>
+          <div className="flex items-center px-4 pb-2" style={{ borderBottom: `1px solid ${DS.border}` }}>
+            <h2 className="font-bold text-base" style={{ color: DS.text, fontFamily: 'Plus Jakarta Sans, sans-serif' }}>Tu Pedido</h2>
+          </div>
         </div>
 
         <div className="overflow-y-auto flex-1 px-4">
@@ -348,19 +347,6 @@ export function CartModal({ tenant, onClose }: Props) {
             </div>
           ) : (
             <>
-              {/* Hero/Promo Image - Stitch Design */}
-              {tenant.branding.bannerUrl && (
-                <div className="-mx-4 mb-4 aspect-[2.11] overflow-hidden">
-                  <Image
-                    alt="Promo"
-                    className="w-full h-full object-cover"
-                    src={tenant.branding.bannerUrl}
-                    width={600}
-                    height={284}
-                    unoptimized
-                  />
-                </div>
-              )}
 
               {/* Order Items Section - Stitch Design */}
               <div className="py-2">

@@ -51,6 +51,7 @@ export type TenantPublic = {
   whatsappNumber: string
   whatsAppMessageTemplate: string | null
   isOpen: boolean
+  status: string
   branding: TenantBranding
   deliveryConfig: DeliveryConfig
   paymentConfig: PaymentConfig

@@ -35,9 +35,11 @@ export type CreateTenantPayload = {
 
 export type UpdateTenantPayload = {
   name?: string
+  slug?: string
   ownerName?: string
   ownerPhone?: string
   subscriptionEndsAt: string | null
+  plan?: string
 }
 
 export type SuperAdminSettings = {
@@ -62,7 +64,10 @@ export async function updateTenant(id: string, payload: UpdateTenantPayload): Pr
     method: 'PUT',
     body: JSON.stringify(payload),
   })
-  if (!res.ok) throw new Error(`API error ${res.status}`)
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new Error(`API error ${res.status}: ${text}`)
+  }
 }
 
 export async function activateTenant(id: string): Promise<{ message: string; setupUrl?: string }> {
@@ -81,6 +86,17 @@ export async function updateTenantStatus(id: string, status: 'Active' | 'Inactiv
 
 export async function getSettings(): Promise<SuperAdminSettings> {
   return json<SuperAdminSettings>(await adminFetch('/api/superadmin/settings'))
+}
+
+export async function resetTenantPassword(id: string): Promise<{ setupUrl: string }> {
+  const res = await adminFetch(`/api/superadmin/tenants/${id}/reset-password`, {
+    method: 'POST',
+  })
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new Error(`API error ${res.status}: ${text}`)
+  }
+  return res.json()
 }
 
 export async function updateSettings(template: string): Promise<void> {
