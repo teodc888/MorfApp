@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { toast } from 'sonner'
 import { getAdminMe, updateAdminMe, updateDelivery, updateHours } from '@/lib/admin-api'
 import type { BusinessHour } from '@/types/store'
 
@@ -31,7 +32,6 @@ const DEFAULT_HOURS: BusinessHour[] = Array.from({ length: 7 }, (_, i) => ({
 
 export default function ConfigPage() {
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
   const [tenantName, setTenantName] = useState('')
   const [whatsappNumber, setWhatsappNumber] = useState('')
@@ -71,17 +71,17 @@ export default function ConfigPage() {
         }
 
       })
-      .catch(() => setError('No se pudo cargar la configuración'))
+      .catch(() => toast.error('No se pudo cargar la configuración'))
       .finally(() => setLoading(false))
   }, [])
 
   async function saveLocal() {
     setLocalSaving(true)
-    setError(null)
     try {
       await updateAdminMe({ name: tenantName, whatsappNumber })
+      toast.success('Guardado correctamente')
     } catch {
-      setError('Error al guardar los datos del local')
+      toast.error('Error al guardar')
     } finally {
       setLocalSaving(false)
     }
@@ -89,7 +89,6 @@ export default function ConfigPage() {
 
   async function saveDelivery() {
     setDeliverySaving(true)
-    setError(null)
     try {
       await updateDelivery({
         mode: delivery.mode.charAt(0).toUpperCase() + delivery.mode.slice(1),
@@ -99,8 +98,9 @@ export default function ConfigPage() {
         estimatedMinutes: delivery.estimatedMinutes || null,
         pickupAddress: delivery.pickupAddress || null,
       })
+      toast.success('Guardado correctamente')
     } catch {
-      setError('Error al guardar delivery')
+      toast.error('Error al guardar')
     } finally {
       setDeliverySaving(false)
     }
@@ -108,11 +108,11 @@ export default function ConfigPage() {
 
   async function saveHours() {
     setHoursSaving(true)
-    setError(null)
     try {
       await updateHours(hours)
+      toast.success('Guardado correctamente')
     } catch {
-      setError('Error al guardar horarios')
+      toast.error('Error al guardar')
     } finally {
       setHoursSaving(false)
     }
@@ -144,12 +144,6 @@ export default function ConfigPage() {
         <h1 className="serif" style={{ margin: 0, fontSize: 32, lineHeight: 1.05, color: 'var(--text)', fontWeight: 700 }}>Configuración</h1>
         <p style={{ margin: '6px 0 0 0', fontSize: 14, color: 'var(--muted)', lineHeight: 1.4 }}>Datos del local, modo de venta, horarios y zonas de envío.</p>
       </div>
-
-      {error && (
-        <div style={{ padding: '0 22px 12px' }}>
-          <div className="card" style={{ padding: 10, background: 'rgba(186,26,26,0.06)', border: '1px solid var(--error)', borderRadius: 8, fontSize: 13, color: 'var(--error)' }}>{error}</div>
-        </div>
-      )}
 
       <div style={{ padding: '0 22px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         {/* Mi local */}

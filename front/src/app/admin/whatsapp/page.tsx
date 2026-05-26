@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
+import { toast } from 'sonner'
 import { getAdminMe, updateWhatsAppTemplate } from '@/lib/admin-api'
 import { buildWhatsAppMessage, type CustomerForm } from '@/lib/utils'
 import type { TenantPublic, CartItem } from '@/types/store'
@@ -77,7 +78,6 @@ export default function WhatsAppPage() {
   const [saving, setSaving] = useState(false)
   const [template, setTemplate] = useState<string | null>(null)
   const [tenantData, setTenantData] = useState<TenantPublic | null>(null)
-  const [error, setError] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
@@ -114,7 +114,7 @@ export default function WhatsAppPage() {
           businessHours: data.hours,
         })
       } catch (err) {
-        setError('Error al cargar los datos')
+        toast.error('Error al cargar los datos')
         console.error(err)
       } finally {
         setLoading(false)
@@ -127,9 +127,9 @@ export default function WhatsAppPage() {
     setSaving(true)
     try {
       await updateWhatsAppTemplate(template || null)
-      setError(null)
+      toast.success('Plantilla guardada')
     } catch (err) {
-      setError('Error al guardar')
+      toast.error('Error al guardar')
       console.error(err)
     } finally {
       setSaving(false)
@@ -176,12 +176,6 @@ export default function WhatsAppPage() {
         <h1 className="serif" style={{ margin: 0, fontSize: 32, lineHeight: 1.05, color: 'var(--text)', fontWeight: 700 }}>WhatsApp</h1>
         <p style={{ margin: '6px 0 0 0', fontSize: 14, color: 'var(--muted)', lineHeight: 1.4 }}>Personalizá el texto que recibe el cliente al confirmar el pedido.</p>
       </div>
-
-      {error && (
-        <div style={{ padding: '0 22px 12px' }}>
-          <div className="card" style={{ padding: 10, background: 'rgba(186,26,26,0.06)', border: '1px solid var(--error)', borderRadius: 8, fontSize: 13, color: 'var(--error)' }}>{error}</div>
-        </div>
-      )}
 
       <div style={{ padding: '0 22px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         {/* Preview chat bubble */}

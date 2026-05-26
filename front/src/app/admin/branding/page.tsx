@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { toast } from 'sonner'
 import { getAdminMe, updateBranding } from '@/lib/admin-api'
 
 type FormState = {
@@ -43,7 +44,6 @@ export default function BrandingPage() {
   const [tenantName, setTenantName] = useState('Mi local')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     getAdminMe()
@@ -59,7 +59,7 @@ export default function BrandingPage() {
           emojiIcon: b.emojiIcon,
         })
       })
-      .catch(() => setError('No se pudo cargar la información'))
+      .catch(() => toast.error('No se pudo cargar la información'))
       .finally(() => setLoading(false))
   }, [])
 
@@ -69,7 +69,6 @@ export default function BrandingPage() {
 
   async function handleSave() {
     setSaving(true)
-    setError(null)
     try {
       await updateBranding({
         colorPrimary: form.colorPrimary,
@@ -79,8 +78,9 @@ export default function BrandingPage() {
         tagline: form.tagline || null,
         emojiIcon: form.emojiIcon,
       })
+      toast.success('Apariencia guardada')
     } catch {
-      setError('Error al guardar los cambios')
+      toast.error('Error al guardar los cambios')
     } finally {
       setSaving(false)
     }
@@ -101,12 +101,6 @@ export default function BrandingPage() {
         <h1 className="serif" style={{ margin: 0, fontSize: 32, lineHeight: 1.05, color: 'var(--text)', fontWeight: 700 }}>Apariencia</h1>
         <p style={{ margin: '6px 0 0 0', fontSize: 14, color: 'var(--muted)', lineHeight: 1.4 }}>Cómo te ven tus clientes en la tienda online.</p>
       </div>
-
-      {error && (
-        <div style={{ padding: '0 22px 12px' }}>
-          <div className="card" style={{ padding: 10, background: 'rgba(186,26,26,0.06)', border: '1px solid var(--error)', borderRadius: 8, fontSize: 13, color: 'var(--error)' }}>{error}</div>
-        </div>
-      )}
 
       <div style={{ padding: '0 22px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         {/* Live preview */}

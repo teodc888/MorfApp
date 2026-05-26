@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
+import { toast } from 'sonner'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useWebSocket } from '@/lib/useWebSocket'
 import {
@@ -295,6 +296,8 @@ export default function OrdersPage() {
   const confirmMutation = useMutation({
     mutationFn: (id: string) => confirmOrder(id),
     onMutate: (id) => setConfirmingId(id),
+    onSuccess: () => toast.success('Pedido confirmado'),
+    onError: () => toast.error('Error al procesar el pedido'),
     onSettled: () => {
       setConfirmingId(null)
       queryClient.invalidateQueries({ queryKey: ['orders'] })
@@ -304,6 +307,8 @@ export default function OrdersPage() {
   const cancelMutation = useMutation({
     mutationFn: (id: string) => cancelOrder(id),
     onMutate: (id) => setCancellingId(id),
+    onSuccess: () => toast.success('Pedido cancelado'),
+    onError: () => toast.error('Error al procesar el pedido'),
     onSettled: () => {
       setCancellingId(null)
       queryClient.invalidateQueries({ queryKey: ['orders'] })
@@ -319,8 +324,6 @@ export default function OrdersPage() {
     (id: string) => cancelMutation.mutate(id),
     [cancelMutation],
   )
-
-  const mutationError = confirmMutation.error?.message ?? cancelMutation.error?.message ?? null
 
   return (
     <div className="min-h-screen bg-[#FAF9F6] max-w-6xl mx-auto space-y-6 p-6">
@@ -466,10 +469,10 @@ export default function OrdersPage() {
         </>
       )}
 
-      {/* Errores */}
-      {(error || mutationError) && (
+      {/* Errores de carga */}
+      {error && (
         <p className="text-sm text-[#EF4444] bg-red-50 px-3 py-2 rounded-lg">
-          {error?.message ?? mutationError}
+          {error.message}
         </p>
       )}
 

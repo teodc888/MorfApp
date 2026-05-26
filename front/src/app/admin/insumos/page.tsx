@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { isPlanPro } from '@/lib/auth'
 import {
   getSupplies,
@@ -58,7 +59,6 @@ export default function InsumosPage() {
   const [movements, setMovements] = useState<InventoryMovementDto[]>([])
 
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
   const [supplyModal, setSupplyModal] = useState<{ open: boolean; editing: SupplyDto | null }>({ open: false, editing: null })
   const [supplyForm, setSupplyForm] = useState<SupplyForm>(EMPTY_SUPPLY_FORM)
@@ -80,7 +80,6 @@ export default function InsumosPage() {
 
   const load = useCallback(async () => {
     try {
-      setError(null)
       const [suppliesData, suppliersData, purchasesData] = await Promise.all([
         getSupplies(),
         getSuppliers(),
@@ -90,7 +89,7 @@ export default function InsumosPage() {
       setSuppliers(suppliersData)
       setPurchases(purchasesData)
     } catch {
-      setError('No se pudieron cargar los datos')
+      toast.error('No se pudieron cargar los datos')
     } finally {
       setLoading(false)
     }
@@ -113,7 +112,7 @@ export default function InsumosPage() {
       allMovements.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       setMovements(allMovements)
     } catch {
-      setError('Error al cargar movimientos')
+      toast.error('Error al cargar movimientos')
     } finally {
       setMovementsLoading(false)
     }
@@ -147,29 +146,34 @@ export default function InsumosPage() {
       }
       if (supplyModal.editing) {
         await updateSupply(supplyModal.editing.id, data)
+        toast.success('Insumo actualizado')
       } else {
         await createSupply(data)
+        toast.success('Insumo creado')
       }
       setSupplyModal({ open: false, editing: null })
       await load()
     } catch {
-      setError('Error al guardar insumo')
+      toast.error('Error al guardar')
     } finally {
       setSupplySaving(false)
     }
   }
 
   async function confirmAction() {
+    const isDelete = confirmDialog.type === 'delete'
     try {
-      if (confirmDialog.type === 'delete') {
+      if (isDelete) {
         await deleteSupply(confirmDialog.id)
+        toast.success('Insumo eliminado')
       } else {
         await resetSupplyStock(confirmDialog.id)
+        toast.success('Stock actualizado')
       }
       setConfirmDialog({ open: false, type: 'delete', id: '', name: '' })
       await load()
     } catch {
-      setError(confirmDialog.type === 'delete' ? 'Error al eliminar insumo' : 'Error al vaciar stock')
+      toast.error('Error al guardar')
     }
   }
 
@@ -179,12 +183,12 @@ export default function InsumosPage() {
     const totalPrice = parseFloat(purchaseForm.totalPrice)
 
     if (!Number.isFinite(quantityPurchased) || quantityPurchased <= 0) {
-      setError('La cantidad debe ser mayor a 0')
+      toast.error('La cantidad debe ser mayor a 0')
       return
     }
 
     if (!Number.isFinite(totalPrice) || totalPrice <= 0) {
-      setError('El precio total debe ser mayor a 0')
+      toast.error('El precio total debe ser mayor a 0')
       return
     }
 
@@ -198,9 +202,10 @@ export default function InsumosPage() {
         notes: purchaseForm.notes || undefined,
       })
       setPurchaseForm(EMPTY_PURCHASE_FORM)
+      toast.success('Compra registrada')
       await load()
     } catch {
-      setError('Error al registrar compra')
+      toast.error('Error al guardar')
     } finally {
       setPurchaseSaving(false)
     }
@@ -245,12 +250,6 @@ export default function InsumosPage() {
           </button>
         </div>
       </div>
-
-      {error && (
-        <div style={{ padding: '0 22px 12px' }}>
-          <div className="card" style={{ padding: 10, background: 'rgba(186,26,26,0.06)', border: '1px solid var(--error)', borderRadius: 8, fontSize: 13, color: 'var(--error)' }}>{error}</div>
-        </div>
-      )}
 
       <div style={{ padding: '0 22px 16px', display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 10 }}>
         <div className="card" style={{ padding: '14px 16px' }}>

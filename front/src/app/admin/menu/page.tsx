@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { toast } from 'sonner'
 import {
   getAdminCategories,
   createCategory,
@@ -50,7 +51,6 @@ export default function MenuPage() {
   const [availableGroups, setAvailableGroups] = useState<ModifierGroupAdmin[]>([])
   const [availableSupplies, setAvailableSupplies] = useState<SupplyDto[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
   const [catModal, setCatModal] = useState<{ open: boolean; editing: CategoryAdmin | null }>({ open: false, editing: null })
   const [catForm, setCatForm] = useState<CategoryForm>(EMPTY_CAT)
@@ -74,13 +74,12 @@ export default function MenuPage() {
 
   const load = useCallback(async () => {
     try {
-      setError(null)
       const [data, groups, supplies] = await Promise.all([getAdminCategories(), getModifierGroups(), getSupplies()])
       setCategories(data as CategoryAdmin[])
       setAvailableGroups(groups)
       setAvailableSupplies(supplies)
     } catch {
-      setError('No se pudieron cargar las categorías')
+      toast.error('No se pudieron cargar las categorías')
     } finally {
       setLoading(false)
     }
@@ -107,8 +106,9 @@ export default function MenuPage() {
       }
       setCatModal({ open: false, editing: null })
       await load()
+      toast.success('Categoría guardada')
     } catch {
-      setError('Error al guardar categoría')
+      toast.error('Error al guardar categoría')
     } finally {
       setCatSaving(false)
     }
@@ -119,8 +119,9 @@ export default function MenuPage() {
       await deleteCategory(confirmDialog.id)
       setConfirmDialog({ open: false, type: null, id: '', name: '' })
       await load()
+      toast.success('Categoría eliminada')
     } catch {
-      setError('Error al eliminar categoría')
+      toast.error('Error al eliminar categoría')
     }
   }
 
@@ -187,8 +188,9 @@ export default function MenuPage() {
       }
       setProdModal({ open: false, editing: null, defaultCategoryId: '' })
       await load()
+      toast.success('Producto guardado')
     } catch {
-      setError('Error al guardar producto')
+      toast.error('Error al guardar producto')
     } finally {
       setProdSaving(false)
     }
@@ -199,8 +201,9 @@ export default function MenuPage() {
       await deleteProduct(confirmDialog.id)
       setConfirmDialog({ open: false, type: null, id: '', name: '' })
       await load()
+      toast.success('Producto eliminado')
     } catch {
-      setError('Error al eliminar producto')
+      toast.error('Error al eliminar producto')
     }
   }
   function openDiscountModal(prod: ProductAdmin) {
@@ -216,8 +219,9 @@ export default function MenuPage() {
       setDiscountModal(null)
       setDiscountInput('')
       await load()
+      toast.success('Descuento guardado')
     } catch {
-      setError('Error al guardar descuento')
+      toast.error('Error al guardar descuento')
     } finally {
       setDiscountSaving(false)
     }
@@ -226,20 +230,21 @@ export default function MenuPage() {
     if (!discountModal) return
     setDiscountSaving(true)
     updateProductDiscount(discountModal.prodId, null)
-      .then(() => { setDiscountModal(null); setDiscountInput(''); return load() })
-      .catch(() => setError('Error al quitar descuento'))
+      .then(() => { setDiscountModal(null); setDiscountInput(''); toast.success('Descuento eliminado'); return load() })
+      .catch(() => toast.error('Error al quitar descuento'))
       .finally(() => setDiscountSaving(false))
   }
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    if (file.size > 5 * 1024 * 1024) { setError('La imagen no puede superar los 5 MB'); e.target.value = ''; return }
+    if (file.size > 5 * 1024 * 1024) { toast.error('La imagen no puede superar los 5 MB'); e.target.value = ''; return }
     setUploading(true)
     try {
       const url = await uploadImage(file)
       setProdForm((f) => ({ ...f, imageUrl: url }))
+      toast.success('Imagen subida')
     } catch {
-      setError('Error al subir la imagen')
+      toast.error('Error al subir la imagen')
     } finally {
       setUploading(false)
       e.target.value = ''
@@ -281,12 +286,6 @@ export default function MenuPage() {
           {activeCategories} categorías · {totalProducts} productos
         </p>
       </div>
-
-      {error && (
-        <div style={{ margin: '0 22px 16px', padding: '12px 16px', background: 'var(--error-bg)', color: 'var(--error)', borderRadius: 'var(--radius-card)', fontSize: 13 }}>
-          {error}
-        </div>
-      )}
 
       {categories.length === 0 && !loading && (
         <div style={{ padding: '0 22px' }}>

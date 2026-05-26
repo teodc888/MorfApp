@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { isPlanPro } from '@/lib/auth'
 import {
   getSuppliers,
@@ -27,7 +28,6 @@ export default function ProveedoresPage() {
   const router = useRouter()
   const [suppliers, setSuppliers] = useState<SupplierDto[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [modal, setModal] = useState<{ open: boolean; editing: SupplierDto | null }>({ open: false, editing: null })
   const [form, setForm] = useState<SupplierForm>(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
@@ -41,12 +41,11 @@ export default function ProveedoresPage() {
 
   const load = useCallback(async () => {
     try {
-      setError(null)
       const [active, inactive] = await Promise.all([getSuppliers(), getInactiveSuppliers()])
       setSuppliers(active)
       setInactiveSuppliers(inactive)
     } catch {
-      setError('No se pudieron cargar los proveedores')
+      toast.error('No se pudieron cargar los proveedores')
     } finally {
       setLoading(false)
     }
@@ -76,12 +75,17 @@ export default function ProveedoresPage() {
     setSaving(true)
     try {
       const data = { name: form.name, phone: form.phone || undefined, address: form.address || undefined, notes: form.notes || undefined }
-      if (modal.editing) await updateSupplier(modal.editing.id, data)
-      else await createSupplier(data)
+      if (modal.editing) {
+        await updateSupplier(modal.editing.id, data)
+        toast.success('Proveedor actualizado')
+      } else {
+        await createSupplier(data)
+        toast.success('Proveedor creado')
+      }
       setModal({ open: false, editing: null })
       await load()
     } catch {
-      setError('Error al guardar proveedor')
+      toast.error('Error al guardar')
     } finally {
       setSaving(false)
     }
@@ -91,9 +95,10 @@ export default function ProveedoresPage() {
     try {
       await deleteSupplier(confirmDialog.id)
       setConfirmDialog({ open: false, id: '', name: '', totalDebt: 0 })
+      toast.success('Proveedor dado de baja')
       await load()
     } catch {
-      setError('Error al eliminar proveedor')
+      toast.error('Error al guardar')
     }
   }
 
@@ -101,9 +106,10 @@ export default function ProveedoresPage() {
     setRestoringId(id)
     try {
       await restoreSupplier(id)
+      toast.success('Proveedor reactivado')
       await load()
     } catch {
-      setError('Error al reactivar proveedor')
+      toast.error('Error al guardar')
     } finally {
       setRestoringId(null)
     }
@@ -115,7 +121,7 @@ export default function ProveedoresPage() {
       setDebtModal({ open: true, loading: false, detail: await getSupplierDebtDetail(supplier.id) })
     } catch {
       setDebtModal({ open: false, loading: false, detail: null })
-      setError('No se pudo cargar el detalle de deuda')
+      toast.error('No se pudo cargar el detalle de deuda')
     }
   }
 
@@ -129,9 +135,10 @@ export default function ProveedoresPage() {
     setPaying(true)
     try {
       await paySupplierPurchaseFull(debtModal.detail.supplierId, purchase.purchaseId)
+      toast.success('Compra marcada como pagada')
       await refreshDebtDetail(debtModal.detail)
     } catch {
-      setError('Error al pagar la compra')
+      toast.error('Error al guardar')
     } finally {
       setPaying(false)
     }
@@ -142,9 +149,10 @@ export default function ProveedoresPage() {
     setPaying(true)
     try {
       await paySupplierAllDebt(debtModal.detail.supplierId)
+      toast.success('Deuda saldada')
       await refreshDebtDetail(debtModal.detail)
     } catch {
-      setError('Error al pagar toda la deuda')
+      toast.error('Error al guardar')
     } finally {
       setPaying(false)
     }
@@ -159,9 +167,10 @@ export default function ProveedoresPage() {
     try {
       await paySupplierPurchasePartial(debtModal.detail.supplierId, paymentForm.purchase.purchaseId, { amount, notes: paymentForm.notes || undefined })
       setPaymentForm(null)
+      toast.success('Pago registrado')
       await refreshDebtDetail(debtModal.detail)
     } catch {
-      setError('Error al registrar el pago parcial')
+      toast.error('Error al guardar')
     } finally {
       setPaying(false)
     }
@@ -267,12 +276,6 @@ export default function ProveedoresPage() {
 
       {/* Content */}
       <div style={{ padding: '0 22px 24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {error && (
-          <div style={{ padding: '12px 14px', background: 'var(--error-bg)', borderRadius: 8, fontSize: 13, color: 'var(--error)' }}>
-            {error}
-          </div>
-        )}
-
         {suppliers.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '48px 22px', color: 'var(--muted)' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>🏭</div>

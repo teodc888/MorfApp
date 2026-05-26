@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
+import { toast } from 'sonner'
 import {
   getPromotions,
   createPromotion,
@@ -53,7 +54,6 @@ export default function PromotionsPage() {
   const [modifierGroups, setModifierGroups] = useState<ModifierGroupAdmin[]>([])
   const [products, setProducts] = useState<Array<{ id: string; name: string; price: number }>>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [modal, setModal] = useState<{ open: boolean; editing: PromotionAdmin | null }>({ open: false, editing: null })
   const [form, setForm] = useState<PromotionForm>(EMPTY_FORM)
   const [selectedProducts, setSelectedProducts] = useState<{[key: string]: number}>({})
@@ -65,7 +65,6 @@ export default function PromotionsPage() {
 
   const load = useCallback(async () => {
     try {
-      setError(null)
       const [promos, cats, groups] = await Promise.all([
         getPromotions(),
         getAdminCategories(),
@@ -77,7 +76,7 @@ export default function PromotionsPage() {
       const flatProducts = cats.flatMap(c => c.products.map(p => ({ id: p.id, name: p.name, price: p.price })))
       setProducts(flatProducts)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error cargando promociones')
+      toast.error(e instanceof Error ? e.message : 'Error cargando promociones')
     } finally {
       setLoading(false)
     }
@@ -170,14 +169,16 @@ export default function PromotionsPage() {
         })
         await updatePromotionProducts(modal.editing.id, body.productIds)
         await updatePromotionModifierGroups(modal.editing.id, body.modifierGroupIds)
+        toast.success('Promoción actualizada')
       } else {
         await createPromotion(body)
+        toast.success('Promoción creada')
       }
 
       setModal({ open: false, editing: null })
       await load()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error guardando')
+    } catch {
+      toast.error('Error al guardar')
     } finally {
       setSaving(false)
     }
@@ -192,9 +193,10 @@ export default function PromotionsPage() {
     try {
       await deletePromotion(confirmDelete.id)
       setConfirmDelete({ open: false, id: null, name: '' })
+      toast.success('Promoción eliminada')
       await load()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error eliminando')
+    } catch {
+      toast.error('Error al guardar')
     }
   }, [confirmDelete.id, load])
 
@@ -202,7 +204,7 @@ export default function PromotionsPage() {
     const file = e.currentTarget.files?.[0]
     if (!file) return
     if (file.size > 5 * 1024 * 1024) {
-      setError('La imagen no puede superar los 5 MB')
+      toast.error('La imagen no puede superar los 5 MB')
       e.currentTarget.value = ''
       return
     }
@@ -210,8 +212,9 @@ export default function PromotionsPage() {
     try {
       const url = await uploadImage(file)
       setForm(f => ({ ...f, imageUrl: url }))
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error subiendo imagen')
+      toast.success('Imagen subida')
+    } catch {
+      toast.error('Error al guardar')
     } finally {
       setUploading(false)
     }
@@ -249,12 +252,6 @@ export default function PromotionsPage() {
 
       {/* Content */}
       <div style={{ padding: '0 22px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {error && (
-          <div style={{ padding: '12px 14px', background: 'var(--error-bg)', borderRadius: 8, fontSize: 13, color: 'var(--error)' }}>
-            {error}
-          </div>
-        )}
-
         {promotions.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '48px 22px', color: 'var(--muted)' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>🎁</div>

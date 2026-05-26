@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { toast } from 'sonner'
 import {
   getModifierGroups,
   createModifierGroup,
@@ -31,7 +32,6 @@ const EMPTY_OPTION: ModifierOptionForm = { name: '', emoji: '', extraPrice: 0, s
 export default function ModifiersPage() {
   const [groups, setGroups] = useState<ModifierGroupAdmin[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
   const [modal, setModal] = useState<{ open: boolean; editing: ModifierGroupAdmin | null }>({
     open: false,
@@ -42,10 +42,9 @@ export default function ModifiersPage() {
 
   const load = useCallback(async () => {
     try {
-      setError(null)
       setGroups(await getModifierGroups())
     } catch {
-      setError('No se pudieron cargar los grupos')
+      toast.error('No se pudieron cargar los grupos')
     } finally {
       setLoading(false)
     }
@@ -95,8 +94,9 @@ export default function ModifiersPage() {
       }
       setModal({ open: false, editing: null })
       await load()
+      toast.success('Grupo guardado')
     } catch {
-      setError('Error al guardar el grupo')
+      toast.error('Error al guardar el grupo')
     } finally {
       setSaving(false)
     }
@@ -107,8 +107,9 @@ export default function ModifiersPage() {
     try {
       await deleteModifierGroup(id)
       await load()
+      toast.success('Grupo eliminado')
     } catch {
-      setError('Error al eliminar el grupo')
+      toast.error('Error al eliminar el grupo')
     }
   }
 
@@ -161,12 +162,6 @@ export default function ModifiersPage() {
 
       {/* Content */}
       <div style={{ padding: '0 22px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {error && (
-          <div style={{ padding: '12px 14px', background: 'var(--error-bg)', borderRadius: 8, fontSize: 13, color: 'var(--error)' }}>
-            {error}
-          </div>
-        )}
-
         {groups.length === 0 && (
           <div style={{ textAlign: 'center', padding: '48px 22px', color: 'var(--muted)' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>✨</div>

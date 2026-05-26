@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Toaster } from 'sonner'
 import { isAuthenticated, getTenantFromToken, isPlanPro } from '@/lib/auth'
 
 const NAV_ADMIN = [
@@ -267,6 +268,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </main>
       </div>
 
+      <Toaster
+        position="bottom-right"
+        toastOptions={{
+          style: { fontFamily: 'var(--sans)', fontSize: 14 },
+          duration: 3000,
+        }}
+      />
     </div>
   )
 }
