@@ -38,7 +38,20 @@ type ProductForm = {
 
 type ConfirmDialog = { open: boolean; type: 'category' | 'product' | null; id: string; name: string }
 
-const EMOJI_OPTIONS = ['🍽️', '🍔', '🍕', '🌮', '🍜', '🥗', '🍱', '🥙', '🍲', '🥘']
+const EMOJI_OPTIONS = [
+  // Platos principales
+  '🍽️','🍔','🍕','🌮','🌯','🫔','🍜','🍝','🍛','🍲',
+  '🥘','🍱','🥗','🥙','🍣','🍤','🍗','🍖','🥩','🥪',
+  // Bebidas
+  '☕','🍵','🧋','🫖','🥤','🧃','🍺','🍻','🍷','🍸',
+  '🍹','🥛',
+  // Postres & snacks
+  '🍰','🎂','🧁','🍩','🍪','🍫','🍦','🍮','🥞','🧇',
+  // Frutas & verduras
+  '🥑','🍓','🍇','🍊','🍋','🍎','🥝','🥦','🥕','🌽',
+  // Extras
+  '🧀','🥚','🥓','🌭','🌶️','🧆','🥨','🫕','🧄','🥬',
+]
 
 const EMPTY_CAT: CategoryForm = { name: '', emoji: '🍽️', sortOrder: 0, isActive: true }
 const EMPTY_PROD: ProductForm = {
@@ -392,16 +405,16 @@ export default function MenuPage() {
               {/* Icono selector visual */}
               <div>
                 <label style={{ display: 'block', marginBottom: 8 }}>Icono <span style={{ color: 'var(--error)', fontSize: 12, fontWeight: 600 }}>(Obligatorio)</span></label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 6, maxHeight: 240, overflowY: 'auto', padding: '2px 0' }}>
                   {EMOJI_OPTIONS.map(emoji => (
                     <button key={emoji} onClick={() => setCatForm(f => ({ ...f, emoji }))} className="tap"
                       style={{
                         aspectRatio: '1',
-                        borderRadius: 12,
+                        borderRadius: 10,
                         background: catForm.emoji === emoji ? 'var(--primary)' : 'var(--surface-container)',
                         color: catForm.emoji === emoji ? 'var(--on-primary)' : 'var(--text)',
                         border: catForm.emoji === emoji ? '2px solid var(--primary)' : '2px solid transparent',
-                        fontSize: 28,
+                        fontSize: 22,
                         display: 'grid',
                         placeItems: 'center',
                         cursor: 'pointer',

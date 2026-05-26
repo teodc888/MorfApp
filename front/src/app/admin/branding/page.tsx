@@ -23,8 +23,37 @@ const DEFAULTS: FormState = {
 }
 
 const COLOR_SWATCHES = [
-  '#9D4300', '#F97316', '#E2725B', '#D14B2F', '#7B1F0E',
-  '#2E7D32', '#1F8A5B', '#0F766E', '#1D4ED8', '#7C3AED',
+  // Naranjas & rojos
+  '#F97316','#EA580C','#DC2626','#E2725B','#D14B2F',
+  // Rosas & fucsia
+  '#EC4899','#DB2777','#BE185D','#F472B6','#FB7185',
+  // Amarillos & ámbar
+  '#F59E0B','#D97706','#CA8A04','#FCD34D','#FDE68A',
+  // Verdes
+  '#16A34A','#15803D','#2E7D32','#1F8A5B','#0F766E',
+  // Azules & cyan
+  '#2563EB','#1D4ED8','#1E40AF','#0284C7','#0891B2',
+  // Violetas & púrpuras
+  '#7C3AED','#6D28D9','#9333EA','#A855F7','#C084FC',
+  // Marrones & tierra
+  '#9D4300','#92400E','#78350F','#7B1F0E','#57534E',
+  // Neutros oscuros
+  '#1E293B','#0F172A','#374151','#4B5563','#6B7280',
+]
+
+const EMOJI_OPTIONS = [
+  // Platos principales
+  '🍽️','🍔','🍕','🌮','🌯','🫔','🍜','🍝','🍛','🍲',
+  '🥘','🍱','🥗','🥙','🍣','🍤','🍗','🍖','🥩','🥪',
+  // Bebidas
+  '☕','🍵','🧋','🫖','🥤','🧃','🍺','🍻','🍷','🍸',
+  '🍹','🥛',
+  // Postres & snacks
+  '🍰','🎂','🧁','🍩','🍪','🍫','🍦','🍮','🥞','🧇',
+  // Frutas & verduras
+  '🥑','🍓','🍇','🍊','🍋','🍎','🥝','🥦','🥕','🌽',
+  // Extras
+  '🧀','🥚','🥓','🌭','🌶️','🧆','🥨','🫕','🧄','🥬',
 ]
 
 function shade(hex: string, percent: number): string {
@@ -167,9 +196,31 @@ export default function BrandingPage() {
           </div>
           <div className="field">
             <label>Emoji ícono <span className="muted" style={{ fontWeight: 400 }}>· se muestra cuando no hay logo</span></label>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <div style={{ width: 56, height: 56, borderRadius: 10, background: 'var(--surface-container)', display: 'grid', placeItems: 'center', fontSize: 28, flexShrink: 0 }}>{form.emojiIcon}</div>
-              <input className="input" value={form.emojiIcon} onChange={(e) => set('emojiIcon', e.target.value)} maxLength={4} style={{ fontSize: 18, textAlign: 'center', flex: 1 }} />
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 10 }}>
+              <div style={{ width: 52, height: 52, borderRadius: 10, background: 'var(--surface-container)', display: 'grid', placeItems: 'center', fontSize: 28, flexShrink: 0, border: '2px solid var(--outline-soft)' }}>{form.emojiIcon}</div>
+              <div style={{ fontSize: 13, color: 'var(--muted)' }}>Seleccionado: <strong style={{ color: 'var(--text)' }}>{form.emojiIcon}</strong></div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 6, maxHeight: 200, overflowY: 'auto', padding: '2px 0' }}>
+              {EMOJI_OPTIONS.map(emoji => (
+                <button
+                  key={emoji}
+                  type="button"
+                  onClick={() => set('emojiIcon', emoji)}
+                  style={{
+                    aspectRatio: '1',
+                    borderRadius: 10,
+                    background: form.emojiIcon === emoji ? 'var(--primary)' : 'var(--surface-container)',
+                    border: form.emojiIcon === emoji ? '2px solid var(--primary)' : '2px solid transparent',
+                    fontSize: 22,
+                    display: 'grid',
+                    placeItems: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {emoji}
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -218,7 +269,7 @@ function ColorPicker({ label, desc, value, onChange }: { label: string; desc: st
         <div style={{ width: 44, height: 44, borderRadius: 10, background: value, border: '2px solid var(--surface)', boxShadow: '0 0 0 1px var(--outline-soft), 0 4px 10px rgba(0,0,0,0.06)', flexShrink: 0 }} />
         <input className="input" value={value} onChange={(e) => onChange(e.target.value)} style={{ fontFamily: 'ui-monospace, monospace', flex: 1, textTransform: 'uppercase' }} />
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: 6 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 6 }}>
         {COLOR_SWATCHES.map((c) => (
           <button
             key={c}
