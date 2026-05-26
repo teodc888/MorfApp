@@ -262,7 +262,7 @@ export default function MenuPage() {
   }
 
   return (
-    <div style={{ fontFamily: 'var(--sans)', minHeight: '100vh', background: 'var(--bg)' }}>
+    <div style={{ fontFamily: 'var(--sans)' }}>
 
       {/* Page header */}
       <div style={{ padding: '4px 22px 18px' }}>

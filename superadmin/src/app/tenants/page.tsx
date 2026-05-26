@@ -29,6 +29,14 @@ function daysLeft(iso: string | null): number | null {
   return Math.ceil(diff / (1000 * 60 * 60 * 24))
 }
 
+function trialDaysLeft(createdAt: string | null): number | null {
+  if (!createdAt) return null
+  const trialEnd = new Date(createdAt).getTime() + 30 * 24 * 60 * 60 * 1000
+  const diff = trialEnd - Date.now()
+  const days = Math.ceil(diff / (1000 * 60 * 60 * 24))
+  return days > 0 ? days : null
+}
+
 export default function TenantsPage() {
   const [tenants, setTenants] = useState<SuperAdminTenant[]>([])
   const [loading, setLoading] = useState(true)
@@ -239,21 +247,36 @@ export default function TenantsPage() {
                 const days = daysLeft(tenant.subscriptionEndsAt)
                 const expiringSoon = days !== null && days <= 7 && days >= 0
                 const expired = days !== null && days < 0
+                const freeDays = trialDaysLeft(tenant.createdAt)
 
                 return (
                   <tr key={tenant.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3">
                       <div className="font-medium text-gray-900">{tenant.name}</div>
-                      <div className="text-xs text-gray-400">{tenant.slug}</div>
+                      <a
+                        href={`https://${tenant.slug}.morfapp.app`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-indigo-400 hover:text-indigo-600 hover:underline"
+                      >
+                        {tenant.slug}.morfapp.app
+                      </a>
                     </td>
                     <td className="px-4 py-3">
                       <div className="text-gray-700">{tenant.ownerName || '—'}</div>
                       <div className="text-xs text-gray-400">{tenant.ownerPhone || '—'}</div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${PLAN_COLORS[tenant.plan] ?? 'bg-gray-100 text-gray-700'}`}>
-                        {PLAN_LABELS[tenant.plan] ?? tenant.plan}
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium w-fit ${PLAN_COLORS[tenant.plan] ?? 'bg-gray-100 text-gray-700'}`}>
+                          {PLAN_LABELS[tenant.plan] ?? tenant.plan}
+                        </span>
+                        {freeDays !== null && (
+                          <span className="px-2 py-0.5 rounded-full text-xs font-medium w-fit bg-amber-100 text-amber-700">
+                            🎁 Prueba · {freeDays}d
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className={expired ? 'text-red-600 font-medium' : expiringSoon ? 'text-amber-600 font-medium' : 'text-gray-700'}>

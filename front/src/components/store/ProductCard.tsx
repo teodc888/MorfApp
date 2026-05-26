@@ -71,8 +71,10 @@ export function ProductCard({ product, categoryEmoji, onSelect }: Props) {
               </span>
             )}
           </div>
-          <span className="w-7 h-7 rounded-full text-white flex items-center justify-center text-lg font-bold leading-none flex-shrink-0" style={{ backgroundColor: STITCH.primary }}>
-            +
+          <span className="w-7 h-7 rounded-full text-white flex items-center justify-center flex-shrink-0" style={{ backgroundColor: STITCH.primary }}>
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+              <path d="M6.5 1v11M1 6.5h11" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
           </span>
         </div>
       </div>

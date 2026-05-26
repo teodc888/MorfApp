@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import { isPlanPro } from '@/lib/auth'
 import {
   getSupplies,
   getSuppliers,
@@ -47,6 +49,7 @@ const REASON_LABELS: Record<string, string> = {
 }
 
 export default function InsumosPage() {
+  const router = useRouter()
   const [tab, setTab] = useState<Tab>('insumos')
 
   const [supplies, setSupplies] = useState<SupplyDto[]>([])
@@ -69,6 +72,11 @@ export default function InsumosPage() {
 
   const [movementsLoading, setMovementsLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+
+  // Guard: redirigir si no tiene plan Pro/Negocio
+  useEffect(() => {
+    if (!isPlanPro()) router.replace('/admin/menu')
+  }, [router])
 
   const load = useCallback(async () => {
     try {
@@ -224,8 +232,10 @@ export default function InsumosPage() {
   const outOfStockCount = supplies.filter(s => s.currentStock <= 0).length
   const filteredSupplies = supplies.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()))
 
+  if (!isPlanPro()) return null
+
   return (
-    <div style={{ fontFamily: 'var(--sans)', minHeight: '100vh', background: 'var(--bg)' }}>
+    <div style={{ fontFamily: 'var(--sans)' }}>
       <div style={{ padding: '4px 22px 18px' }}>
         <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>Stock & Compras</div>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16 }}>

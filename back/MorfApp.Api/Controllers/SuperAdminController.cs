@@ -52,7 +52,9 @@ public class SuperAdminController(IAppDbContext db, IEmailService emailService, 
             Plan = plan,
             OwnerName = req.OwnerName,
             OwnerPhone = req.OwnerPhone,
-            SubscriptionEndsAt = req.SubscriptionEndsAt,
+            SubscriptionEndsAt = req.SubscriptionEndsAt.HasValue
+                ? DateTime.SpecifyKind(req.SubscriptionEndsAt.Value, DateTimeKind.Utc)
+                : null,
             Status = TenantStatus.Active,
             CreatedAt = now,
             UpdatedAt = now,
@@ -87,11 +89,61 @@ public class SuperAdminController(IAppDbContext db, IEmailService emailService, 
         if (req.Name is not null) tenant.Name = req.Name;
         if (req.OwnerName is not null) tenant.OwnerName = req.OwnerName;
         if (req.OwnerPhone is not null) tenant.OwnerPhone = req.OwnerPhone;
-        if (req.SubscriptionEndsAt.HasValue) tenant.SubscriptionEndsAt = req.SubscriptionEndsAt;
+        if (req.SubscriptionEndsAt.HasValue)
+            tenant.SubscriptionEndsAt = DateTime.SpecifyKind(req.SubscriptionEndsAt.Value, DateTimeKind.Utc);
+        if (req.Plan is not null)
+        {
+            if (!Enum.TryParse<TenantPlan>(req.Plan, out var plan))
+                return BadRequest(new { message = "Plan inválido" });
+            tenant.Plan = plan;
+        }
+        if (req.Slug is not null)
+        {
+            if (!System.Text.RegularExpressions.Regex.IsMatch(req.Slug, @"^[a-z0-9-]+$"))
+                return BadRequest(new { message = "El slug solo puede contener minúsculas, números y guiones" });
+
+            bool slugTaken = await db.Tenants.AnyAsync(t => t.Slug == req.Slug && t.Id != id);
+            if (slugTaken)
+                return BadRequest(new { message = "Ese slug ya está en uso por otro comercio" });
+
+            tenant.Slug = req.Slug;
+        }
         tenant.UpdatedAt = DateTime.UtcNow;
 
         await db.SaveChangesAsync();
         return NoContent();
+    }
+
+    [HttpPost("tenants/{id}/reset-password")]
+    public async Task<IActionResult> ResetPassword(string id)
+    {
+        if (!IsSuperAdmin) return Forbid();
+
+        var tenant = await db.Tenants.FindAsync(id);
+        if (tenant is null) return NotFound(new { message = "Tenant no encontrado" });
+
+        var user = await db.AdminUsers
+            .FirstOrDefaultAsync(u => u.TenantId == id && !u.IsSuperadmin);
+        if (user is null)
+            return NotFound(new { message = "No hay usuario admin para este tenant" });
+
+        // Invalidar tokens anteriores
+        var oldTokens = db.SetupTokens.Where(s => s.AdminUserId == user.Id && !s.IsUsed);
+        await oldTokens.ForEachAsync(s => s.IsUsed = true);
+
+        // Crear nuevo token
+        var token = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N");
+        db.SetupTokens.Add(new MorfApp.Domain.Entities.SetupToken
+        {
+            AdminUserId = user.Id,
+            Token = token,
+            ExpiresAt = DateTime.UtcNow.AddHours(72),
+            IsUsed = false,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        return Ok(new { setupUrl = $"/activate?token={token}" });
     }
 
     [HttpPut("tenants/{id}/status")]

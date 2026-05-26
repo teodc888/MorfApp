@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { getTenant } from '@/lib/api'
 import type { TenantPublic } from '@/types/store'
 import { StoreProviders } from '@/components/store/StoreProviders'
+import { StorePaginaNoDisponible } from '@/components/store/StorePaginaNoDisponible'
 
 type Props = {
   children: React.ReactNode
@@ -39,6 +40,18 @@ export default async function TenantLayout({ children, params }: Props) {
     tenant = await getTenant(slug)
   } catch {
     return notFound()
+  }
+
+  if (tenant.status === 'Inactive') {
+    return (
+      <>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <StorePaginaNoDisponible tenantName={tenant.name} />
+      </>
+    )
   }
 
   const colorPrimary = tenant.branding?.colorPrimary ?? '#e8390e'

@@ -7,6 +7,7 @@ public record TenantPublicDto(
     string WhatsappNumber,
     string? WhatsAppMessageTemplate,
     bool IsOpen,
+    string Status,
     BrandingDto Branding,
     DeliveryConfigDto DeliveryConfig,
     PaymentConfigDto PaymentConfig,

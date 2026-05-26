@@ -14,11 +14,14 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const subdomain = host.endsWith(`.${ROOT_DOMAIN}`)
-    ? host.slice(0, -(ROOT_DOMAIN.length + 1))
-    : host.split(".").length > 2
-      ? host.split(".").slice(0, -2).join(".")
-      : "";
+  const subdomain =
+    host === ROOT_DOMAIN
+      ? ""
+      : host.endsWith(`.${ROOT_DOMAIN}`)
+        ? host.slice(0, -(ROOT_DOMAIN.length + 1))
+        : host.split(".").length > 2
+          ? host.split(".").slice(0, -2).join(".")
+          : "";
 
   // admin.morfapp.com → /admin/...
   if (subdomain === ADMIN_SUBDOMAIN) {

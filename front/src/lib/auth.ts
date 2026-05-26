@@ -46,3 +46,21 @@ export function isSuperadmin(): boolean {
     return false
   }
 }
+
+/** Retorna el plan del tenant del token: 'Basico' | 'Pro' | 'Negocio' | null */
+export function getPlanFromToken(): string | null {
+  const token = getAccessToken()
+  if (!token) return null
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return payload.tenant_plan || null
+  } catch {
+    return null
+  }
+}
+
+/** Verifica si el plan permite acceso a features PRO (Pro o Negocio) */
+export function isPlanPro(): boolean {
+  const plan = getPlanFromToken()
+  return plan === 'Pro' || plan === 'Negocio'
+}

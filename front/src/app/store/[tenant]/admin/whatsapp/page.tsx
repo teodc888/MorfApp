@@ -93,6 +93,7 @@ export default function WhatsAppPage() {
           whatsappNumber: data.whatsappNumber,
           whatsAppMessageTemplate: data.whatsAppMessageTemplate,
           isOpen: true,
+          status: 'Active',
           branding: data.branding,
           deliveryConfig: data.delivery || {
             mode: 'both',

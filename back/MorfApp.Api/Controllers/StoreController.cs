@@ -35,6 +35,7 @@ public class StoreController(
             WhatsappNumber: tenant.WhatsappNumber,
             WhatsAppMessageTemplate: tenant.WhatsAppMessageTemplate,
             IsOpen: isOpen,
+            Status: tenant.Status.ToString(),
             Branding: new BrandingDto(
                 ColorPrimary: tenant.Branding?.ColorPrimary ?? "#e8390e",
                 ColorAccent: tenant.Branding?.ColorAccent ?? "#25D366",
@@ -75,10 +76,11 @@ public class StoreController(
     [HttpGet("{slug}/menu")]
     public async Task<ActionResult<List<CategoryDto>>> GetMenu(string slug)
     {
-        var tenantExists = await db.Tenants
-            .AnyAsync(t => t.Slug == slug && t.Status != TenantStatus.Suspended);
+        var tenant = await db.Tenants
+            .FirstOrDefaultAsync(t => t.Slug == slug && t.Status != TenantStatus.Suspended);
 
-        if (!tenantExists) return NotFound();
+        if (tenant is null) return NotFound();
+        if (tenant.Status == TenantStatus.Inactive) return StatusCode(403);
 
         var categories = await db.Categories
             .Where(c => c.Tenant.Slug == slug && c.IsActive)
