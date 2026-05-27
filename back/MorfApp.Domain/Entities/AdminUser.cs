@@ -7,6 +7,8 @@ public class AdminUser
     public string Email { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
     public bool IsSuperadmin { get; set; }
+    // "owner" | "employee"
+    public string Role { get; set; } = "owner";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 

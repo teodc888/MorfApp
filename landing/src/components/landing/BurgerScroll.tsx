@@ -1,58 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 const TOTAL_FRAMES = 192;
-const IDLE_FRAMES = 10;
-const BG = '#EBEBEB';
+const HERO_BACKGROUND = '#faf5ee';
 
-const frameUrl = (i: number) =>
-  `/secuencia/${String(i).padStart(5, '0')}.png`;
-
-interface Overlay {
-  start: number;
-  end: number;
-  hAlign: 'left' | 'right';
-  vAlign: 'top' | 'bottom';
-  heading: string;
-  body?: string;
-  cta?: boolean;
-}
-
-const OVERLAYS: Overlay[] = [
-  {
-    start: 0,
-    end: 0.18,
-    hAlign: 'left',
-    vAlign: 'top',
-    heading: 'Tu restaurante,\nonline.',
-    body: 'La plataforma que tus clientes van a amar.',
-  },
-  {
-    start: 0.24,
-    end: 0.44,
-    hAlign: 'right',
-    vAlign: 'top',
-    heading: 'Menú digital\nen minutos.',
-    body: 'Creá tu carta y empezá a recibir pedidos hoy mismo.',
-  },
-  {
-    start: 0.52,
-    end: 0.72,
-    hAlign: 'left',
-    vAlign: 'bottom',
-    heading: 'Cada capa,\nperfecta.',
-    body: 'Así de detallada es la experiencia que le dás a tus clientes.',
-  },
-  {
-    start: 0.82,
-    end: 1.0,
-    hAlign: 'right',
-    vAlign: 'bottom',
-    heading: 'Listo para\ncrecer.',
-    cta: true,
-  },
-];
+const frameUrl = (frameNumber: number) =>
+  `/hero-sequence/frame_${String(frameNumber).padStart(4, '0')}.png`;
 
 export function BurgerScroll() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -61,37 +15,36 @@ export function BurgerScroll() {
   const framesRef = useRef<HTMLImageElement[]>([]);
   const currentFrameRef = useRef(0);
   const scrollRafRef = useRef<number>(0);
-  const isIdleRef = useRef(true);
 
-  // loaded = true cuando el primer frame está listo (no espera los 192)
   const [loaded, setLoaded] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
-  const [activeOverlay, setActiveOverlay] = useState<number>(0);
+  const [heroPinned, setHeroPinned] = useState(true);
 
   const updateCanvasSize = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const dpr = window.devicePixelRatio || 1;
-    const parent = canvas.parentElement;
-    if (!parent) return;
+    const parent = canvas?.parentElement;
+    if (!canvas || !parent) return;
 
+    const dpr = window.devicePixelRatio || 1;
     canvas.width = parent.clientWidth * dpr;
     canvas.height = parent.clientHeight * dpr;
 
     const ctx = canvas.getContext('2d');
-    if (ctx) ctx.scale(dpr, dpr);
+    ctx?.setTransform(dpr, 0, 0, dpr, 0, 0);
   }, []);
 
   const drawFrame = useCallback((frameIndex: number) => {
     const canvas = canvasRef.current;
     const frames = framesRef.current;
-
-    // Busca el frame pedido; si no cargó aún, usa el más cercano cargado
     let img = frames[frameIndex];
+
     if (!img?.complete || !img.naturalWidth) {
       for (let i = frameIndex - 1; i >= 0; i--) {
-        const f = frames[i];
-        if (f?.complete && f.naturalWidth) { img = f; break; }
+        const fallback = frames[i];
+        if (fallback?.complete && fallback.naturalWidth) {
+          img = fallback;
+          break;
+        }
       }
     }
 
@@ -101,29 +54,18 @@ export function BurgerScroll() {
     if (!ctx) return;
 
     const dpr = window.devicePixelRatio || 1;
-    const W = canvas.width / dpr;
-    const H = canvas.height / dpr;
-    const imgRatio = img.naturalWidth / img.naturalHeight;
-    const canvasRatio = W / H;
+    const width = canvas.width / dpr;
+    const height = canvas.height / dpr;
+    const scale = Math.max(width / img.naturalWidth, height / img.naturalHeight);
+    const drawWidth = img.naturalWidth * scale;
+    const drawHeight = img.naturalHeight * scale;
+    const drawX = (width - drawWidth) / 2;
+    const drawY = (height - drawHeight) / 2;
 
-    let drawW: number, drawH: number, drawX: number, drawY: number;
-    if (imgRatio > canvasRatio) {
-      drawH = H;
-      drawW = H * imgRatio;
-      drawX = (W - drawW) / 2;
-      drawY = 0;
-    } else {
-      drawW = W;
-      drawH = W / imgRatio;
-      drawX = 0;
-      drawY = (H - drawH) / 2;
-    }
-
-    ctx.clearRect(0, 0, W, H);
-    ctx.drawImage(img, drawX, drawY, drawW, drawH);
+    ctx.clearRect(0, 0, width, height);
+    ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
   }, []);
 
-  // Carga progresiva: muestra el canvas en cuanto llega el frame 0
   useEffect(() => {
     let loadedCount = 0;
     const images: HTMLImageElement[] = new Array(TOTAL_FRAMES);
@@ -137,222 +79,134 @@ export function BurgerScroll() {
         loadedCount++;
         setLoadProgress(Math.round((loadedCount / TOTAL_FRAMES) * 100));
 
-        // Mostrar contenido en cuanto el primer frame esté listo
         if (index === 0) {
           setLoaded(true);
-          setTimeout(() => {
+          requestAnimationFrame(() => {
             updateCanvasSize();
-            requestAnimationFrame(() => drawFrame(0));
-          }, 0);
+            drawFrame(0);
+          });
         }
       };
+
       img.onerror = () => {
         loadedCount++;
         setLoadProgress(Math.round((loadedCount / TOTAL_FRAMES) * 100));
       };
+
       img.src = frameUrl(i + 1);
     }
 
-    // Asignar inmediatamente: drawFrame accede a los frames a medida que cargan
     framesRef.current = images;
   }, [drawFrame, updateCanvasSize]);
 
-  // Animación idle: oscilación de frames + float bob + parallax de mouse
   useEffect(() => {
     if (!loaded) return;
+    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
 
     let mouseTargetX = 0;
     let mouseTargetY = 0;
     let mouseX = 0;
     let mouseY = 0;
-    let idleRafId: number;
-    const startTime = performance.now();
+    let rafId: number;
 
-    const handleMouseMove = (e: MouseEvent) => {
-      mouseTargetX = (e.clientX / window.innerWidth - 0.5) * 22;
-      mouseTargetY = (e.clientY / window.innerHeight - 0.5) * 14;
+    const handleMouseMove = (event: MouseEvent) => {
+      mouseTargetX = (event.clientX / window.innerWidth - 0.5) * 12;
+      mouseTargetY = (event.clientY / window.innerHeight - 0.5) * 8;
     };
+
+    const animate = () => {
+      mouseX += (mouseTargetX - mouseX) * 0.045;
+      mouseY += (mouseTargetY - mouseY) * 0.045;
+
+      if (floatWrapperRef.current) {
+        floatWrapperRef.current.style.transform = `translate(${mouseX}px, ${mouseY * 0.45}px)`;
+      }
+
+      rafId = requestAnimationFrame(animate);
+    };
+
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
-
-    const animate = (now: number) => {
-      const t = (now - startTime) / 1000;
-
-      mouseX += (mouseTargetX - mouseX) * 0.05;
-      mouseY += (mouseTargetY - mouseY) * 0.05;
-
-      const floatY = Math.sin(t * 1.8) * 9;
-
-      const wrapper = floatWrapperRef.current;
-      if (wrapper) {
-        wrapper.style.transform = `translate(${mouseX}px, ${floatY + mouseY * 0.45}px)`;
-      }
-
-      if (isIdleRef.current && framesRef.current.length > 0) {
-        const osc = (Math.sin(t * 3.2) + 1) / 2;
-        const frameIndex = Math.round(osc * (IDLE_FRAMES - 1));
-        if (frameIndex !== currentFrameRef.current) {
-          currentFrameRef.current = frameIndex;
-          drawFrame(frameIndex);
-        }
-      }
-
-      idleRafId = requestAnimationFrame(animate);
-    };
-
-    idleRafId = requestAnimationFrame(animate);
+    rafId = requestAnimationFrame(animate);
 
     return () => {
-      cancelAnimationFrame(idleRafId);
+      cancelAnimationFrame(rafId);
       window.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [loaded, drawFrame]);
+  }, [loaded]);
 
-  // Scroll → frame
   useEffect(() => {
     const handleScroll = () => {
       const container = containerRef.current;
       if (!container || !framesRef.current.length) return;
 
       const rect = container.getBoundingClientRect();
-      const scrolled = -rect.top;
-      const total = rect.height - window.innerHeight;
-      const progress = Math.max(0, Math.min(1, scrolled / total));
+      const scrollableDistance = rect.height - window.innerHeight;
+      const progress = Math.max(0, Math.min(1, -rect.top / scrollableDistance));
+      const frameIndex = Math.min(TOTAL_FRAMES - 1, Math.floor(progress * (TOTAL_FRAMES - 1)));
 
-      isIdleRef.current = progress === 0;
+      setHeroPinned(rect.bottom > window.innerHeight);
 
-      const frameIndex = Math.min(
-        TOTAL_FRAMES - 1,
-        Math.floor(progress * TOTAL_FRAMES)
-      );
+      if (frameIndex === currentFrameRef.current) return;
 
-      if (!isIdleRef.current && frameIndex !== currentFrameRef.current) {
-        currentFrameRef.current = frameIndex;
-        if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
-        scrollRafRef.current = requestAnimationFrame(() => drawFrame(frameIndex));
-      }
-
-      const idx = OVERLAYS.findIndex(
-        (o) => progress >= o.start && progress <= o.end
-      );
-      setActiveOverlay(idx >= 0 ? idx : -1);
+      currentFrameRef.current = frameIndex;
+      if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
+      scrollRafRef.current = requestAnimationFrame(() => drawFrame(frameIndex));
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [drawFrame]);
 
-  // Resize & mount
   useEffect(() => {
     const handleResize = () => {
       updateCanvasSize();
       drawFrame(currentFrameRef.current);
     };
 
-    setTimeout(() => handleResize(), 100);
-
+    handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [drawFrame, updateCanvasSize]);
 
   return (
-    <div ref={containerRef} style={{ height: '500vh' }}>
+    <div ref={containerRef} className="relative h-[300vh]">
       <div
-        className="sticky top-0 h-screen w-full overflow-hidden"
-        style={{ background: BG }}
+        className="h-screen w-full overflow-hidden"
+        style={{
+          background: HERO_BACKGROUND,
+          position: heroPinned ? 'fixed' : 'absolute',
+          top: heroPinned ? 0 : 'auto',
+          bottom: heroPinned ? 'auto' : 0,
+          pointerEvents: heroPinned ? 'auto' : 'none',
+        }}
       >
-        <div ref={floatWrapperRef} className="absolute inset-0 will-change-transform">
+        <div ref={floatWrapperRef} className="absolute inset-0 md:-left-[2vw] md:-right-[2vw] will-change-transform">
           <canvas
             ref={canvasRef}
-            className="w-full h-full block"
-            style={{ background: BG }}
+            className="block h-full w-full"
+            style={{ background: HERO_BACKGROUND }}
           />
         </div>
 
-        {/* Spinner solo hasta que el primer frame esté listo (~1-2s en vez de 30s+) */}
         {!loaded && (
           <div
-            className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-10"
-            style={{ background: BG }}
+            className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4"
+            style={{ background: HERO_BACKGROUND }}
           >
-            <div className="w-8 h-8 border-2 border-black/15 border-t-black/50 rounded-full animate-spin" />
-            <p className="text-black/40 text-sm tracking-widest uppercase">
-              Cargando…
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary/15 border-t-primary/60" />
+            <p className="font-body text-sm uppercase tracking-widest text-on-surface-variant/60">
+              Cargando...
             </p>
           </div>
         )}
 
-        {/* Barra de progreso sutil mientras los frames restantes cargan en segundo plano */}
         {loaded && loadProgress < 100 && (
-          <div className="absolute bottom-0 left-0 right-0 h-0.5 z-20 bg-black/10">
+          <div className="absolute inset-x-0 bottom-0 z-20 h-0.5 bg-primary/10">
             <div
-              className="h-full bg-black/30 transition-[width] duration-500"
+              className="h-full bg-primary/45 transition-[width] duration-500"
               style={{ width: `${loadProgress}%` }}
             />
           </div>
-        )}
-
-        {loaded &&
-          OVERLAYS.map((overlay, i) => (
-            <OverlayText
-              key={i}
-              overlay={overlay}
-              visible={activeOverlay === i}
-            />
-          ))}
-      </div>
-    </div>
-  );
-}
-
-function OverlayText({
-  overlay,
-  visible,
-}: {
-  overlay: Overlay;
-  visible: boolean;
-}) {
-  const hPos =
-    overlay.hAlign === 'left'
-      ? 'left-8 md:left-14 lg:left-20'
-      : 'right-8 md:right-14 lg:right-20';
-
-  const vPos =
-    overlay.vAlign === 'top'
-      ? 'top-24 md:top-28'
-      : 'bottom-10 md:bottom-16';
-
-  const textAlign = overlay.hAlign === 'left' ? 'text-left' : 'text-right';
-  const slideY = overlay.vAlign === 'top' ? '-18px' : '18px';
-
-  return (
-    <div
-      className={`absolute ${vPos} ${hPos} max-w-[260px] md:max-w-sm pointer-events-none z-10`}
-      style={{
-        opacity: visible ? 1 : 0,
-        transform: `translateY(${visible ? '0px' : slideY})`,
-        transition: 'opacity 0.5s ease, transform 0.5s ease',
-        pointerEvents: visible ? 'auto' : 'none',
-      }}
-    >
-      <div className={`flex flex-col gap-2 md:gap-3 ${textAlign}`}>
-        <h2
-          className="font-headline font-bold tracking-tight text-black/90 whitespace-pre-line"
-          style={{ fontSize: 'clamp(1.4rem, 3vw, 2.75rem)', lineHeight: 1.1 }}
-        >
-          {overlay.heading}
-        </h2>
-        {overlay.body && (
-          <p className="font-body text-black/55 text-sm md:text-base leading-relaxed">
-            {overlay.body}
-          </p>
-        )}
-        {overlay.cta && (
-          <a
-            href="#pricing"
-            className="mt-2 inline-flex items-center justify-center px-7 py-3.5 bg-orange-500 hover:bg-orange-400 text-white rounded-full font-semibold text-base md:text-lg transition-colors shadow-lg shadow-orange-500/25"
-          >
-            Comenzá gratis
-          </a>
         )}
       </div>
     </div>

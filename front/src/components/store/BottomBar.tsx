@@ -1,6 +1,6 @@
 'use client'
 
-import { useCartStore } from '@/store/cart'
+import { useItemCount, useCartTotal } from '@/hooks/useHydratedCartStore'
 import { formatPrice } from '@/lib/utils'
 import { STITCH } from '@/lib/stitch-theme'
 
@@ -9,8 +9,8 @@ type Props = {
 }
 
 export function BottomBar({ onCartOpen }: Props) {
-  const itemCount = useCartStore((s) => s.itemCount())
-  const total = useCartStore((s) => s.total())
+  const itemCount = useItemCount()
+  const total = useCartTotal()
 
   if (itemCount === 0) return null
 

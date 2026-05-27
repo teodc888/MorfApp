@@ -110,7 +110,7 @@ export function buildWhatsAppMessage(
 
   const lines: string[] = []
 
-  lines.push(`${tenant.branding.emojiIcon} *Pedido — ${tenant.name}*`)
+  lines.push(`${tenant.branding?.emojiIcon ?? '🍽️'} *Pedido — ${tenant.name}*`)
   lines.push('━━━━━━━━━━━━━━━━')
 
   items.forEach((item, index) => {

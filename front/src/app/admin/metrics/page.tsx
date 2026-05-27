@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useWebSocket } from '@/lib/useWebSocket'
 import {
@@ -307,6 +307,7 @@ function HourlyChart({ data }: { data: MetricsData['ordersByHour'] }) {
 
 export default function MetricsPage() {
   const [period, setPeriod] = useState<MetricsPeriod>('today')
+  const [lastUpdateLabel, setLastUpdateLabel] = useState<string>('')
   useWebSocket()
 
   const {
@@ -314,11 +315,26 @@ export default function MetricsPage() {
     isLoading,
     error,
     refetch,
+    dataUpdatedAt,
   } = useQuery<MetricsData, Error>({
     queryKey: ['metrics', period],
     queryFn: () => getMetrics(period),
-    staleTime: 2 * 60 * 1000, // 2 min
+    staleTime: 0,
+    refetchInterval: 60 * 1000,
+    refetchIntervalInBackground: false,
   })
+
+  useEffect(() => {
+    if (!dataUpdatedAt) return
+    const update = () => {
+      const secs = Math.floor((Date.now() - dataUpdatedAt) / 1000)
+      if (secs < 60) setLastUpdateLabel(`hace ${secs}s`)
+      else setLastUpdateLabel(`hace ${Math.floor(secs / 60)}min`)
+    }
+    update()
+    const id = setInterval(update, 10_000)
+    return () => clearInterval(id)
+  }, [dataUpdatedAt])
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -328,6 +344,9 @@ export default function MetricsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Métricas</h1>
           <p className="text-sm text-gray-500 mt-1">
             Rendimiento y ventas de tu negocio
+            {lastUpdateLabel && (
+              <span className="ml-2 text-xs text-gray-400">· Actualizado {lastUpdateLabel}</span>
+            )}
           </p>
         </div>
         <button

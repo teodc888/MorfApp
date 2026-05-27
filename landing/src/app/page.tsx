@@ -1,10 +1,12 @@
-import { Nav } from '@/components/landing/Nav';
+import { CollapsibleNav } from '@/components/landing/CollapsibleNav';
 import { BurgerScroll } from '@/components/landing/BurgerScroll';
 import { Features } from '@/components/landing/Features';
 import { Pricing } from '@/components/landing/Pricing';
 import { Testimonial } from '@/components/landing/Testimonial';
 import { CTA } from '@/components/landing/CTA';
 import { Footer } from '@/components/landing/Footer';
+import { ScrollIndicator } from '@/components/landing/ScrollIndicator';
+import { HeroToFeaturesTransition } from '@/components/landing/HeroToFeaturesTransition';
 
 export const metadata = {
   title: 'MorfApp — Tu menú digital, listo en minutos',
@@ -37,8 +39,12 @@ export default function LandingPage() {
         .hero-child-5 { animation: fadeInUp .7s ease .45s both; }
       `}</style>
       <main className="bg-surface-bright text-on-surface font-body antialiased min-h-screen">
-        <Nav />
-        <BurgerScroll />
+        <ScrollIndicator />
+        <CollapsibleNav />
+        <div id="hero">
+          <BurgerScroll />
+        </div>
+        <HeroToFeaturesTransition />
         <Features />
         <Pricing />
         <Testimonial />

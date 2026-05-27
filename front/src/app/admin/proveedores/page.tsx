@@ -3,9 +3,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   getSuppliers,
+  getInactiveSuppliers,
   createSupplier,
   updateSupplier,
   deleteSupplier,
+  restoreSupplier,
   getSupplierDebtDetail,
   paySupplierPurchasePartial,
   paySupplierPurchaseFull,
@@ -14,7 +16,7 @@ import {
 import type { SupplierDebtDetailDto, SupplierDebtPurchaseDto, SupplierDto } from '@/types/store'
 
 type SupplierForm = { name: string; phone: string; address: string; notes: string }
-type ConfirmDialog = { open: boolean; id: string; name: string }
+type ConfirmDialog = { open: boolean; id: string; name: string; totalDebt: number }
 type PaymentForm = { purchase: SupplierDebtPurchaseDto; amount: string; notes: string }
 
 const EMPTY_FORM: SupplierForm = { name: '', phone: '', address: '', notes: '' }
@@ -26,15 +28,20 @@ export default function ProveedoresPage() {
   const [modal, setModal] = useState<{ open: boolean; editing: SupplierDto | null }>({ open: false, editing: null })
   const [form, setForm] = useState<SupplierForm>(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
-  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog>({ open: false, id: '', name: '' })
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog>({ open: false, id: '', name: '', totalDebt: 0 })
   const [debtModal, setDebtModal] = useState<{ open: boolean; loading: boolean; detail: SupplierDebtDetailDto | null }>({ open: false, loading: false, detail: null })
   const [paymentForm, setPaymentForm] = useState<PaymentForm | null>(null)
   const [paying, setPaying] = useState(false)
+  const [showInactive, setShowInactive] = useState(false)
+  const [inactiveSuppliers, setInactiveSuppliers] = useState<SupplierDto[]>([])
+  const [restoringId, setRestoringId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     try {
       setError(null)
-      setSuppliers(await getSuppliers())
+      const [active, inactive] = await Promise.all([getSuppliers(), getInactiveSuppliers()])
+      setSuppliers(active)
+      setInactiveSuppliers(inactive)
     } catch {
       setError('No se pudieron cargar los proveedores')
     } finally {
@@ -75,10 +82,22 @@ export default function ProveedoresPage() {
   async function confirmDelete() {
     try {
       await deleteSupplier(confirmDialog.id)
-      setConfirmDialog({ open: false, id: '', name: '' })
+      setConfirmDialog({ open: false, id: '', name: '', totalDebt: 0 })
       await load()
     } catch {
       setError('Error al eliminar proveedor')
+    }
+  }
+
+  async function handleRestore(id: string) {
+    setRestoringId(id)
+    try {
+      await restoreSupplier(id)
+      await load()
+    } catch {
+      setError('Error al reactivar proveedor')
+    } finally {
+      setRestoringId(null)
     }
   }
 
@@ -283,12 +302,7 @@ export default function ProveedoresPage() {
                   flexShrink: 0,
                 }}
               >
-                {s.name
-                  .split(' ')
-                  .slice(0, 2)
-                  .map((w) => w[0])
-                  .join('')
-                  .toUpperCase()}
+                {s.name.split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase()}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="serif" style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>
@@ -314,6 +328,74 @@ export default function ProveedoresPage() {
             </button>
           ))
         )}
+
+        {/* Toggle dados de baja */}
+        {inactiveSuppliers.length > 0 && (
+          <button
+            onClick={() => setShowInactive((v) => !v)}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '10px 4px',
+              fontSize: 13,
+              color: 'var(--muted)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              fontWeight: 500,
+            }}
+          >
+            <span style={{ fontSize: 16 }}>{showInactive ? '▲' : '▼'}</span>
+            {showInactive ? 'Ocultar' : `Ver dados de baja (${inactiveSuppliers.length})`}
+          </button>
+        )}
+
+        {/* Lista de inactivos */}
+        {showInactive && inactiveSuppliers.map((s) => (
+          <div
+            key={s.id}
+            className="card"
+            style={{
+              padding: 14,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              opacity: 0.6,
+            }}
+          >
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                background: 'var(--surface-container)',
+                color: 'var(--muted)',
+                display: 'grid',
+                placeItems: 'center',
+                fontFamily: 'var(--serif)',
+                fontWeight: 700,
+                fontSize: 14,
+                flexShrink: 0,
+              }}
+            >
+              {s.name.split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase()}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="serif" style={{ fontSize: 16, fontWeight: 600, color: 'var(--muted)', textDecoration: 'line-through' }}>
+                {s.name}
+              </div>
+              <div style={{ marginTop: 2, fontSize: 12, color: 'var(--muted)' }}>Dado de baja</div>
+            </div>
+            <button
+              className="btn btn-outline btn-sm"
+              disabled={restoringId === s.id}
+              onClick={() => handleRestore(s.id)}
+            >
+              {restoringId === s.id ? '...' : 'Reactivar'}
+            </button>
+          </div>
+        ))}
       </div>
 
       {/* Edit/Create Modal */}
@@ -402,12 +484,12 @@ export default function ProveedoresPage() {
               <button
                 className="btn btn-danger btn-block"
                 onClick={() => {
-                  setConfirmDialog({ open: true, id: modal.editing!.id, name: modal.editing!.name })
+                  setConfirmDialog({ open: true, id: modal.editing!.id, name: modal.editing!.name, totalDebt: modal.editing!.totalDebt })
                   setModal({ open: false, editing: null })
                 }}
                 style={{ marginTop: 12 }}
               >
-                <span className="mat sm">delete</span> Eliminar proveedor
+                <span className="mat sm">delete</span> Dar de baja proveedor
               </button>
             )}
           </div>
@@ -661,22 +743,39 @@ export default function ProveedoresPage() {
 
       {/* Delete Confirmation */}
       {confirmDialog.open && (
-        <div className="modal-backdrop modal-center" onClick={() => setConfirmDialog({ open: false, id: '', name: '' })}>
+        <div className="modal-backdrop modal-center" onClick={() => setConfirmDialog({ open: false, id: '', name: '', totalDebt: 0 })}>
           <div
             className="modal-sheet"
             onClick={(e) => e.stopPropagation()}
             style={{ maxWidth: 380 }}
           >
-            <h2 className="serif" style={{ margin: '0 0 16px', fontSize: 20, color: 'var(--error)' }}>
-              ⚠️ ¿Eliminar proveedor?
+            <h2 className="serif" style={{ margin: '0 0 12px', fontSize: 20, color: 'var(--error)' }}>
+              ⚠️ ¿Dar de baja proveedor?
             </h2>
-            <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--muted)', lineHeight: 1.4 }}>
-              Estás a punto de eliminar <strong style={{ color: 'var(--text)' }}>&quot;{confirmDialog.name}&quot;</strong>. Esta acción no se puede deshacer.
+            <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--muted)', lineHeight: 1.5 }}>
+              <strong style={{ color: 'var(--text)' }}>&quot;{confirmDialog.name}&quot;</strong> y todos sus insumos asociados dejarán de aparecer en pantalla.
+            </p>
+            {confirmDialog.totalDebt > 0 && (
+              <div style={{
+                background: 'rgba(186,26,26,0.07)',
+                border: '1px solid var(--error)',
+                borderRadius: 8,
+                padding: '10px 12px',
+                fontSize: 13,
+                color: 'var(--error)',
+                marginBottom: 10,
+                lineHeight: 1.4,
+              }}>
+                Este proveedor tiene deuda pendiente de <strong>{formatMoney(confirmDialog.totalDebt)}</strong>. Podés reactivarlo luego para saldarla.
+              </div>
+            )}
+            <p style={{ margin: '0 0 16px', fontSize: 12, color: 'var(--muted)' }}>
+              Podés reactivarlo en cualquier momento desde la lista.
             </p>
             <div style={{ display: 'flex', gap: 12 }}>
               <button
                 className="btn btn-outline"
-                onClick={() => setConfirmDialog({ open: false, id: '', name: '' })}
+                onClick={() => setConfirmDialog({ open: false, id: '', name: '', totalDebt: 0 })}
                 style={{ flex: 1 }}
               >
                 Cancelar
@@ -686,7 +785,7 @@ export default function ProveedoresPage() {
                 onClick={confirmDelete}
                 style={{ flex: 1 }}
               >
-                Eliminar
+                Dar de baja
               </button>
             </div>
           </div>

@@ -46,6 +46,11 @@ namespace MorfApp.Infrastructure.Migrations
                         .HasColumnType("text")
                         .HasColumnName("password_hash");
 
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("role");
+
                     b.Property<string>("TenantId")
                         .HasColumnType("text")
                         .HasColumnName("tenant_id");
@@ -214,6 +219,140 @@ namespace MorfApp.Infrastructure.Migrations
                         .HasDatabaseName("ix_delivery_configs_tenant_id");
 
                     b.ToTable("delivery_configs", (string)null);
+                });
+
+            modelBuilder.Entity("MorfApp.Domain.Entities.Employee", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AdminUserId")
+                        .HasColumnType("text")
+                        .HasColumnName("admin_user_id");
+
+                    b.Property<decimal>("BaseSalary")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("base_salary");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Email")
+                        .HasColumnType("text")
+                        .HasColumnName("email");
+
+                    b.Property<DateTime>("HireDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("hire_date");
+
+                    b.Property<decimal>("HourlyRate")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("hourly_rate");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<int>("PaymentDay")
+                        .HasColumnType("integer")
+                        .HasColumnName("payment_day");
+
+                    b.Property<string>("PaymentFrequency")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("payment_frequency");
+
+                    b.Property<string>("Phone")
+                        .HasColumnType("text")
+                        .HasColumnName("phone");
+
+                    b.Property<string>("Position")
+                        .HasColumnType("text")
+                        .HasColumnName("position");
+
+                    b.Property<string>("RemunerationType")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("remuneration_type");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_employees");
+
+                    b.HasIndex("TenantId", "IsActive")
+                        .HasDatabaseName("ix_employees_tenant_id_is_active");
+
+                    b.ToTable("employees", (string)null);
+                });
+
+            modelBuilder.Entity("MorfApp.Domain.Entities.EmployeeAdvance", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date");
+
+                    b.Property<string>("EmployeeId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("employee_id");
+
+                    b.Property<bool>("IsApplied")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_applied");
+
+                    b.Property<string>("Reason")
+                        .HasColumnType("text")
+                        .HasColumnName("reason");
+
+                    b.Property<string>("SalaryPaymentId")
+                        .HasColumnType("text")
+                        .HasColumnName("salary_payment_id");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_employee_advances");
+
+                    b.HasIndex("EmployeeId")
+                        .HasDatabaseName("ix_employee_advances_employee_id");
+
+                    b.HasIndex("TenantId", "EmployeeId", "IsApplied")
+                        .HasDatabaseName("ix_employee_advances_tenant_id_employee_id_is_applied");
+
+                    b.ToTable("employee_advances", (string)null);
                 });
 
             modelBuilder.Entity("MorfApp.Domain.Entities.InventoryMovement", b =>
@@ -766,6 +905,87 @@ namespace MorfApp.Infrastructure.Migrations
                     b.ToTable("refresh_tokens", (string)null);
                 });
 
+            modelBuilder.Entity("MorfApp.Domain.Entities.SalaryPayment", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("AdvancesDeducted")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("advances_deducted");
+
+                    b.Property<decimal>("BasePaid")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("base_paid");
+
+                    b.Property<decimal>("Bonus")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("bonus");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("EmployeeId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("employee_id");
+
+                    b.Property<decimal>("HoursAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("hours_amount");
+
+                    b.Property<int?>("HoursWorked")
+                        .HasColumnType("integer")
+                        .HasColumnName("hours_worked");
+
+                    b.Property<bool>("IsAguinaldo")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_aguinaldo");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text")
+                        .HasColumnName("notes");
+
+                    b.Property<DateTime>("PaidAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("paid_at");
+
+                    b.Property<DateTime>("PeriodEnd")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("period_end");
+
+                    b.Property<DateTime>("PeriodStart")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("period_start");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<decimal>("TotalPaid")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("total_paid");
+
+                    b.HasKey("Id")
+                        .HasName("pk_salary_payments");
+
+                    b.HasIndex("EmployeeId")
+                        .HasDatabaseName("ix_salary_payments_employee_id");
+
+                    b.HasIndex("TenantId", "EmployeeId", "PaidAt")
+                        .HasDatabaseName("ix_salary_payments_tenant_id_employee_id_paid_at");
+
+                    b.ToTable("salary_payments", (string)null);
+                });
+
             modelBuilder.Entity("MorfApp.Domain.Entities.SetupToken", b =>
                 {
                     b.Property<string>("Id")
@@ -1289,6 +1509,30 @@ namespace MorfApp.Infrastructure.Migrations
                     b.Navigation("Tenant");
                 });
 
+            modelBuilder.Entity("MorfApp.Domain.Entities.Employee", b =>
+                {
+                    b.HasOne("MorfApp.Domain.Entities.Tenant", "Tenant")
+                        .WithMany("Employees")
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_employees_tenants_tenant_id");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("MorfApp.Domain.Entities.EmployeeAdvance", b =>
+                {
+                    b.HasOne("MorfApp.Domain.Entities.Employee", "Employee")
+                        .WithMany("Advances")
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_employee_advances_employees_employee_id");
+
+                    b.Navigation("Employee");
+                });
+
             modelBuilder.Entity("MorfApp.Domain.Entities.ModifierGroup", b =>
                 {
                     b.HasOne("MorfApp.Domain.Entities.Tenant", "Tenant")
@@ -1406,6 +1650,18 @@ namespace MorfApp.Infrastructure.Migrations
                     b.Navigation("AdminUser");
                 });
 
+            modelBuilder.Entity("MorfApp.Domain.Entities.SalaryPayment", b =>
+                {
+                    b.HasOne("MorfApp.Domain.Entities.Employee", "Employee")
+                        .WithMany("SalaryPayments")
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_salary_payments_employees_employee_id");
+
+                    b.Navigation("Employee");
+                });
+
             modelBuilder.Entity("MorfApp.Domain.Entities.SetupToken", b =>
                 {
                     b.HasOne("MorfApp.Domain.Entities.AdminUser", "AdminUser")
@@ -1469,6 +1725,13 @@ namespace MorfApp.Infrastructure.Migrations
                     b.Navigation("Products");
                 });
 
+            modelBuilder.Entity("MorfApp.Domain.Entities.Employee", b =>
+                {
+                    b.Navigation("Advances");
+
+                    b.Navigation("SalaryPayments");
+                });
+
             modelBuilder.Entity("MorfApp.Domain.Entities.ModifierGroup", b =>
                 {
                     b.Navigation("Options");
@@ -1490,6 +1753,8 @@ namespace MorfApp.Infrastructure.Migrations
                     b.Navigation("Categories");
 
                     b.Navigation("DeliveryConfig");
+
+                    b.Navigation("Employees");
 
                     b.Navigation("ModifierGroups");
 

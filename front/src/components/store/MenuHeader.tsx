@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import type { TenantPublic } from '@/types/store'
-import { useCartStore } from '@/store/cart'
+import { useItemCount } from '@/hooks/useHydratedCartStore'
 import { STITCH } from '@/lib/stitch-theme'
 
 type Props = {
@@ -11,7 +11,7 @@ type Props = {
 }
 
 export function MenuHeader({ tenant, onCartOpen }: Props) {
-  const itemCount = useCartStore((s) => s.itemCount())
+  const itemCount = useItemCount()
 
   return (
     <header className="sticky top-0 z-30" style={{ backgroundColor: STITCH.primary, borderBottom: `1px solid ${STITCH.border}` }}>

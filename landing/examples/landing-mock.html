@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MorfApp — Mock de Rediseño</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600;1,700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
+  <style>
+    /* ─── Reset & Base ─── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #c2652a;
+      --primary-container: #fbe8d8;
+      --primary-dim: #e08850;
+      --surface: #faf5ee;
+      --surface-bright: #ffffff;
+      --surface-container-low: #f6f0e8;
+      --surface-container: #ede7e0;
+      --on-surface: #3a302a;
+      --on-surface-variant: #78706a;
+      --outline-variant: #d8d0c8;
+      --surface-dark: #2a1f1a;
+      --on-surface-dark: #faf5ee;
+      --accent-amber: #d4a96a;
+      --accent-amber-subtle: rgba(212,169,106,0.15);
+      --whatsapp: #25D366;
+      --font-headline: 'EB Garamond', Georgia, serif;
+      --font-body: 'Manrope', system-ui, sans-serif;
+    }
+    html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+    body { background: var(--surface); color: var(--on-surface); font-family: var(--font-body); }
+
+    /* ─── Sticky Nav ─── */
+    .mock-nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(250,245,238,0.92); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--outline-variant);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px; height: 60px;
+    }
+    .mock-nav-brand { font-family: var(--font-headline); font-size: 1.25rem; font-weight: 700; color: var(--primary); font-style: italic; }
+    .mock-nav-links { display: flex; gap: 32px; }
+    .mock-nav-links a { font-family: var(--font-body); font-size: 0.875rem; font-weight: 500; color: var(--on-surface-variant); text-decoration: none; transition: color 0.2s; }
+    .mock-nav-links a:hover { color: var(--primary); }
+    .mock-nav-cta { background: var(--surface-dark); color: var(--on-surface-dark); font-family: var(--font-body); font-size: 0.8rem; font-weight: 600; padding: 8px 18px; border-radius: 6px; text-decoration: none; transition: opacity 0.2s; }
+    .mock-nav-cta:hover { opacity: 0.85; }
+
+    /* ─── Hero Placeholder ─── */
+    .mock-hero {
+      height: 100vh; background: #EBEBEB;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; gap: 16px; position: relative;
+    }
+    .mock-hero h1 { font-family: var(--font-headline); font-size: clamp(2.5rem, 6vw, 5rem); font-weight: 800; color: var(--on-surface); }
+    .mock-hero p { font-family: var(--font-body); color: var(--on-surface-variant); font-size: 1rem; }
+    .mock-hero .badge { background: var(--primary); color: white; font-family: var(--font-body); font-size: 0.75rem; font-weight: 700; padding: 6px 16px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.1em; }
+    .mock-scroll-hint { position: absolute; bottom: 32px; font-family: var(--font-body); font-size: 0.8rem; color: var(--on-surface-variant); opacity: 0.6; animation: bounceDown 2s ease-in-out infinite; }
+    @keyframes bounceDown { 0%,100%{transform:translateY(0)} 50%{transform:translateY(6px)} }
+
+    /* ─── Scroll Animations ─── */
+    .reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.7s ease, transform 0.7s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .reveal-left { opacity: 0; transform: translateX(-44px); transition: opacity 0.7s cubic-bezier(0.22,1,0.36,1), transform 0.7s cubic-bezier(0.22,1,0.36,1); }
+    .reveal-left.visible { opacity: 1; transform: translateX(0); }
+    .reveal-right { opacity: 0; transform: translateX(44px); transition: opacity 0.7s cubic-bezier(0.22,1,0.36,1), transform 0.7s cubic-bezier(0.22,1,0.36,1); }
+    .reveal-right.visible { opacity: 1; transform: translateX(0); }
+    .reveal-up { opacity: 0; transform: translateY(-32px); transition: opacity 0.7s cubic-bezier(0.22,1,0.36,1), transform 0.7s cubic-bezier(0.22,1,0.36,1); }
+    .reveal-up.visible { opacity: 1; transform: translateY(0); }
+    .reveal-blur { opacity: 0; filter: blur(8px); transform: translateY(20px); transition: opacity 0.8s cubic-bezier(0.22,1,0.36,1), filter 0.8s cubic-bezier(0.22,1,0.36,1), transform 0.8s cubic-bezier(0.22,1,0.36,1); }
+    .reveal-blur.visible { opacity: 1; filter: blur(0); transform: translateY(0); }
+    .reveal-scale { opacity: 0; transform: scale(0.96); transition: opacity 0.7s ease, transform 0.7s ease; }
+    .reveal-scale.visible { opacity: 1; transform: scale(1); }
+
+    /* ─── FEATURES ─── */
+    #features {
+      padding: 96px 24px;
+      background: linear-gradient(to bottom, #EBEBEB 0px, var(--surface-container-low) 80px);
+      border-bottom: 1px solid var(--outline-variant);
+    }
+    .features-header { text-align: center; max-width: 600px; margin: 0 auto 80px; }
+    .features-header h2 { font-family: var(--font-headline); font-size: clamp(2.25rem, 4vw, 3.25rem); font-weight: 800; color: var(--on-surface); margin-bottom: 16px; }
+    .features-header p { font-family: var(--font-body); color: var(--on-surface-variant); font-size: 1.05rem; line-height: 1.65; }
+
+    .features-spine-wrap { position: relative; max-width: 880px; margin: 0 auto; }
+
+    .features-spine {
+      position: absolute; left: 50%; top: 0; bottom: 0; width: 1px;
+      background: linear-gradient(to bottom, transparent, var(--outline-variant) 5%, var(--outline-variant) 95%, transparent);
+      transform-origin: top center; transform: scaleY(0);
+      transition: transform 1.4s cubic-bezier(0.22,1,0.36,1);
+    }
+    .features-spine.visible { transform: scaleY(1); }
+    .features-spine::before { content:''; position:absolute; top:-4px; left:-3px; width:7px; height:7px; background:var(--primary); border-radius:50%; }
+    .features-spine::after { content:''; position:absolute; bottom:-4px; left:-3px; width:7px; height:7px; background:var(--primary); border-radius:50%; }
+
+    .feature-row {
+      display: grid; grid-template-columns: 1fr 1fr;
+      align-items: center; min-height: 200px; position: relative;
+    }
+    .feature-row + .feature-row { border-top: 1px dashed rgba(216,208,200,0.6); }
+    .feature-content { padding: 52px 48px; }
+    .feature-icon-cell { padding: 52px 48px; display: flex; justify-content: center; align-items: center; }
+    .feature-row.reverse .feature-content { order: 2; }
+    .feature-row.reverse .feature-icon-cell { order: 1; }
+
+    .feature-num {
+      position: absolute;
+      font-family: var(--font-headline); font-size: 9rem; font-weight: 800;
+      color: var(--primary); opacity: 0.055; line-height: 1;
+      pointer-events: none; user-select: none;
+      top: 50%; transform: translateY(-50%);
+    }
+    .feature-row:not(.reverse) .feature-num { right: 4px; text-align: right; }
+    .feature-row.reverse .feature-num { left: 4px; }
+
+    .feature-icon-wrap {
+      width: 80px; height: 80px; border-radius: 50%;
+      background: var(--primary); display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 8px 28px rgba(194,101,42,0.28);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .feature-icon-wrap:hover { transform: scale(1.08); box-shadow: 0 12px 36px rgba(194,101,42,0.38); }
+    .feature-icon-wrap .material-symbols-outlined { font-size: 36px; color: white; font-variation-settings: 'FILL' 1; }
+
+    .feature-tag { font-family: var(--font-body); font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--primary); margin-bottom: 10px; }
+    .feature-title { font-family: var(--font-headline); font-size: 1.8rem; font-weight: 700; color: var(--on-surface); margin-bottom: 14px; line-height: 1.2; }
+    .feature-desc { font-family: var(--font-body); color: var(--on-surface-variant); line-height: 1.7; font-size: 0.95rem; }
+
+    @media (max-width: 768px) {
+      .feature-row { grid-template-columns: 1fr; }
+      .feature-row.reverse .feature-content { order: 1; }
+      .feature-row.reverse .feature-icon-cell { order: 2; }
+      .features-spine { display: none; }
+      .feature-num { display: none; }
+      .feature-content { padding: 32px 16px; }
+      .feature-icon-cell { padding: 24px 16px 0; justify-content: flex-start; }
+    }
+
+    /* ─── PRICING ─── */
+    #pricing {
+      padding: 96px 24px;
+      background: var(--surface-container-low);
+      border-bottom: 1px solid var(--outline-variant);
+    }
+    .pricing-header { text-align: center; max-width: 600px; margin: 0 auto 64px; }
+    .pricing-header h2 { font-family: var(--font-headline); font-size: clamp(2.25rem, 4vw, 3.25rem); font-weight: 800; color: var(--on-surface); margin-bottom: 16px; }
+    .pricing-header p { font-family: var(--font-body); color: var(--on-surface-variant); font-size: 1.05rem; }
+
+    .pricing-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; max-width: 1020px; margin: 0 auto; align-items: start; }
+
+    .plan-card {
+      border-radius: 16px; padding: 40px 32px;
+      display: flex; flex-direction: column;
+      border: 1.5px solid var(--outline-variant);
+      background: var(--surface-bright);
+      box-shadow: 0 2px 16px rgba(58,48,42,0.04);
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+    .plan-card:hover { transform: translateY(-5px); box-shadow: 0 12px 40px rgba(58,48,42,0.10); }
+
+    .plan-badge-chip { display: inline-block; font-family: var(--font-body); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; padding: 4px 12px; border-radius: 999px; margin-bottom: 10px; }
+    .chip-free { background: #dcfce7; color: #166534; }
+
+    .plan-name { font-family: var(--font-headline); font-size: 2rem; font-weight: 700; color: var(--on-surface); margin-bottom: 6px; }
+    .plan-desc { font-family: var(--font-body); font-size: 0.875rem; color: var(--on-surface-variant); padding-bottom: 20px; border-bottom: 1px solid var(--outline-variant); margin-bottom: 22px; }
+    .plan-price { font-family: var(--font-headline); font-size: 3rem; font-weight: 800; color: var(--on-surface); line-height: 1; }
+    .plan-price-period { font-family: var(--font-body); font-size: 0.875rem; color: var(--on-surface-variant); }
+    .plan-price-sub { font-family: var(--font-body); font-size: 0.75rem; color: var(--on-surface-variant); margin-top: 4px; margin-bottom: 24px; min-height: 1em; }
+    .plan-features { list-style: none; display: flex; flex-direction: column; gap: 12px; flex-grow: 1; margin-bottom: 28px; }
+    .plan-features li { display: flex; align-items: center; gap: 10px; font-family: var(--font-body); font-size: 0.875rem; color: var(--on-surface); }
+    .plan-features li .material-symbols-outlined { font-size: 18px; font-variation-settings: 'FILL' 1; color: var(--primary); flex-shrink: 0; }
+    .plan-cta-btn { display: block; width: 100%; padding: 14px 20px; border: 2px solid var(--outline-variant); border-radius: 8px; font-family: var(--font-body); font-size: 0.95rem; font-weight: 700; color: var(--on-surface); background: transparent; cursor: pointer; text-align: center; text-decoration: none; transition: border-color 0.2s, color 0.2s; }
+    .plan-cta-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+    /* Pro dark */
+    .plan-card.plan-pro {
+      background: var(--surface-dark);
+      border-color: rgba(212,169,106,0.35);
+      box-shadow: 0 16px 48px rgba(212,169,106,0.12), 0 4px 16px rgba(42,31,26,0.4);
+      transform: scale(1.04); position: relative; overflow: hidden;
+    }
+    .plan-card.plan-pro:hover { transform: scale(1.04) translateY(-4px); box-shadow: 0 24px 60px rgba(212,169,106,0.2), 0 8px 24px rgba(42,31,26,0.5); }
+    .plan-card.plan-pro .plan-name { color: var(--on-surface-dark); }
+    .plan-card.plan-pro .plan-desc { color: rgba(250,245,238,0.55); border-bottom-color: rgba(212,169,106,0.2); }
+    .plan-card.plan-pro .plan-price { color: var(--on-surface-dark); }
+    .plan-card.plan-pro .plan-price-period,.plan-card.plan-pro .plan-price-sub { color: rgba(250,245,238,0.5); }
+    .plan-card.plan-pro .plan-features li { color: var(--on-surface-dark); }
+    .plan-card.plan-pro .plan-features li .material-symbols-outlined { color: var(--accent-amber); }
+    .plan-card.plan-pro .plan-cta-btn { background: var(--accent-amber); color: var(--surface-dark); border-color: transparent; font-weight: 700; }
+    .plan-card.plan-pro .plan-cta-btn:hover { background: #c49a5c; }
+    .pro-corner-badge { position: absolute; top: 0; right: 0; background: var(--accent-amber); color: var(--surface-dark); font-family: var(--font-body); font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; padding: 6px 16px; border-bottom-left-radius: 12px; }
+    .chip-popular { background: rgba(212,169,106,0.15); color: var(--accent-amber); border: 1px solid rgba(212,169,106,0.3); }
+
+    /* Coming soon ribbon */
+    .coming-soon-wrap { position: relative; overflow: hidden; border-radius: 16px; }
+    .cs-ribbon {
+      position: absolute; z-index: 10; top: 24px; right: -28px;
+      background: var(--on-surface); color: white;
+      font-family: var(--font-body); font-size: 0.6rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.14em;
+      padding: 5px 44px; transform: rotate(45deg);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    @media (max-width: 900px) {
+      .pricing-grid { grid-template-columns: 1fr; max-width: 420px; }
+      .plan-card.plan-pro { transform: scale(1); }
+      .plan-card.plan-pro:hover { transform: translateY(-4px); }
+    }
+
+    /* ─── TESTIMONIAL ─── */
+    #testimonial { background: var(--surface-container-low); border-top: 1px solid var(--outline-variant); }
+    .t-sticky {
+      position: sticky; top: 0; height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      overflow: hidden; padding: 0 24px;
+    }
+    .t-section-label {
+      font-family: var(--font-body); font-size: 0.7rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.18em; color: var(--primary);
+      margin-bottom: 36px;
+    }
+    .t-quote-wrap {
+      position: relative; padding: 12px 52px; max-width: 700px;
+      text-align: center; margin-bottom: 20px;
+    }
+    .t-qmark {
+      font-family: var(--font-headline); font-size: 7rem; line-height: 0.5;
+      color: var(--primary); opacity: 0.16; position: absolute;
+      font-weight: 800; pointer-events: none; user-select: none;
+    }
+    .t-qmark-l { left: -4px; top: 4px; }
+    .t-qmark-r { right: -4px; bottom: -20px; }
+    #t-quote {
+      font-family: var(--font-headline); font-style: italic;
+      font-size: clamp(1.35rem, 2.8vw, 2.1rem); font-weight: 600;
+      color: var(--on-surface); line-height: 1.5;
+      transition: opacity 0.35s ease, filter 0.35s ease, transform 0.35s ease;
+    }
+    #t-quote.t-exit { opacity: 0; filter: blur(6px); transform: scale(0.975); }
+    .t-stars-row { display: flex; gap: 4px; justify-content: center; margin-bottom: 16px; }
+    .t-stars-row svg { width: 18px; height: 18px; fill: var(--primary); }
+    #t-role {
+      font-family: var(--font-body); font-size: 0.7rem; font-weight: 600;
+      color: var(--on-surface-variant); text-transform: uppercase; letter-spacing: 0.18em;
+      margin-bottom: 32px;
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    #t-role.t-exit { opacity: 0; transform: translateY(8px); }
+    /* Avatar pills */
+    .t-pills { display: flex; align-items: center; gap: 6px; margin-bottom: 20px; }
+    .t-pill {
+      display: flex; align-items: center; border-radius: 999px; cursor: pointer;
+      padding: 3px; background: transparent; border: none;
+      transition: background 0.5s cubic-bezier(0.4,0,0.2,1), padding 0.5s cubic-bezier(0.4,0,0.2,1);
+    }
+    .t-pill:hover:not(.active) { background: var(--surface-container); }
+    .t-pill.active { background: var(--on-surface); padding: 3px 16px 3px 3px; }
+    .t-pill img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; display: block; flex-shrink: 0; }
+    .t-pill-name {
+      font-family: var(--font-body); font-size: 0.82rem; font-weight: 600;
+      color: var(--surface-bright); white-space: nowrap; overflow: hidden;
+      max-width: 0; opacity: 0; margin-left: 0;
+      transition: max-width 0.5s cubic-bezier(0.4,0,0.2,1), opacity 0.4s ease, margin-left 0.5s cubic-bezier(0.4,0,0.2,1);
+    }
+    .t-pill.active .t-pill-name { max-width: 150px; opacity: 1; margin-left: 9px; }
+    /* Progress dots */
+    .t-dots { display: flex; gap: 6px; align-items: center; }
+    .t-dot { height: 6px; border-radius: 999px; background: var(--outline-variant); width: 6px; transition: width 0.35s ease, background 0.35s ease; }
+    .t-dot.active { background: var(--primary); width: 22px; }
+
+    /* ─── CTA ─── */
+    #contact {
+      padding: 96px 24px;
+      background: var(--surface-container-low);
+      border-bottom: 1px solid var(--outline-variant);
+      position: relative; overflow: hidden;
+    }
+    #contact::before {
+      content: ''; position: absolute; inset: 0; pointer-events: none;
+      background-image: radial-gradient(circle, rgba(194,101,42,0.07) 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+    .cta-card {
+      position: relative; z-index: 1; max-width: 900px; margin: 0 auto;
+      background: radial-gradient(ellipse at 70% 50%, #fbe8d8 0%, #faf5ee 65%);
+      border-radius: 24px; padding: 72px 64px;
+      display: flex; align-items: center; justify-content: space-between; gap: 48px;
+      border: 1.5px solid rgba(194,101,42,0.15);
+      box-shadow: 0 4px 48px rgba(194,101,42,0.08), 0 2px 16px rgba(58,48,42,0.06);
+      overflow: hidden;
+    }
+    .cta-glow { position: absolute; top: -40%; right: -10%; z-index: 0; width: 360px; height: 360px; background: radial-gradient(circle, rgba(194,101,42,0.1) 0%, transparent 70%); pointer-events: none; }
+    .cta-content { flex: 1; position: relative; z-index: 1; }
+    .cta-headline { font-family: var(--font-headline); font-size: clamp(1.9rem, 3.5vw, 2.8rem); font-weight: 800; color: var(--on-surface); margin-bottom: 14px; line-height: 1.15; }
+    .cta-sub { font-family: var(--font-body); font-size: 1rem; color: var(--on-surface-variant); line-height: 1.65; }
+    .cta-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; position: relative; z-index: 1; flex-shrink: 0; }
+    .cta-wa {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 16px 28px; background: var(--whatsapp); color: white;
+      border-radius: 10px; font-family: var(--font-body); font-size: 1rem; font-weight: 700;
+      text-decoration: none; white-space: nowrap;
+      transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 16px rgba(37,211,102,0.3);
+    }
+    .cta-wa:hover { background: #20bd5a; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(37,211,102,0.4); }
+    .cta-fine { font-family: var(--font-body); font-size: 0.75rem; color: var(--on-surface-variant); text-align: right; line-height: 1.5; }
+
+    @media (max-width: 768px) {
+      .cta-card { flex-direction: column; padding: 48px 28px; text-align: center; }
+      .cta-actions { align-items: center; }
+      .cta-fine { text-align: center; }
+    }
+
+    /* ─── Footer ─── */
+    .mock-footer { background: var(--surface); border-top: 1px solid var(--outline-variant); padding: 40px 24px; text-align: center; }
+    .mock-footer-brand { font-family: var(--font-headline); font-size: 1.5rem; font-weight: 700; color: var(--primary); font-style: italic; margin-bottom: 16px; }
+    .mock-footer-links { display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; margin-bottom: 16px; }
+    .mock-footer-links a { font-family: var(--font-body); font-size: 0.8rem; color: var(--on-surface-variant); text-decoration: none; }
+    .mock-footer-links a:hover { color: var(--primary); }
+    .mock-footer-copy { font-family: var(--font-body); font-size: 0.75rem; color: var(--on-surface-variant); }
+
+    /* ─── Scroll Indicator (lateral) ─── */
+    .scroll-indicator { position: fixed; right: 20px; top: 50%; transform: translateY(-50%); z-index: 50; display: flex; flex-direction: column; gap: 10px; }
+    .dot-wrap { position: relative; display: flex; align-items: center; justify-content: flex-end; }
+    .dot-wrap:hover .dot-tip { opacity: 1; transform: translateX(0); }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--outline-variant); border: 1.5px solid var(--outline-variant); transition: background 0.3s, transform 0.3s, border-color 0.3s; cursor: pointer; display: block; text-decoration: none; }
+    .dot.active { background: var(--primary); border-color: var(--primary); transform: scale(1.5); }
+    .dot-tip { position: absolute; right: 18px; background: var(--surface-dark); color: var(--on-surface-dark); font-family: var(--font-body); font-size: 0.68rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; white-space: nowrap; opacity: 0; transform: translateX(4px); transition: opacity 0.2s, transform 0.2s; pointer-events: none; }
+
+    @media (max-width: 768px) { .scroll-indicator { display: none; } }
+
+    /* ─── Notice badge ─── */
+    .mock-notice { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--surface-dark); color: var(--on-surface-dark); font-family: var(--font-body); font-size: 0.72rem; font-weight: 500; padding: 8px 20px; border-radius: 999px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); z-index: 200; opacity: 0.88; pointer-events: none; white-space: nowrap; }
+  </style>
+</head>
+<body>
+
+  <!-- Scroll Indicator -->
+  <nav class="scroll-indicator">
+    <div class="dot-wrap"><span class="dot-tip">Hero</span><a class="dot active" id="dot-hero" href="#hero-placeholder"></a></div>
+    <div class="dot-wrap"><span class="dot-tip">Funciones</span><a class="dot" id="dot-features" href="#features"></a></div>
+    <div class="dot-wrap"><span class="dot-tip">Planes</span><a class="dot" id="dot-pricing" href="#pricing"></a></div>
+    <div class="dot-wrap"><span class="dot-tip">Testimonial</span><a class="dot" id="dot-testimonial" href="#testimonial"></a></div>
+    <div class="dot-wrap"><span class="dot-tip">Contacto</span><a class="dot" id="dot-contact" href="#contact"></a></div>
+  </nav>
+
+  <!-- Navbar -->
+  <nav class="mock-nav">
+    <div class="mock-nav-brand">MorfApp</div>
+    <div class="mock-nav-links">
+      <a href="#features">Funciones</a>
+      <a href="#pricing">Planes</a>
+      <a href="#contact">Contacto</a>
+    </div>
+    <a href="#pricing" class="mock-nav-cta">Empezar gratis →</a>
+  </nav>
+
+  <!-- Hero (representa el BurgerScroll — sin tocar) -->
+  <section id="hero-placeholder" class="mock-hero">
+    <span class="badge">Primer mes gratis</span>
+    <h1>Tu restaurante,<br>online.</h1>
+    <p style="max-width:360px">El hero animado de la hamburguesa 3D va acá<br>(BurgerScroll — 500vh, no modificado)</p>
+    <div class="mock-scroll-hint">↓ Scrolleá para ver el rediseño</div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════
+       FEATURES — Layout escalonado con espina vertebral
+  ════════════════════════════════════════════════════ -->
+  <section id="features">
+    <div class="features-header reveal">
+      <h2>Simplicidad que vende</h2>
+      <p>Diseñado para resaltar lo mejor de tu gastronomía sin complicaciones técnicas.</p>
+    </div>
+
+    <div class="features-spine-wrap">
+      <div class="features-spine" id="featureSpine"></div>
+
+      <!-- 1 → izquierda -->
+      <div class="feature-row reveal-left" style="transition-delay:0ms">
+        <div class="feature-content">
+          <div class="feature-tag">Comunicación directa</div>
+          <h3 class="feature-title">Pedidos por WhatsApp</h3>
+          <p class="feature-desc">Recibí órdenes formateadas directo en tu teléfono. Sin comisiones ocultas, comunicación directa con el cliente.</p>
+        </div>
+        <div class="feature-icon-cell">
+          <div class="feature-icon-wrap">
+            <span class="material-symbols-outlined">chat</span>
+          </div>
+        </div>
+        <span class="feature-num">01</span>
+      </div>
+
+      <!-- 2 → derecha -->
+      <div class="feature-row reverse reveal-right" style="transition-delay:100ms">
+        <div class="feature-content">
+          <div class="feature-tag">Identidad de marca</div>
+          <h3 class="feature-title">Tu Marca, Tu Estilo</h3>
+          <p class="feature-desc">Personalizá colores, logo y banner. Un menú que se siente como una extensión natural de tu local.</p>
+        </div>
+        <div class="feature-icon-cell">
+          <div class="feature-icon-wrap">
+            <span class="material-symbols-outlined">palette</span>
+          </div>
+        </div>
+        <span class="feature-num">02</span>
+      </div>
+
+      <!-- 3 → izquierda -->
+      <div class="feature-row reveal-left" style="transition-delay:200ms">
+        <div class="feature-content">
+          <div class="feature-tag">Sin fricción técnica</div>
+          <h3 class="feature-title">Gestión Intuitiva</h3>
+          <p class="feature-desc">Actualizá precios, ocultá productos agotados y agregá categorías en segundos desde cualquier dispositivo.</p>
+        </div>
+        <div class="feature-icon-cell">
+          <div class="feature-icon-wrap">
+            <span class="material-symbols-outlined">edit_document</span>
+          </div>
+        </div>
+        <span class="feature-num">03</span>
+      </div>
+
+      <!-- 4 → derecha -->
+      <div class="feature-row reverse reveal-right" style="transition-delay:300ms">
+        <div class="feature-content">
+          <div class="feature-tag">Automatización</div>
+          <h3 class="feature-title">Horarios Automáticos</h3>
+          <p class="feature-desc">Configurá tus horarios de atención. El local se muestra abierto o cerrado automáticamente.</p>
+        </div>
+        <div class="feature-icon-cell">
+          <div class="feature-icon-wrap">
+            <span class="material-symbols-outlined">schedule</span>
+          </div>
+        </div>
+        <span class="feature-num">04</span>
+      </div>
+
+      <!-- 5 → izquierda -->
+      <div class="feature-row reveal-left" style="transition-delay:400ms">
+        <div class="feature-content">
+          <div class="feature-tag">Logística flexible</div>
+          <h3 class="feature-title">Delivery y Takeaway</h3>
+          <p class="feature-desc">Activá entrega a domicilio, retiro en local, o las dos opciones. Con costo de envío y mínimo de pedido.</p>
+        </div>
+        <div class="feature-icon-cell">
+          <div class="feature-icon-wrap">
+            <span class="material-symbols-outlined">motorcycle</span>
+          </div>
+        </div>
+        <span class="feature-num">05</span>
+      </div>
+
+      <!-- 6 → derecha -->
+      <div class="feature-row reverse reveal-right" style="transition-delay:500ms">
+        <div class="feature-content">
+          <div class="feature-tag">Experiencia de compra</div>
+          <h3 class="feature-title">Personalizaciones</h3>
+          <p class="feature-desc">Creá modificadores (punto de cocción, extras, salsas) y asignalos a tus productos fácilmente.</p>
+        </div>
+        <div class="feature-icon-cell">
+          <div class="feature-icon-wrap">
+            <span class="material-symbols-outlined">tune</span>
+          </div>
+        </div>
+        <span class="feature-num">06</span>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════
+       PRICING — Carrusel scroll-driven (3 planes)
+  ════════════════════════════════════════════════════ -->
+  <div id="pricing" style="height:320vh; position:relative; background:var(--surface-container-low); border-top:1px solid var(--outline-variant);">
+    <div id="pricing-sticky" style="position:sticky; top:0; height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden;">
+
+      <!-- Header -->
+      <div style="text-align:center; margin-bottom:32px; padding:0 24px;">
+        <h2 style="font-family:var(--font-headline); font-size:clamp(2rem,4vw,3.25rem); font-weight:800; color:var(--on-surface); margin-bottom:12px;">Planes transparentes</h2>
+        <p style="font-family:var(--font-body); color:var(--on-surface-variant); font-size:1.05rem;">Primer mes gratis. Sin tarjeta requerida.</p>
+      </div>
+
+      <!-- Cards -->
+      <div style="position:relative; width:100%; height:530px;">
+
+        <!-- Plan 0: Básico (w=288, ml=-144) — starts centered -->
+        <div id="pc-0" style="
+          position:absolute; left:50%; margin-left:-144px; width:288px; height:100%;
+          background:white; border:1.5px solid var(--outline-variant); border-radius:16px;
+          padding:36px; display:flex; flex-direction:column; overflow:hidden;
+          box-shadow:0 4px 24px rgba(58,48,42,0.08);
+          transform:translateX(0px) scale(1.05); opacity:1; z-index:30;
+          will-change:transform,opacity;
+        ">
+          <span style="display:inline-block; background:#dcfce7; color:#166534; font-family:var(--font-body); font-size:0.7rem; font-weight:700; padding:4px 12px; border-radius:999px; margin-bottom:12px; width:fit-content;">Primer mes gratis</span>
+          <div style="font-family:var(--font-headline); font-size:1.9rem; font-weight:700; color:var(--on-surface); margin-bottom:4px;">Básico</div>
+          <p style="font-family:var(--font-body); font-size:0.85rem; color:var(--on-surface-variant); padding-bottom:16px; border-bottom:1px solid var(--outline-variant); margin-bottom:16px;">Para empezar con el pie derecho.</p>
+          <div style="margin-bottom:16px;">
+            <span style="font-family:var(--font-headline); font-size:3rem; font-weight:800; color:var(--on-surface);">$20.000</span>
+            <span style="font-family:var(--font-body); font-size:0.85rem; color:var(--on-surface-variant);">/mes</span>
+            <p style="font-family:var(--font-body); font-size:0.72rem; color:var(--on-surface-variant); margin-top:4px;">después del primer mes</p>
+          </div>
+          <ul style="list-style:none; display:flex; flex-direction:column; gap:10px; flex-grow:1; margin-bottom:20px;">
+            <li style="display:flex; align-items:center; gap:8px; font-family:var(--font-body); font-size:0.85rem; color:var(--on-surface);"><span class="material-symbols-outlined" style="font-size:16px;font-variation-settings:'FILL' 1;color:#c2652a;">check_circle</span>1 local</li>
+            <li style="display:flex; align-items:center; gap:8px; font-family:var(--font-body); font-size:0.85rem; color:var(--on-surface);"><span class="material-symbols-outlined" style="font-size:16px;font-variation-settings:'FILL' 1;color:#c2652a;">check_circle</span>Menú y productos ilimitados</li>
+            <li style="display:flex; align-items:center; gap:8px; font-family:var(--font-body); font-size:0.85rem; color:var(--on-surface);"><span class="material-symbols-outlined" style="font-size:16px;font-variation-settings:'FILL' 1;color:#c2652a;">check_circle</span>Pedidos por WhatsApp</li>
+            <li style="display:flex; align-items:center; gap:8px; font-family:var(--font-body); font-size:0.85rem; color:var(--on-surface);"><span class="material-symbols-outlined" style="font-size:16px;font-variation-settings:'FILL' 1;color:#c2652a;">check_circle</span>Carrito con modificadores</li>
+            <li style="display:flex; align-items:center; gap:8px; font-family:var(--font-body); font-size:0.85rem; color:var(--on-surface);"><span class="material-symbols-outlined" style="font-size:16px;font-variation-settings:'FILL' 1;color:#c2652a;">check_circle</span>Delivery y takeaway</li>
+            <li style="display:flex; align-items:center; gap:8px; font-family:var(--font-body); font-size:0.85rem; color:var(--on-surface);"><span class="material-symbols-outlined" style="font-size:16px;font-variation-settings:'FILL' 1;color:#c2652a;">check_circle</span>Subdominio incluido</li>
+          </ul>
+          <button style="width:100%; padding:12px; border:2px solid var(--outline-variant); border-radius:8px; font-family:var(--font-body); font-size:0.9rem; font-weight:700; color:var(--on-surface); background:transparent; cursor:pointer;">Empezar prueba gratis</button>
+        </div>
+
+        <!-- Plan 1: Pro (w=320, ml=-160) — starts right -->
+        <div id="pc-1" style="
+          position:absolute; left:50%; margin-left:-160px; width:320px; height:100%;
+          background:#2a1f1a; border:1.5px solid rgba(212,169,106,0.35); border-radius:16px;
+          padding:40px; display:flex; flex-direction:column; overflow:hidden;
+          box-shadow:0 16px 48px rgba(212,169,106,0.15),0 4px 16px rgba(42,31,26,0.4);
+          transform:translateX(330px) scale(0.84); opacity:0.45; z-index:20;
+          will-change:transform,opacity;
+        ">
+          <div style="position:absolute; top:0; right:0; background:#d4a96a; color:#2a1f1a; font-family:var(--font-body); font-size:0.62rem; font-weight:800; padding:6px 16px; border-bottom-left-radius:12px; text-transform:uppercase; letter-spacing:0.12em;">Más Popular</div>
+          <span style="display:inline-block; background:rgba(212,169,106,0.15); color:#d4a96a; border:1px solid rgba(212,169,106,0.3); font-family:var(--font-body); font-size:0.7rem; font-weight:700; padding:4px 12px; border-radius:999px; margin-bottom:12px; width:fit-content;">Plan estrella</span>
+          <div style="font-family:var(--font-headline); font-size:1.9rem; font-weight:700; color:#faf5ee; margin-bottom:4px;">Pro</div>
+          <p style="font-family:var(--font-body); font-size:0.85rem; color:rgba(250,245,238,0.55); padding-bottom:16px; border-bottom:1px solid rgba(212,169,106,0.2); margin-bottom:16px;">Para locales que buscan destacar.</p>
+          <div style="margin-bottom:16px;">
+            <span style="font-family:var(--font-headline); font-size:3rem; font-weight:800; color:#faf5ee;">$45.000</span>
+            <span style="font-family:var(--font-body); font-size:0.85rem; color:rgba(250,245,238,0.55);">/mes</span>
+          </div>
+          <ul style="list-style:none; display:flex; flex-direction:column; gap:10px; flex-grow:1; margin-bottom:20px;">
+            <li style="display:flex; align-items:center; gap:8px; font-family:var(--font-body); font-size:0.85rem; color:#faf5ee;"><span class="material-symbols-outlined" style="font-size:16px;font-variation-settings:'FILL' 1;color:#d4a96a;">check_circle</span>Todo lo del plan Básico</li>
+            <li style="display:flex; align-items:center; gap:8px; font-family:var(--font-body); font-size:0.85rem; color:#faf5ee;"><span class="material-symbols-outlined" style="font-size:16px;font-variation-settings:'FILL' 1;color:#d4a96a;">check_circle</span>Dominio propio</li>
+            <li style="display:flex; align-items:center; gap:8px; font-family:var(--font-body); font-size:0.85rem; color:#faf5ee;"><span class="material-symbols-outlined" style="font-size:16px;font-variation-settings:'FILL' 1;color:#d4a96a;">check_circle</span>Estadísticas de pedidos</li>
+            <li style="display:flex; align-items:center; gap:8px; font-family:var(--font-body); font-size:0.85rem; color:#faf5ee;"><span class="material-symbols-outlined" style="font-size:16px;font-variation-settings:'FILL' 1;color:#d4a96a;">check_circle</span>Branding avanzado</li>
+            <li style="display:flex; align-items:center; gap:8px; font-family:var(--font-body); font-size:0.85rem; color:#faf5ee;"><span class="material-symbols-outlined" style="font-size:16px;font-variation-settings:'FILL' 1;color:#d4a96a;">check_circle</span>Soporte prioritario</li>
+          </ul>
+          <div style="position:relative;">
+            <button disabled style="width:100%; padding:12px; border:none; border-radius:8px; font-family:var(--font-body); font-size:0.9rem; font-weight:700; background:rgba(212,169,106,0.2); color:rgba(212,169,106,0.4); cursor:not-allowed;">Elegir Pro</button>
+            <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center;">
+              <span style="background:rgba(212,169,106,0.15); color:#d4a96a; border:1px solid rgba(212,169,106,0.4); font-family:var(--font-body); font-size:0.65rem; font-weight:700; padding:4px 12px; border-radius:999px; text-transform:uppercase; letter-spacing:0.12em;">Próximamente</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Plan 2: Negocio (w=288, ml=-144) — starts far right -->
+        <div id="pc-2" style="
+          position:absolute; left:50%; margin-left:-144px; width:288px; height:100%;
+          background:white; border:1.5px solid var(--outline-variant); border-radius:16px;
+          padding:36px; display:flex; flex-direction:column; overflow:hidden;
+          box-shadow:0 4px 24px rgba(58,48,42,0.08);
+          transform:translateX(580px) scale(0.72); opacity:0.15; z-index:10;
+          will-change:transform,opacity;
+        ">
+          <div style="position:absolute; top:0; right:0; background:var(--on-surface); color:white; font-family:var(--font-body); font-size:0.62rem; font-weight:700; padding:5px 14px; border-bottom-left-radius:12px; text-transform:uppercase; letter-spacing:0.12em;">Próximamente</div>
+          <div style="font-family:var(--font-headline); font-size:1.9rem; font-weight:700; color:var(--on-surface); margin-bottom:4px;">Negocio</div>
+          <p style="font-family:var(--font-body); font-size:0.85rem; color:var(--on-surface-variant); padding-bottom:16px; border-bottom:1px solid var(--outline-variant); margin-bottom:16px;">Para cadenas y franquicias.</p>
+          <div style="margin-bottom:16px;">
+            <span style="font-family:var(--font-headline); font-size:2.25rem; font-weight:800; color:var(--on-surface);">A consultar</span>
+          </div>
+          <ul style="list-style:none; display:flex; flex-direction:column; gap:10px; flex-grow:1; margin-bottom:20px;">
+            <li style="display:flex; align-items:center; gap:8px; font-family:var(--font-body); font-size:0.85rem; color:var(--on-surface);"><span class="material-symbols-outlined" style="font-size:16px;font-variation-settings:'FILL' 1;color:#c2652a;">check_circle</span>Todo lo del plan Pro</li>
+            <li style="display:flex; align-items:center; gap:8px; font-family:var(--font-body); font-size:0.85rem; color:var(--on-surface);"><span class="material-symbols-outlined" style="font-size:16px;font-variation-settings:'FILL' 1;color:#c2652a;">check_circle</span>Múltiples locales</li>
+            <li style="display:flex; align-items:center; gap:8px; font-family:var(--font-body); font-size:0.85rem; color:var(--on-surface);"><span class="material-symbols-outlined" style="font-size:16px;font-variation-settings:'FILL' 1;color:#c2652a;">check_circle</span>Panel centralizado</li>
+            <li style="display:flex; align-items:center; gap:8px; font-family:var(--font-body); font-size:0.85rem; color:var(--on-surface);"><span class="material-symbols-outlined" style="font-size:16px;font-variation-settings:'FILL' 1;color:#c2652a;">check_circle</span>Reportes avanzados</li>
+            <li style="display:flex; align-items:center; gap:8px; font-family:var(--font-body); font-size:0.85rem; color:var(--on-surface);"><span class="material-symbols-outlined" style="font-size:16px;font-variation-settings:'FILL' 1;color:#c2652a;">check_circle</span>Onboarding personalizado</li>
+          </ul>
+          <div style="position:relative;">
+            <button disabled style="width:100%; padding:12px; border:2px solid var(--outline-variant); border-radius:8px; font-family:var(--font-body); font-size:0.9rem; font-weight:700; color:rgba(58,48,42,0.35); background:transparent; cursor:not-allowed;">Contactar</button>
+            <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center;">
+              <span style="background:white; color:var(--on-surface); border:1px solid var(--outline-variant); font-family:var(--font-body); font-size:0.65rem; font-weight:700; padding:4px 12px; border-radius:999px; text-transform:uppercase; letter-spacing:0.12em;">Próximamente</span>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /cards -->
+
+      <!-- Progress indicator -->
+      <div id="pricing-dots" style="display:flex; align-items:center; gap:8px; margin-top:24px;">
+        <div id="pd-0" style="height:8px; border-radius:999px; background:#c2652a; transition:width 0.3s ease,background 0.3s ease; width:24px;"></div>
+        <div id="pd-1" style="height:8px; border-radius:999px; background:#d8d0c8; transition:width 0.3s ease,background 0.3s ease; width:8px;"></div>
+        <div id="pd-2" style="height:8px; border-radius:999px; background:#d8d0c8; transition:width 0.3s ease,background 0.3s ease; width:8px;"></div>
+      </div>
+      <p id="pricing-hint" style="font-family:var(--font-body); font-size:0.75rem; color:var(--on-surface-variant); margin-top:12px; opacity:0.7;">↓ Scrolleá para ver los otros planes</p>
+
+    </div><!-- /sticky -->
+  </div>
+
+  <!-- ════════════════════════════════════════════════════
+       TESTIMONIAL — Scroll-driven, 3 testimonios animados
+  ════════════════════════════════════════════════════ -->
+  <div id="testimonial" style="height:300vh; position:relative;">
+    <div class="t-sticky">
+
+      <p class="t-section-label">Lo que dicen nuestros clientes</p>
+
+      <!-- Quote -->
+      <div class="t-quote-wrap">
+        <span class="t-qmark t-qmark-l">"</span>
+        <blockquote id="t-quote">
+          Tardé 10 minutos en cargar todo el menú. Mis clientes ya hacen pedidos solos y yo solo recibo el WhatsApp.
+        </blockquote>
+        <span class="t-qmark t-qmark-r">"</span>
+      </div>
+
+      <!-- Stars -->
+      <div class="t-stars-row">
+        <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      </div>
+
+      <!-- Role / restaurant -->
+      <p id="t-role">Dueña&nbsp;·&nbsp;La Hamburguesería del Centro&nbsp;—&nbsp;Córdoba</p>
+
+      <!-- Avatar pills -->
+      <div class="t-pills">
+        <button class="t-pill active" onclick="tSelect(0)">
+          <img src="https://images.unsplash.com/photo-1580489944761-15a19d654956?w=80&h=80&fit=crop&crop=faces&auto=format" alt="María">
+          <span class="t-pill-name">María Beatriz</span>
+        </button>
+        <button class="t-pill" onclick="tSelect(1)">
+          <img src="https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?w=80&h=80&fit=crop&crop=faces&auto=format" alt="Roberto">
+          <span class="t-pill-name">Roberto</span>
+        </button>
+        <button class="t-pill" onclick="tSelect(2)">
+          <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=80&h=80&fit=crop&crop=faces&auto=format" alt="Luciana">
+          <span class="t-pill-name">Luciana</span>
+        </button>
+      </div>
+
+      <!-- Progress dots -->
+      <div class="t-dots">
+        <div class="t-dot active" id="td-0"></div>
+        <div class="t-dot" id="td-1"></div>
+        <div class="t-dot" id="td-2"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════
+       CTA — Radial gradient + copy mejorado
+  ════════════════════════════════════════════════════ -->
+  <section id="contact">
+    <div class="cta-card reveal-scale">
+      <div class="cta-glow"></div>
+      <div class="cta-content">
+        <h2 class="cta-headline">Empezá hoy,<br>cobrá mañana.</h2>
+        <p class="cta-sub">En 10 minutos tenés tu menú online. Te acompañamos en el proceso y si hace falta, te derivamos directo a WhatsApp.</p>
+      </div>
+      <div class="cta-actions">
+        <a href="/contacto" class="cta-wa">
+          <svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a9.3 9.3 0 00-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479s1.065 2.875 1.213 3.074c.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
+          Contactar ahora
+        </a>
+        <p class="cta-fine">Sin tarjeta. Sin comisiones. Sin complicaciones.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="mock-footer">
+    <div class="mock-footer-brand">MorfApp</div>
+    <div class="mock-footer-links">
+      <a href="#">Privacidad</a>
+      <a href="#">Términos</a>
+      <a href="#">Contacto</a>
+      <a href="/admin">Panel Admin</a>
+    </div>
+    <p class="mock-footer-copy">© 2025 MorfApp. Todos los derechos reservados.</p>
+  </footer>
+
+  <div class="mock-notice">Mock de rediseño — no es la landing real</div>
+
+  <script>
+    // Scroll reveal con IntersectionObserver
+    const revealEls = document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-up, .reveal-blur, .reveal-scale');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -32px 0px' });
+    revealEls.forEach(el => observer.observe(el));
+
+    // Espina vertical de features
+    const spine = document.getElementById('featureSpine');
+    if (spine) {
+      const so = new IntersectionObserver(([e]) => { if (e.isIntersecting) { spine.classList.add('visible'); so.disconnect(); } }, { threshold: 0.05 });
+      so.observe(spine);
+    }
+
+    // ─── Pricing carousel ───
+    const pricingSection = document.getElementById('pricing');
+    const pc = [document.getElementById('pc-0'), document.getElementById('pc-1'), document.getElementById('pc-2')];
+    const pd = [document.getElementById('pd-0'), document.getElementById('pd-1'), document.getElementById('pd-2')];
+    const pHint = document.getElementById('pricing-hint');
+    const hints = ['↓ Scrolleá para ver los otros planes', '↓ Hay un plan más', '✓ Todos los planes'];
+
+    // Keyframes per plan: [x, scale, opacity] at [progress=0, 0.5, 1]
+    const pcKF = [
+      { x: [0, -330, -580], sc: [1.05, 0.84, 0.72], op: [1, 0.45, 0.15] },
+      { x: [330, 0, -330],  sc: [0.84, 1.05, 0.84], op: [0.45, 1, 0.45] },
+      { x: [580, 330, 0],   sc: [0.72, 0.84, 1.05], op: [0.15, 0.45, 1] },
+    ];
+
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+    function interpKF(kf, p) {
+      const t = p <= 0.5 ? p / 0.5 : (p - 0.5) / 0.5;
+      const i = p <= 0.5 ? 0 : 1;
+      return {
+        x: lerp(kf.x[i], kf.x[i+1], t),
+        sc: lerp(kf.sc[i], kf.sc[i+1], t),
+        op: lerp(kf.op[i], kf.op[i+1], t),
+      };
+    }
+
+    let lastActive = -1;
+    function updatePricingCarousel() {
+      if (!pricingSection) return;
+      const rect = pricingSection.getBoundingClientRect();
+      const scrolled = -rect.top;
+      const travelH = pricingSection.offsetHeight - window.innerHeight;
+      const p = clamp(scrolled / travelH, 0, 1);
+
+      pcKF.forEach((kf, i) => {
+        const { x, sc, op } = interpKF(kf, p);
+        if (pc[i]) {
+          pc[i].style.transform = `translateX(${x}px) scale(${sc})`;
+          pc[i].style.opacity = op;
+        }
+      });
+
+      const active = p < 0.33 ? 0 : p < 0.66 ? 1 : 2;
+      if (active !== lastActive) {
+        lastActive = active;
+        pd.forEach((d, i) => {
+          if (!d) return;
+          d.style.width = i === active ? '24px' : '8px';
+          d.style.background = i === active ? '#c2652a' : '#d8d0c8';
+        });
+        // z-index: featured card on top
+        pc.forEach((c, i) => { if (c) c.style.zIndex = i === active ? 30 : (i === 1 ? 20 : 10); });
+        if (pHint) pHint.textContent = hints[active];
+      }
+    }
+
+    window.addEventListener('scroll', updatePricingCarousel, { passive: true });
+    updatePricingCarousel();
+
+    // ─── Testimonial scroll carousel ───
+    const tData = [
+      {
+        quote: 'Tardé 10 minutos en cargar todo el menú. Mis clientes ya hacen pedidos solos y yo solo recibo el WhatsApp.',
+        role: 'Dueña · La Hamburguesería del Centro — Córdoba',
+      },
+      {
+        quote: 'Antes pasaba horas tomando pedidos por teléfono. Ahora llegan solos al WhatsApp y yo me enfoco en cocinar.',
+        role: 'Chef propietario · El Rincón Criollo — Mendoza',
+      },
+      {
+        quote: 'Lo armé en una tarde y mis clientes ya estaban haciendo pedidos. No puedo creer lo fácil que fue.',
+        role: 'Emprendedora · Pastas Luciana — Buenos Aires',
+      },
+    ];
+
+    const tSection  = document.getElementById('testimonial');
+    const tQuoteEl  = document.getElementById('t-quote');
+    const tRoleEl   = document.getElementById('t-role');
+    const tPillEls  = document.querySelectorAll('.t-pill');
+    const tDotEls   = ['td-0','td-1','td-2'].map(id => document.getElementById(id));
+    let tActive = 0, tBusy = false;
+
+    function tSelect(index) {
+      if (index === tActive || tBusy) return;
+      tBusy = true;
+
+      tQuoteEl.classList.add('t-exit');
+      tRoleEl.classList.add('t-exit');
+
+      setTimeout(() => {
+        tQuoteEl.textContent = tData[index].quote;
+        tRoleEl.innerHTML = tData[index].role;
+        tActive = index;
+
+        tPillEls.forEach((p, i) => p.classList.toggle('active', i === index));
+        tDotEls.forEach((d, i) => d && d.classList.toggle('active', i === index));
+
+        // tiny delay so browser paints the exit state before removing it
+        requestAnimationFrame(() => {
+          tQuoteEl.classList.remove('t-exit');
+          tRoleEl.classList.remove('t-exit');
+          setTimeout(() => { tBusy = false; }, 380);
+        });
+      }, 260);
+    }
+
+    function updateTestimonial() {
+      if (!tSection) return;
+      const rect = tSection.getBoundingClientRect();
+      const travelH = tSection.offsetHeight - window.innerHeight;
+      const p = Math.max(0, Math.min(1, -rect.top / travelH));
+      const next = p < 0.33 ? 0 : p < 0.66 ? 1 : 2;
+      if (next !== tActive) tSelect(next);
+    }
+
+    window.addEventListener('scroll', updateTestimonial, { passive: true });
+
+    // ─── Scroll indicator dots ───
+    const secMap = { 'hero-placeholder':'dot-hero', features:'dot-features', pricing:'dot-pricing', testimonial:'dot-testimonial', contact:'dot-contact' };
+    const dotObs = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        const dotId = secMap[e.target.id];
+        if (dotId) document.getElementById(dotId)?.classList.toggle('active', e.isIntersecting);
+      });
+    }, { threshold: 0.1 });
+    Object.keys(secMap).forEach(id => { const el = document.getElementById(id); if (el) dotObs.observe(el); });
+  </script>
+</body>
+</html>

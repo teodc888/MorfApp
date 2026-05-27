@@ -62,10 +62,54 @@ public class SupplierController(IAppDbContext db) : ControllerBase
     {
         var supplier = await db.Suppliers.FirstOrDefaultAsync(s => s.Id == id && s.TenantId == TenantId);
         if (supplier is null) return NotFound();
+
+        // Cascade soft-delete to all active supplies of this supplier
+        var supplies = await db.Supplies
+            .Where(s => s.SupplierId == id && s.TenantId == TenantId && s.IsActive)
+            .ToListAsync();
+        foreach (var supply in supplies)
+        {
+            supply.IsActive = false;
+            supply.UpdatedAt = DateTime.UtcNow;
+        }
+
         supplier.IsActive = false;
         supplier.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
         return NoContent();
+    }
+
+    [HttpPatch("{id}/restore")]
+    public async Task<IActionResult> RestoreSupplier(string id)
+    {
+        var supplier = await db.Suppliers.FirstOrDefaultAsync(s => s.Id == id && s.TenantId == TenantId);
+        if (supplier is null) return NotFound();
+
+        // Cascade restore to all supplies of this supplier
+        var supplies = await db.Supplies
+            .Where(s => s.SupplierId == id && s.TenantId == TenantId && !s.IsActive)
+            .ToListAsync();
+        foreach (var supply in supplies)
+        {
+            supply.IsActive = true;
+            supply.UpdatedAt = DateTime.UtcNow;
+        }
+
+        supplier.IsActive = true;
+        supplier.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [HttpGet("inactive")]
+    public async Task<ActionResult<List<SupplierDto>>> GetInactiveSuppliers()
+    {
+        var suppliers = await db.Suppliers
+            .Where(s => s.TenantId == TenantId && !s.IsActive)
+            .OrderBy(s => s.Name)
+            .Select(s => MapSupplier(s))
+            .ToListAsync();
+        return Ok(suppliers);
     }
 
     [HttpGet("{id}/debt-detail")]

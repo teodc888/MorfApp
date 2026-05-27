@@ -3,23 +3,28 @@
 import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { isAuthenticated, getTenantFromToken } from '@/lib/auth'
+import { isAuthenticated, getTenantFromToken, isOwner } from '@/lib/auth'
+import { logout } from '@/lib/admin-api'
 
 const NAV_ADMIN = [
-  { href: 'orders',      label: 'Pedidos',       icon: 'receipt_long'    },
-  { href: 'metrics',     label: 'Métricas',      icon: 'bar_chart'       },
-  { href: 'menu',        label: 'Carta',          icon: 'restaurant_menu' },
-  { href: 'modifiers',   label: 'Opciones',       icon: 'tune'            },
-  { href: 'promotions',  label: 'Promos',         icon: 'redeem'          },
-  { href: 'proveedores', label: 'Proveedores',    icon: 'local_shipping'  },
-  { href: 'insumos',     label: 'Insumos',        icon: 'inventory_2'     },
+  { href: 'orders',      label: 'Pedidos',       icon: 'receipt_long',    ownerOnly: false },
+  { href: 'metrics',     label: 'Métricas',      icon: 'bar_chart',       ownerOnly: true  },
+  { href: 'menu',        label: 'Carta',          icon: 'restaurant_menu', ownerOnly: false },
+  { href: 'modifiers',   label: 'Opciones',       icon: 'tune',            ownerOnly: false },
+  { href: 'promotions',  label: 'Promos',         icon: 'redeem',          ownerOnly: false },
+  { href: 'proveedores', label: 'Proveedores',    icon: 'local_shipping',  ownerOnly: true  },
+  { href: 'insumos',     label: 'Insumos',        icon: 'inventory_2',     ownerOnly: true  },
+  { href: 'empleados',   label: 'Empleados',      icon: 'badge',           ownerOnly: true  },
 ]
 
 const NAV_CONFIG = [
-  { href: 'branding',    label: 'Apariencia',     icon: 'palette'         },
-  { href: 'whatsapp',    label: 'WhatsApp',       icon: 'chat'            },
-  { href: 'config',      label: 'Configuración',  icon: 'settings'        },
+  { href: 'branding',    label: 'Apariencia',     icon: 'palette'  },
+  { href: 'whatsapp',    label: 'WhatsApp',       icon: 'chat'     },
+  { href: 'config',      label: 'Configuración',  icon: 'settings' },
 ]
+
+// Rutas a las que un empleado no puede acceder
+const OWNER_ONLY_ROUTES = ['metrics', 'proveedores', 'insumos', 'empleados', 'branding', 'whatsapp', 'config']
 
 function initials(name: string) {
   return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
@@ -38,8 +43,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true)
     if (isLoginPage) return
-    if (!isAuthenticated()) router.replace(`${base}/login`)
-  }, [base, isLoginPage, router])
+    if (!isAuthenticated()) { router.replace(`${base}/login`); return }
+    // Redirigir empleados que intentan acceder a rutas restringidas
+    const isRestricted = OWNER_ONLY_ROUTES.some(r => pathname.includes(`${base}/${r}`))
+    if (isRestricted && !isOwner()) router.replace(`${base}/orders`)
+  }, [base, isLoginPage, pathname, router])
+
+  async function handleLogout() {
+    await logout()
+    router.replace(`${base}/login`)
+  }
 
   if (isLoginPage) return <>{children}</>
 
@@ -53,6 +66,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   const tenant = getTenantFromToken() || 'Mi negocio'
+  const owner = isOwner()
+  const visibleAdminNav = NAV_ADMIN.filter(item => !item.ownerOnly || owner)
 
   const isActive = (href: string) => pathname.includes(`${base}/${href}`)
 
@@ -80,7 +95,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div style={{ paddingLeft: 14, marginBottom: 10, fontSize: 12, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Administración
             </div>
-            {NAV_ADMIN.map(item => {
+            {visibleAdminNav.map(item => {
               const active = isActive(item.href)
               return (
                 <Link key={item.href} href={`${base}/${item.href}`} style={{
@@ -99,29 +114,31 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             })}
           </div>
 
-          {/* Configuración section */}
-          <div>
-            <div style={{ paddingLeft: 14, marginBottom: 10, fontSize: 12, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Configuración
+          {/* Configuración section — solo dueños */}
+          {owner && (
+            <div>
+              <div style={{ paddingLeft: 14, marginBottom: 10, fontSize: 12, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Configuración
+              </div>
+              {NAV_CONFIG.map(item => {
+                const active = isActive(item.href)
+                return (
+                  <Link key={item.href} href={`${base}/${item.href}`} style={{
+                    display: 'flex', alignItems: 'center', gap: 14,
+                    padding: '11px 14px', borderRadius: 12, marginBottom: 2,
+                    textDecoration: 'none', fontWeight: active ? 600 : 500, fontSize: 14,
+                    background: active ? 'var(--primary)' : 'transparent',
+                    color: active ? 'var(--on-primary)' : 'var(--text)',
+                    boxShadow: active ? '0 4px 14px rgba(249,115,22,.35)' : 'none',
+                    transition: 'background .15s ease, color .15s ease',
+                  }}>
+                    <span className={`mat${active ? ' fill' : ''}`} style={{ fontSize: 22 }}>{item.icon}</span>
+                    {item.label}
+                  </Link>
+                )
+              })}
             </div>
-            {NAV_CONFIG.map(item => {
-              const active = isActive(item.href)
-              return (
-                <Link key={item.href} href={`${base}/${item.href}`} style={{
-                  display: 'flex', alignItems: 'center', gap: 14,
-                  padding: '11px 14px', borderRadius: 12, marginBottom: 2,
-                  textDecoration: 'none', fontWeight: active ? 600 : 500, fontSize: 14,
-                  background: active ? 'var(--primary)' : 'transparent',
-                  color: active ? 'var(--on-primary)' : 'var(--text)',
-                  boxShadow: active ? '0 4px 14px rgba(249,115,22,.35)' : 'none',
-                  transition: 'background .15s ease, color .15s ease',
-                }}>
-                  <span className={`mat${active ? ' fill' : ''}`} style={{ fontSize: 22 }}>{item.icon}</span>
-                  {item.label}
-                </Link>
-              )
-            })}
-          </div>
+          )}
         </nav>
 
         {/* Footer */}
@@ -133,9 +150,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               display: 'grid', placeItems: 'center',
               fontFamily: 'var(--serif)', fontWeight: 700, fontSize: 14,
             }}>{initials(tenant)}</div>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160 }}>{tenant}</span>
+            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tenant}</span>
+              {!owner && <span style={{ fontSize: 11, color: 'var(--muted)' }}>Empleado</span>}
             </div>
+            <button onClick={handleLogout} title="Cerrar sesión" style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: 'var(--muted)', padding: 4, borderRadius: 8,
+              display: 'grid', placeItems: 'center',
+              transition: 'color .15s ease',
+            }}
+              onMouseEnter={e => (e.currentTarget.style.color = 'var(--text)')}
+              onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted)')}
+            >
+              <span className="mat" style={{ fontSize: 20 }}>logout</span>
+            </button>
           </div>
         </div>
       </aside>
@@ -157,7 +186,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <div style={{ paddingLeft: 14, marginBottom: 10, fontSize: 12, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   Administración
                 </div>
-                {NAV_ADMIN.map(item => {
+                {visibleAdminNav.map(item => {
                   const active = isActive(item.href)
                   return (
                     <Link key={item.href} href={`${base}/${item.href}`} onClick={() => setDrawerOpen(false)} style={{
@@ -175,28 +204,30 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 })}
               </div>
 
-              {/* Configuración section */}
-              <div>
-                <div style={{ paddingLeft: 14, marginBottom: 10, fontSize: 12, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Configuración
+              {/* Configuración section — solo dueños */}
+              {owner && (
+                <div>
+                  <div style={{ paddingLeft: 14, marginBottom: 10, fontSize: 12, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Configuración
+                  </div>
+                  {NAV_CONFIG.map(item => {
+                    const active = isActive(item.href)
+                    return (
+                      <Link key={item.href} href={`${base}/${item.href}`} onClick={() => setDrawerOpen(false)} style={{
+                        display: 'flex', alignItems: 'center', gap: 14,
+                        padding: '12px 14px', borderRadius: 12, marginBottom: 2,
+                        textDecoration: 'none', fontWeight: active ? 600 : 500, fontSize: 14,
+                        background: active ? 'var(--primary)' : 'transparent',
+                        color: active ? 'var(--on-primary)' : 'var(--text)',
+                        boxShadow: active ? '0 4px 14px rgba(249,115,22,.35)' : 'none',
+                      }}>
+                        <span className={`mat${active ? ' fill' : ''}`} style={{ fontSize: 22 }}>{item.icon}</span>
+                        {item.label}
+                      </Link>
+                    )
+                  })}
                 </div>
-                {NAV_CONFIG.map(item => {
-                  const active = isActive(item.href)
-                  return (
-                    <Link key={item.href} href={`${base}/${item.href}`} onClick={() => setDrawerOpen(false)} style={{
-                      display: 'flex', alignItems: 'center', gap: 14,
-                      padding: '12px 14px', borderRadius: 12, marginBottom: 2,
-                      textDecoration: 'none', fontWeight: active ? 600 : 500, fontSize: 14,
-                      background: active ? 'var(--primary)' : 'transparent',
-                      color: active ? 'var(--on-primary)' : 'var(--text)',
-                      boxShadow: active ? '0 4px 14px rgba(249,115,22,.35)' : 'none',
-                    }}>
-                      <span className={`mat${active ? ' fill' : ''}`} style={{ fontSize: 22 }}>{item.icon}</span>
-                      {item.label}
-                    </Link>
-                  )
-                })}
-              </div>
+              )}
             </nav>
             <div style={{ padding: '12px 22px 20px', borderTop: '1px solid var(--outline-soft)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -206,7 +237,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   display: 'grid', placeItems: 'center',
                   fontFamily: 'var(--serif)', fontWeight: 700, fontSize: 14,
                 }}>{initials(tenant)}</div>
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 200 }}>{tenant}</span>
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tenant}</span>
+                  {!owner && <span style={{ fontSize: 11, color: 'var(--muted)' }}>Empleado</span>}
+                </div>
+                <button onClick={handleLogout} title="Cerrar sesión" style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: 'var(--muted)', padding: 4, borderRadius: 8,
+                  display: 'grid', placeItems: 'center',
+                }}>
+                  <span className="mat" style={{ fontSize: 20 }}>logout</span>
+                </button>
               </div>
             </div>
           </div>

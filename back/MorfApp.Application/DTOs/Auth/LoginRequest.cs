@@ -4,5 +4,5 @@ namespace MorfApp.Application.DTOs.Auth;
 
 public record LoginRequest(
     [Required, EmailAddress, MaxLength(200)] string Email,
-    [Required, MinLength(6), MaxLength(128)] string Password
+    [Required, MaxLength(128)] string Password
 );
