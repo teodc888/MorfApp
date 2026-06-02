@@ -296,6 +296,7 @@ function InsumosPageInner() {
         <>
           <div style={{ padding: '0 22px 12px' }}>
             <div style={{ position: 'relative', marginBottom: 10 }}>
+              <span className="mat" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 18, color: 'var(--muted)', pointerEvents: 'none' }}>search</span>
               <input
                 className="input"
                 style={{ paddingLeft: 38 }}

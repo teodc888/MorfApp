@@ -46,12 +46,12 @@ function KpiCard({
   icon: string
 }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</span>
-        <span className="text-2xl">{icon}</span>
+    <div className="bg-white rounded-xl border border-gray-200 p-5 flex flex-col gap-2" style={{ minHeight: 110 }}>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide leading-tight">{label}</span>
+        <span className="text-xl flex-shrink-0">{icon}</span>
       </div>
-      <p className="text-2xl font-bold text-gray-900 leading-tight">{value}</p>
+      <p className="text-xl font-bold text-gray-900 leading-tight overflow-hidden text-ellipsis whitespace-nowrap md:text-2xl">{value}</p>
       {sub && <p className="text-xs text-gray-400">{sub}</p>}
     </div>
   )
@@ -185,7 +185,7 @@ function RevenueChart({
           Sin datos para este período
         </div>
       ) : (
-        <ResponsiveContainer width="100%" height={260}>
+        <ResponsiveContainer width="100%" height={220}>
           <LineChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
             <XAxis
@@ -237,7 +237,7 @@ function TopProductsChart({ data }: { data: MetricsData['topProducts'] }) {
           Sin datos para este período
         </div>
       ) : (
-        <ResponsiveContainer width="100%" height={260}>
+        <ResponsiveContainer width="100%" height={220}>
           <BarChart
             data={chartData}
             layout="vertical"

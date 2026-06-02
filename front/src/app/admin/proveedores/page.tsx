@@ -223,13 +223,16 @@ function ProveedoresPageInner() {
               Deuda total
             </div>
             <div className="serif" style={{
-              fontSize: 28,
+              fontSize: 'clamp(18px, 4vw, 28px)',
               fontWeight: 700,
               color: 'var(--primary-dark)',
               letterSpacing: '-0.02em',
               fontVariantNumeric: 'tabular-nums',
               lineHeight: 1.1,
               marginTop: 6,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
             }}>
               {formatMoney(totalDebt)}
             </div>

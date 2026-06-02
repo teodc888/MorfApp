@@ -242,6 +242,16 @@ input, textarea, select { font-size: 16px; }
   .color-swatches-grid { grid-template-columns: repeat(10, 1fr); gap: 6px; }
 }
 
+/* Emoji picker: 4 cols on mobile, 5 on wider */
+.emoji-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+@media (min-width: 400px) {
+  .emoji-picker-grid { grid-template-columns: repeat(5, 1fr); }
+}
+
 /* Table with horizontal scroll on mobile */
 .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 

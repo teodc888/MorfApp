@@ -393,7 +393,7 @@ export default function MenuPage() {
               {/* Icono selector visual */}
               <div>
                 <label style={{ display: 'block', marginBottom: 8 }}>Icono <span style={{ color: 'var(--error)', fontSize: 12, fontWeight: 600 }}>(Obligatorio)</span></label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
+                <div className="emoji-picker-grid">
                   {EMOJI_OPTIONS.map(emoji => (
                     <button key={emoji} onClick={() => setCatForm(f => ({ ...f, emoji }))} className="tap"
                       style={{
@@ -462,7 +462,7 @@ export default function MenuPage() {
                 <label>Descripción</label>
                 <textarea className="input" rows={2} value={prodForm.description} onChange={e => setProdForm(f => ({ ...f, description: e.target.value }))} placeholder="Ingredientes y detalles" style={{ resize: 'none' }} />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div className="grid-2col">
                 <div className="field">
                   <label>Categoría <span style={{ color: 'var(--error)', fontSize: 12, fontWeight: 600 }}>(Obligatorio)</span></label>
                   <select className="select" value={prodForm.categoryId} onChange={e => setProdForm(f => ({ ...f, categoryId: e.target.value }))}>

@@ -218,10 +218,10 @@ export default function WhatsAppPage() {
           <textarea
             ref={textareaRef}
             className="input"
-            rows={9}
+            rows={6}
             value={template || ''}
             onChange={(e) => setTemplate(e.target.value)}
-            style={{ fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace', fontSize: 13, lineHeight: 1.5, resize: 'vertical' }}
+            style={{ fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace', fontSize: 13, lineHeight: 1.5, resize: 'vertical', minHeight: 120 }}
           />
 
           <div>

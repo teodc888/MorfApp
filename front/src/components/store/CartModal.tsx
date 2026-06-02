@@ -328,8 +328,13 @@ export function CartModal({ tenant, onClose }: Props) {
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
+        {/* Drag handle visual */}
+        <div className="flex-shrink-0 flex justify-center pt-2 pb-1 cursor-grab active:cursor-grabbing">
+          <div style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: DS.border }} />
+        </div>
+
         {/* Header - Stitch Design: sticky top, cream bg */}
-        <div className="flex-shrink-0 flex items-center justify-between px-4 pt-4 pb-2 sticky top-0" style={{ backgroundColor: DS.surface, borderBottom: `1px solid ${DS.border}`}}>
+        <div className="flex-shrink-0 flex items-center justify-between px-4 pt-2 pb-2 sticky top-0" style={{ backgroundColor: DS.surface, borderBottom: `1px solid ${DS.border}`}}>
           <h2 className="font-bold text-base" style={{ color: DS.text, fontFamily: 'Plus Jakarta Sans, sans-serif' }}>Tu Pedido</h2>
           <button
             onClick={handleClose}

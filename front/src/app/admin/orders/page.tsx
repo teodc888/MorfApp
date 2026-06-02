@@ -133,14 +133,14 @@ function OrderRow({
               <button
                 onClick={() => onConfirm(order.id)}
                 disabled={isBusy}
-                className="text-xs px-3 py-1.5 bg-[#EF4444] hover:bg-red-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="text-xs px-3 py-2 bg-[#EF4444] hover:bg-red-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isConfirming ? 'Confirmando...' : 'Confirmar'}
               </button>
               <button
                 onClick={() => onCancel(order.id)}
                 disabled={isBusy}
-                className="text-xs px-3 py-1.5 text-[#EF4444] hover:bg-red-50 border border-red-200 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="text-xs px-3 py-2 text-[#EF4444] hover:bg-red-50 border border-red-200 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isCancelling ? 'Cancelando...' : 'Cancelar'}
               </button>
@@ -212,14 +212,14 @@ function OrderCard({
             <button
               onClick={() => onCancel(order.id)}
               disabled={isBusy}
-              className="text-xs px-3 py-1.5 text-[#EF4444] hover:bg-red-50 border border-red-200 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="text-xs px-3 py-2 text-[#EF4444] hover:bg-red-50 border border-red-200 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isCancelling ? 'Cancelando...' : 'Cancelar'}
             </button>
             <button
               onClick={() => onConfirm(order.id)}
               disabled={isBusy}
-              className="text-xs px-3 py-1.5 bg-[#EF4444] hover:bg-red-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="text-xs px-3 py-2 bg-[#EF4444] hover:bg-red-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isConfirming ? 'Confirmando...' : 'Confirmar'}
             </button>

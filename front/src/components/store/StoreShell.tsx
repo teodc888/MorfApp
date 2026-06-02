@@ -37,7 +37,7 @@ export function StoreShell({ tenant, categories, children }: Props) {
         )}
 
         {/* Main content */}
-        <main className="min-w-0 pb-28 px-4 pt-4 md:flex-1 md:px-0 md:pt-0">
+        <main className="min-w-0 pb-28 md:pb-8 px-4 pt-4 md:flex-1 md:px-0 md:pt-0">
           <DeliveryChips deliveryConfig={tenant.deliveryConfig} />
           {children}
         </main>
