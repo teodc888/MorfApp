@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { PlanGate } from '@/components/admin/PlanGate'
 import {
   getSuppliers,
   getInactiveSuppliers,
@@ -21,7 +22,7 @@ type PaymentForm = { purchase: SupplierDebtPurchaseDto; amount: string; notes: s
 
 const EMPTY_FORM: SupplierForm = { name: '', phone: '', address: '', notes: '' }
 
-export default function ProveedoresPage() {
+function ProveedoresPageInner() {
   const [suppliers, setSuppliers] = useState<SupplierDto[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -792,5 +793,13 @@ export default function ProveedoresPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function ProveedoresPage() {
+  return (
+    <PlanGate minPlan="Pro" feature="Proveedores">
+      <ProveedoresPageInner />
+    </PlanGate>
   )
 }

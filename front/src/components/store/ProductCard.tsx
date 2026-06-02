@@ -71,7 +71,7 @@ export function ProductCard({ product, categoryEmoji, onSelect }: Props) {
               </span>
             )}
           </div>
-          <span className="w-7 h-7 rounded-full text-white flex items-center justify-center text-lg font-bold leading-none flex-shrink-0" style={{ backgroundColor: STITCH.primary }}>
+          <span className="w-9 h-9 rounded-full text-white flex items-center justify-center text-lg font-bold leading-none flex-shrink-0" style={{ backgroundColor: STITCH.primary }}>
             +
           </span>
         </div>

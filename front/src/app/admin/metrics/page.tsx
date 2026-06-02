@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useWebSocket } from '@/lib/useWebSocket'
+import { PlanGate } from '@/components/admin/PlanGate'
 import {
   LineChart,
   Line,
@@ -305,7 +306,7 @@ function HourlyChart({ data }: { data: MetricsData['ordersByHour'] }) {
 
 // ── Page ──────────────────────────────────────────────────────────────
 
-export default function MetricsPage() {
+function MetricsPageInner() {
   const [period, setPeriod] = useState<MetricsPeriod>('today')
   const [lastUpdateLabel, setLastUpdateLabel] = useState<string>('')
   useWebSocket()
@@ -446,5 +447,13 @@ export default function MetricsPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function MetricsPage() {
+  return (
+    <PlanGate minPlan="Pro" feature="Métricas">
+      <MetricsPageInner />
+    </PlanGate>
   )
 }

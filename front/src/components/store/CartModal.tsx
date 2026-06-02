@@ -95,7 +95,7 @@ function CartItemRow({ item }: { item: CartItem }) {
       <div className="flex items-center gap-1 flex-shrink-0">
         <button
           onClick={() => updateQty(item.cartId, item.qty - 1)}
-          className="w-7 h-7 rounded-full flex items-center justify-center text-base transition-colors"
+          className="w-9 h-9 rounded-full flex items-center justify-center text-base transition-colors"
           style={{ backgroundColor: '#F3F4F6', color: DS.textMuted }}
         >
           −
@@ -103,14 +103,14 @@ function CartItemRow({ item }: { item: CartItem }) {
         <span className="w-5 text-center text-sm font-semibold">{item.qty}</span>
         <button
           onClick={() => updateQty(item.cartId, item.qty + 1)}
-          className="w-7 h-7 rounded-full flex items-center justify-center text-base transition-colors"
+          className="w-9 h-9 rounded-full flex items-center justify-center text-base transition-colors"
           style={{ backgroundColor: '#F3F4F6', color: DS.textMuted }}
         >
           +
         </button>
         <button
           onClick={() => removeItem(item.cartId)}
-          className="ml-1 w-7 h-7 rounded-full flex items-center justify-center text-sm"
+          className="ml-1 w-9 h-9 rounded-full flex items-center justify-center text-sm"
           style={{ backgroundColor: '#FEE2E2', color: '#EF4444' }}
         >
           🗑

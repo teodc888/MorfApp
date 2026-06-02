@@ -6,9 +6,9 @@ import { motion } from 'motion/react';
 import { InteractiveProductCard } from '@/components/ui/card-7';
 import { InterestModal } from './InterestModal';
 
-const basicFeatures = ['1 local', 'Menu y productos ilimitados', 'Pedidos por WhatsApp', 'Carrito con modificadores', 'Delivery y takeaway', 'Subdominio incluido'];
-const proFeatures = ['Todo lo del plan Basico', 'Dominio propio', 'Estadisticas de pedidos', 'Branding avanzado', 'Soporte prioritario'];
-const businessFeatures = ['Todo lo del plan Pro', 'Multiples locales', 'Panel centralizado', 'Reportes avanzados', 'Onboarding personalizado'];
+const basicFeatures = ['Menú y productos ilimitados', 'Pedidos por WhatsApp', 'Carrito con modificadores', 'Delivery y takeaway', 'Promociones y descuentos', 'Branding personalizado (logo, colores)', 'Subdominio incluido'];
+const proFeatures = ['Todo lo del plan Básico', 'Métricas y estadísticas', 'Control de insumos e inventario', 'Gestión de proveedores', 'Soporte prioritario'];
+const businessFeatures = ['Todo lo del plan Pro', 'Módulo de empleados', 'Registro de sueldos y adelantos', 'Roles y permisos por empleado', 'Onboarding personalizado'];
 
 const planImages = {
   basic: 'https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=1200&auto=format&fit=crop',
@@ -88,7 +88,7 @@ function BasicCard({ onCta }: { onCta: () => void }) {
       imageUrl={planImages.basic}
       title="Basico"
       description="Para empezar con el pie derecho."
-      price="$20.000 / mes"
+      price="$25.000 / mes"
       tone="light"
       className="max-w-none"
     >
@@ -104,7 +104,7 @@ function BasicCard({ onCta }: { onCta: () => void }) {
   );
 }
 
-function ProCard() {
+function ProCard({ onCta }: { onCta: () => void }) {
   return (
     <InteractiveProductCard
       imageUrl={planImages.pro}
@@ -121,18 +121,18 @@ function ProCard() {
         </span>
       </div>
       <FeatureList items={proFeatures} tone="dark" />
-      <PlanAction featured tone="dark" disabled>Proximamente</PlanAction>
+      <PlanAction featured tone="dark" onClick={onCta}>Empezar ahora</PlanAction>
     </InteractiveProductCard>
   );
 }
 
-function BusinessCard() {
+function BusinessCard({ onCta }: { onCta: () => void }) {
   return (
     <InteractiveProductCard
       imageUrl={planImages.business}
       title="Negocio"
       description="Para cadenas y franquicias."
-      price="A consultar"
+      price="$60.000 / mes"
       tone="warm"
       className="max-w-none"
     >
@@ -142,17 +142,17 @@ function BusinessCard() {
         </span>
       </div>
       <FeatureList items={businessFeatures} tone="warm" />
-      <PlanAction tone="warm" disabled>Contactar</PlanAction>
+      <PlanAction tone="warm" onClick={onCta}>Empezar ahora</PlanAction>
     </InteractiveProductCard>
   );
 }
 
-function PlanCards({ onBasicCta, className }: { onBasicCta: () => void; className: string }) {
+function PlanCards({ onCta, className }: { onCta: (plan: string) => void; className: string }) {
   return (
     <div className={className}>
-      <BasicCard onCta={onBasicCta} />
-      <ProCard />
-      <BusinessCard />
+      <BasicCard onCta={() => onCta('Basico')} />
+      <ProCard onCta={() => onCta('Pro')} />
+      <BusinessCard onCta={() => onCta('Negocio')} />
     </div>
   );
 }
@@ -220,7 +220,7 @@ export function Pricing() {
           <h2 className="mb-3 font-headline text-[2.15rem] font-bold leading-tight text-on-surface">Planes transparentes</h2>
           <p className="font-body text-on-surface-variant">Primer mes gratis. Sin tarjeta requerida.</p>
         </div>
-        <PlanCards onBasicCta={() => setSelectedPlan('Basico')} className="mx-auto flex max-w-sm flex-col gap-6" />
+        <PlanCards onCta={(plan) => setSelectedPlan(plan)} className="mx-auto flex max-w-sm flex-col gap-6" />
       </section>
 
       <section className="hidden bg-surface-container-low px-6 py-16 md:block lg:hidden" aria-labelledby="pricing-tablet-title">
@@ -228,7 +228,7 @@ export function Pricing() {
           <h2 id="pricing-tablet-title" className="mb-3 font-headline text-4xl font-bold text-on-surface">Planes transparentes</h2>
           <p className="font-body text-on-surface-variant">Primer mes gratis. Sin tarjeta requerida.</p>
         </div>
-        <PlanCards onBasicCta={() => setSelectedPlan('Basico')} className="grid grid-cols-3 gap-4" />
+        <PlanCards onCta={(plan) => setSelectedPlan(plan)} className="grid grid-cols-3 gap-4" />
       </section>
 
       <div id="pricing-scroll" ref={containerRef} onWheel={handlePricingWheel} className="relative hidden h-screen bg-surface-container-low lg:block">
@@ -288,7 +288,7 @@ export function Pricing() {
               style={{ position: 'absolute', left: '50%', marginLeft: -170, zIndex: activePlan === 1 ? 30 : 20 }}
               className={`w-[340px] outline-none ${activePlan === 1 ? 'cursor-default' : 'cursor-pointer'}`}
             >
-              <ProCard />
+              <ProCard onCta={() => setSelectedPlan('Pro')} />
             </motion.div>
 
             <motion.div
@@ -304,7 +304,7 @@ export function Pricing() {
               style={{ position: 'absolute', left: '50%', marginLeft: -170, zIndex: activePlan === 2 ? 30 : 10 }}
               className={`w-[340px] outline-none ${activePlan === 2 ? 'cursor-default' : 'cursor-pointer'}`}
             >
-              <BusinessCard />
+              <BusinessCard onCta={() => setSelectedPlan('Negocio')} />
             </motion.div>
           </div>
 

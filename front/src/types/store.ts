@@ -7,12 +7,15 @@ export type TenantBranding = {
   tagline: string | null
 }
 
+export type TenantPlan = 'Basico' | 'Pro' | 'Negocio'
+
 export type TenantAdmin = {
   id: string
   slug: string
   name: string
   whatsappNumber: string
   whatsAppMessageTemplate: string | null
+  plan: TenantPlan
   branding: TenantBranding
   delivery: DeliveryConfig | null
   payment: PaymentConfig | null

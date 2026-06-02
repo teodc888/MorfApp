@@ -304,8 +304,8 @@ export default function PromotionsPage() {
                     {promo.description || formatPrice(promo.originalPrice) + ' → ' + formatPrice(finalPrice)}
                   </div>
                   <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
-                    <span className="chip primary">{promo.productIds.length} productos</span>
-                    <span className="chip">{promo.modifierGroupIds.length} opciones</span>
+                    <span className="chip primary" style={{ whiteSpace: 'nowrap' }}>{promo.productIds.length} productos</span>
+                    <span className="chip" style={{ whiteSpace: 'nowrap' }}>{promo.modifierGroupIds.length} opciones</span>
                   </div>
                 </div>
               </button>

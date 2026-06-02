@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { PlanGate } from '@/components/admin/PlanGate'
 import {
   getSupplies,
   getSuppliers,
@@ -46,7 +47,7 @@ const REASON_LABELS: Record<string, string> = {
   ManualAdjust: 'Ajuste manual',
 }
 
-export default function InsumosPage() {
+function InsumosPageInner() {
   const [tab, setTab] = useState<Tab>('insumos')
 
   const [supplies, setSupplies] = useState<SupplyDto[]>([])
@@ -596,5 +597,13 @@ export default function InsumosPage() {
 
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
+  )
+}
+
+export default function InsumosPage() {
+  return (
+    <PlanGate minPlan="Pro" feature="Insumos e inventario">
+      <InsumosPageInner />
+    </PlanGate>
   )
 }

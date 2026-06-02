@@ -197,7 +197,7 @@ export default function ConfigPage() {
           </div>
 
           {showDeliveryCosts && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div className="grid-2col">
               <div className="field">
                 <label>Costo de envío</label>
                 <input className="input" type="number" value={delivery.deliveryCost} onChange={(e) => setDel('deliveryCost', e.target.value)} />
@@ -209,7 +209,7 @@ export default function ConfigPage() {
             </div>
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div className="grid-2col">
             <div className="field">
               <label>Pedido mínimo</label>
               <input className="input" type="number" value={delivery.minOrderAmount} onChange={(e) => setDel('minOrderAmount', e.target.value)} />

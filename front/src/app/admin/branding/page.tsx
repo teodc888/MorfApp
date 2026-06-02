@@ -224,7 +224,7 @@ function ColorPicker({ label, desc, value, onChange }: { label: string; desc: st
         <div style={{ width: 44, height: 44, borderRadius: 10, background: value, border: '2px solid var(--surface)', boxShadow: '0 0 0 1px var(--outline-soft), 0 4px 10px rgba(0,0,0,0.06)', flexShrink: 0 }} />
         <input className="input" value={value} onChange={(e) => onChange(e.target.value)} style={{ fontFamily: 'ui-monospace, monospace', flex: 1, textTransform: 'uppercase' }} />
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: 6 }}>
+      <div className="color-swatches-grid">
         {COLOR_SWATCHES.map((c) => (
           <button
             key={c}
@@ -237,6 +237,7 @@ function ColorPicker({ label, desc, value, onChange }: { label: string; desc: st
               boxShadow: '0 0 0 1px var(--outline-soft) inset',
               cursor: 'pointer',
               padding: 0,
+              minHeight: 36,
             }}
           />
         ))}

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { PlanGate } from '@/components/admin/PlanGate'
 import {
   getEmployees,
   createEmployee,
@@ -97,7 +98,7 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-export default function EmpleadosPage() {
+function EmpleadosPageInner() {
   const [tab, setTab] = useState<Tab>('empleados')
 
   // ── Data ──
@@ -679,7 +680,7 @@ export default function EmpleadosPage() {
       {/* ── Modal: Nuevo/Editar Empleado ── */}
       {employeeModal.open && (
         <div className="modal-backdrop modal-center" onClick={() => setEmployeeModal({ open: false, editing: null })}>
-          <div className="modal-sheet" style={{ maxWidth: 520 }} onClick={e => e.stopPropagation()}>
+          <div className="modal-sheet" style={{ maxWidth: 520, maxHeight: '90dvh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div className="p-6">
               <h2 className="text-lg font-bold mb-4">{employeeModal.editing ? 'Editar empleado' : 'Nuevo empleado'}</h2>
 
@@ -957,5 +958,13 @@ export default function EmpleadosPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function EmpleadosPage() {
+  return (
+    <PlanGate minPlan="Negocio" feature="Empleados y sueldos">
+      <EmpleadosPageInner />
+    </PlanGate>
   )
 }
