@@ -246,8 +246,19 @@ export default function MenuPage() {
     }
   }
 
+  const [searchQuery, setSearchQuery] = useState('')
+
   const totalProducts = categories.reduce((acc, c) => acc + c.products.length, 0)
   const activeCategories = categories.filter(c => c.isActive).length
+
+  const filteredCategories = searchQuery.trim()
+    ? categories.map(cat => ({
+        ...cat,
+        products: cat.products.filter(p =>
+          p.name.toLowerCase().includes(searchQuery.toLowerCase())
+        ),
+      })).filter(cat => cat.products.length > 0)
+    : categories
 
   const catFormValid = catForm.name.trim() !== '' && catForm.emoji.trim() !== ''
   const prodFormValid = prodForm.name.trim() !== '' && prodForm.categoryId.trim() !== '' && prodForm.price.trim() !== '' && !isNaN(parseFloat(prodForm.price)) && parseFloat(prodForm.price) > 0
@@ -297,9 +308,29 @@ export default function MenuPage() {
         </div>
       )}
 
+      {/* Search */}
+      <div style={{ padding: '0 22px 12px' }}>
+        <div style={{ position: 'relative' }}>
+          <span className="mat" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 18, color: 'var(--muted-soft)', pointerEvents: 'none' }}>search</span>
+          <input
+            className="input"
+            style={{ paddingLeft: 38 }}
+            placeholder="Buscar producto..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+      </div>
+
       {/* Categories */}
       <div style={{ padding: '0 22px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {[...categories].sort((a, b) => a.sortOrder - b.sortOrder).map(cat => (
+        {filteredCategories.length === 0 && searchQuery.trim() && (
+          <div className="card" style={{ padding: 28, textAlign: 'center', color: 'var(--muted)' }}>
+            <div style={{ fontSize: 28, marginBottom: 8 }}>🔍</div>
+            <div style={{ fontSize: 14 }}>Sin resultados para &quot;{searchQuery}&quot;</div>
+          </div>
+        )}
+        {[...filteredCategories].sort((a, b) => a.sortOrder - b.sortOrder).map(cat => (
           <div key={cat.id} className="card" style={{ overflow: 'hidden' }}>
 
             {/* Category header */}
@@ -373,7 +404,7 @@ export default function MenuPage() {
       {/* ── Category modal (centered) ────────────────────────────────── */}
       {catModal.open && (
         <div className="modal-backdrop modal-center" onClick={() => setCatModal({ open: false, editing: null })}>
-          <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ maxHeight: '90dvh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
               <h2 className="serif" style={{ margin: 0, fontSize: 24, color: 'var(--primary-dark)', fontWeight: 700 }}>
                 {catModal.editing ? 'Editar categoría' : 'Nueva categoría'}

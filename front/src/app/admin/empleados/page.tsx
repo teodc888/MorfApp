@@ -445,20 +445,20 @@ function EmpleadosPageInner() {
                     )}
                   </div>
 
-                  <div className="flex flex-wrap gap-1.5 justify-end">
-                    <button className="btn btn-outline btn-sm" onClick={() => openAdvanceModal(emp)}>Adelanto</button>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end', maxWidth: 200 }}>
                     <button className="btn btn-primary btn-sm" onClick={() => openPaymentModal(emp)}>Pagar</button>
-                    <button className="btn btn-outline btn-sm" onClick={() => { loadEmployeeDetail(emp); setDetailModal({ open: true, employee: emp }) }}>
+                    <button className="btn btn-outline btn-sm" onClick={() => openAdvanceModal(emp)}>Adelanto</button>
+                    <button className="btn btn-outline btn-sm" style={{ minWidth: 36, padding: '8px 10px' }} onClick={() => { loadEmployeeDetail(emp); setDetailModal({ open: true, employee: emp }) }}>
                       <span className="mat sm">history</span>
                     </button>
-                    <button className="btn btn-outline btn-sm" onClick={() => openEditEmployee(emp)}>
+                    <button className="btn btn-outline btn-sm" style={{ minWidth: 36, padding: '8px 10px' }} onClick={() => openEditEmployee(emp)}>
                       <span className="mat sm">edit</span>
                     </button>
-                    <button className="btn btn-outline btn-sm" onClick={() => emp.hasAdminLogin ? handleDeactivateLogin(emp) : handleActivateLogin(emp)}
+                    <button className="btn btn-outline btn-sm" style={{ minWidth: 36, padding: '8px 10px' }} onClick={() => emp.hasAdminLogin ? handleDeactivateLogin(emp) : handleActivateLogin(emp)}
                       title={emp.hasAdminLogin ? 'Quitar acceso al panel' : 'Dar acceso al panel'}>
                       <span className="mat sm">{emp.hasAdminLogin ? 'no_accounts' : 'manage_accounts'}</span>
                     </button>
-                    <button className="btn btn-danger btn-sm" onClick={() => setConfirmDeactivate({ open: true, employee: emp })}>
+                    <button className="btn btn-danger btn-sm" style={{ minWidth: 36, padding: '8px 10px' }} onClick={() => setConfirmDeactivate({ open: true, employee: emp })}>
                       <span className="mat sm">person_off</span>
                     </button>
                   </div>
@@ -661,8 +661,8 @@ function EmpleadosPageInner() {
                         <div className="text-right">
                           <div className="text-xs" style={{ color: 'var(--muted)' }}>{formatDate(a.date)}</div>
                           <span className="chip text-xs mt-1" style={{
-                            backgroundColor: a.isApplied ? '#DCFCE7' : '#FEF9C3',
-                            color: a.isApplied ? '#166534' : '#713F12',
+                            backgroundColor: a.isApplied ? '#16A34A' : '#D97706',
+                            color: '#FFFFFF',
                           }}>
                             {a.isApplied ? 'Aplicado' : 'Pendiente'}
                           </span>

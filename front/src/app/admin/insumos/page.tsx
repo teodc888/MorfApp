@@ -243,7 +243,7 @@ function InsumosPageInner() {
         </div>
       )}
 
-      <div style={{ padding: '0 22px 16px', display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 10 }}>
+      <div style={{ padding: '0 22px 16px', display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: 10 }}>
         <div className="card" style={{ padding: '14px 16px' }}>
           <div className="text-xs muted" style={{ fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Stock Total</div>
           <div className="serif" style={{ fontSize: 26, fontWeight: 700, color: 'var(--text)', marginTop: 6, lineHeight: 1 }}>{supplies.length}</div>
@@ -281,9 +281,10 @@ function InsumosPageInner() {
                 background: tab === t ? 'var(--text)' : 'var(--surface-container)',
                 color: tab === t ? 'white' : 'var(--muted)',
                 whiteSpace: 'nowrap',
-                border: 'none',
+                border: tab === t ? '2px solid var(--text)' : '2px solid transparent',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
+                boxShadow: tab === t ? '0 1px 4px rgba(0,0,0,0.15)' : 'none',
               }}
             >
               {t.charAt(0).toUpperCase() + t.slice(1)}
@@ -359,7 +360,7 @@ function InsumosPageInner() {
                       <span className="text-xs muted" style={{ marginLeft: 4 }}>{s.unit}</span>
                     </div>
                   </div>
-                  <div style={{ height: 6, background: 'var(--surface-container)', borderRadius: 4, overflow: 'hidden' }}>
+                  <div style={{ height: 8, background: 'var(--surface-container)', borderRadius: 4, overflow: 'hidden' }}>
                     <div style={{
                       width: `${Math.min(100, (s.currentStock / (s.currentStock + 10)) * 100)}%`,
                       height: '100%',

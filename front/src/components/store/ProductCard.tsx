@@ -37,11 +37,9 @@ export function ProductCard({ product, categoryEmoji, onSelect }: Props) {
         <h3 className="font-bold text-sm leading-snug line-clamp-2" style={{ color: STITCH.text }}>
           {product.name}
         </h3>
-        {product.description && (
-          <p className="text-xs mt-1 line-clamp-2 leading-relaxed" style={{ color: STITCH.muted }}>
-            {product.description}
-          </p>
-        )}
+        <p className="text-xs mt-1 line-clamp-2 leading-relaxed" style={{ color: STITCH.muted, minHeight: '2.5rem' }}>
+          {product.description || ''}
+        </p>
         {product.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2">
             {product.tags.slice(0, 2).map((tag) => (
@@ -61,7 +59,7 @@ export function ProductCard({ product, categoryEmoji, onSelect }: Props) {
                 <span className="font-bold text-sm" style={{ color: STITCH.primary }}>
                   {formatPrice(product.finalPrice)}
                 </span>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: '#FED7AA', color: STITCH.tertiary }}>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: '#EA580C', color: '#FFFFFF' }}>
                   -{product.discountPercent}%
                 </span>
               </>

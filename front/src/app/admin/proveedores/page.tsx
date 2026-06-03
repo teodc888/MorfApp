@@ -302,8 +302,9 @@ function ProveedoresPageInner() {
                   placeItems: 'center',
                   fontFamily: 'var(--serif)',
                   fontWeight: 700,
-                  fontSize: 14,
+                  fontSize: (() => { const i = s.name.split(' ').slice(0, 2).map((w) => w[0]).join(''); return i.length === 1 ? 20 : 14 })(),
                   flexShrink: 0,
+                  lineHeight: 1,
                 }}
               >
                 {s.name.split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase()}

@@ -373,12 +373,15 @@ export default function ModifiersPage() {
                           borderRadius: 14,
                           background: 'var(--surface-container)',
                           color: 'var(--primary-dark)',
-                          display: 'grid',
-                          placeItems: 'center',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
                           fontSize: 12,
                           fontWeight: 700,
                           fontFamily: 'var(--serif)',
                           flexShrink: 0,
+                          alignSelf: 'center',
+                          lineHeight: 1,
                         }}
                       >
                         {i + 1}
