@@ -16,6 +16,8 @@ bin/
 obj/
 publish-linux/
 publish/
+publish-pre/
+publish-prod/
 back/32
 
 # .NET secrets (environment-specific config)
