@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { isPlanPro } from '@/lib/auth'
 import {
   getSupplies,
@@ -15,7 +16,7 @@ import {
   resetSupplyStock,
   createSupplyPurchase,
 } from '@/lib/admin-api'
-import type { SupplyDto, SupplierDto, SupplyPurchaseDto, InventoryMovementDto } from '@/types/store'
+import type { SupplyDto, InventoryMovementDto } from '@/types/store'
 
 type Tab = 'insumos' | 'compras' | 'movimientos'
 
@@ -51,26 +52,17 @@ const REASON_LABELS: Record<string, string> = {
 
 export default function InsumosPage() {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [tab, setTab] = useState<Tab>('insumos')
-
-  const [supplies, setSupplies] = useState<SupplyDto[]>([])
-  const [suppliers, setSuppliers] = useState<SupplierDto[]>([])
-  const [purchases, setPurchases] = useState<SupplyPurchaseDto[]>([])
-  const [movements, setMovements] = useState<InventoryMovementDto[]>([])
-
-  const [loading, setLoading] = useState(true)
 
   const [supplyModal, setSupplyModal] = useState<{ open: boolean; editing: SupplyDto | null }>({ open: false, editing: null })
   const [supplyForm, setSupplyForm] = useState<SupplyForm>(EMPTY_SUPPLY_FORM)
   const [customUnit, setCustomUnit] = useState('')
-  const [supplySaving, setSupplySaving] = useState(false)
 
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog>({ open: false, type: 'delete', id: '', name: '' })
 
   const [purchaseForm, setPurchaseForm] = useState<PurchaseForm>(EMPTY_PURCHASE_FORM)
-  const [purchaseSaving, setPurchaseSaving] = useState(false)
 
-  const [movementsLoading, setMovementsLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
   // Guard: redirigir si no tiene plan Pro/Negocio
@@ -78,50 +70,92 @@ export default function InsumosPage() {
     if (!isPlanPro()) router.replace('/admin/menu')
   }, [router])
 
-  const load = useCallback(async () => {
-    try {
-      const [suppliesData, suppliersData, purchasesData] = await Promise.all([
-        getSupplies(),
-        getSuppliers(),
-        getSupplyPurchases(),
-      ])
-      setSupplies(suppliesData)
-      setSuppliers(suppliersData)
-      setPurchases(purchasesData)
-    } catch {
-      toast.error('No se pudieron cargar los datos')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  // Nota: queryKey ['supplies'] es compartida intencionalmente con la lista de insumos
+  // usada en otras pantallas del admin (ej. menu/page.tsx) — ambas representan los
+  // mismos datos y se benefician de compartir cache.
+  const { data: supplies = [], isLoading: suppliesLoading } = useQuery({
+    queryKey: ['supplies'],
+    queryFn: getSupplies,
+  })
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    load()
-  }, [load])
+  // Nota: queryKey ['suppliers'] es compartida intencionalmente con proveedores/page.tsx.
+  const { data: suppliers = [], isLoading: suppliersLoading } = useQuery({
+    queryKey: ['suppliers'],
+    queryFn: getSuppliers,
+  })
 
-  const loadMovements = useCallback(async () => {
-    if (tab !== 'movimientos') return
-    setMovementsLoading(true)
-    try {
-      const allMovements: InventoryMovementDto[] = []
-      for (const supply of supplies) {
-        const m = await getSupplyMovements(supply.id)
-        allMovements.push(...m)
-      }
-      allMovements.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      setMovements(allMovements)
-    } catch {
-      toast.error('Error al cargar movimientos')
-    } finally {
-      setMovementsLoading(false)
-    }
-  }, [tab, supplies])
+  const { data: purchases = [], isLoading: purchasesLoading } = useQuery({
+    queryKey: ['supply-purchases'],
+    queryFn: getSupplyPurchases,
+  })
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadMovements()
-  }, [loadMovements])
+  const loading = suppliesLoading || suppliersLoading || purchasesLoading
+
+  // El tab "movimientos" no filtra por un insumo puntual: agrega los movimientos de
+  // TODOS los insumos (mismo comportamiento que el loadMovements original). Se activa
+  // (enabled) solo cuando el usuario está parado en ese tab, para no pedirlo de entrada.
+  const supplyIds = supplies.map((s) => s.id)
+  const { data: movements = [], isLoading: movementsLoading } = useQuery({
+    queryKey: ['supply-movements', supplyIds],
+    queryFn: async () => {
+      const lists = await Promise.all(supplyIds.map((id) => getSupplyMovements(id)))
+      const all: InventoryMovementDto[] = lists.flat()
+      all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      return all
+    },
+    enabled: tab === 'movimientos' && supplyIds.length > 0,
+  })
+
+  const saveSupplyMutation = useMutation({
+    mutationFn: (vars: { editing: SupplyDto | null; data: { name: string; unit?: string; supplierId?: string } }) =>
+      vars.editing ? updateSupply(vars.editing.id, vars.data) : createSupply(vars.data),
+    onSuccess: (_data, vars) => {
+      toast.success(vars.editing ? 'Insumo actualizado' : 'Insumo creado')
+      setSupplyModal({ open: false, editing: null })
+    },
+    onError: () => toast.error('Error al guardar'),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['supplies'] }),
+  })
+
+  const deleteSupplyMutation = useMutation({
+    mutationFn: (id: string) => deleteSupply(id),
+    onSuccess: () => {
+      toast.success('Insumo eliminado')
+      setConfirmDialog({ open: false, type: 'delete', id: '', name: '' })
+    },
+    onError: () => toast.error('Error al guardar'),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['supplies'] }),
+  })
+
+  const resetStockMutation = useMutation({
+    mutationFn: (id: string) => resetSupplyStock(id),
+    onSuccess: () => {
+      toast.success('Stock actualizado')
+      setConfirmDialog({ open: false, type: 'delete', id: '', name: '' })
+    },
+    onError: () => toast.error('Error al guardar'),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['supplies'] })
+      queryClient.invalidateQueries({ queryKey: ['supply-movements'] })
+    },
+  })
+
+  const purchaseMutation = useMutation({
+    mutationFn: createSupplyPurchase,
+    onSuccess: () => {
+      setPurchaseForm(EMPTY_PURCHASE_FORM)
+      toast.success('Compra registrada')
+    },
+    onError: () => toast.error('Error al guardar'),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['supply-purchases'] })
+      queryClient.invalidateQueries({ queryKey: ['supplies'] })
+      queryClient.invalidateQueries({ queryKey: ['supply-movements'] })
+    },
+  })
+
+  const supplySaving = saveSupplyMutation.isPending
+  const purchaseSaving = purchaseMutation.isPending
 
   function openNewSupply() {
     setSupplyForm(EMPTY_SUPPLY_FORM)
@@ -136,48 +170,24 @@ export default function InsumosPage() {
     setSupplyModal({ open: true, editing: s })
   }
 
-  async function saveSupply() {
-    setSupplySaving(true)
-    try {
-      const data = {
-        name: supplyForm.name,
-        unit: supplyForm.unit === CUSTOM_UNIT_VALUE ? (customUnit.trim() || undefined) : (supplyForm.unit || undefined),
-        supplierId: supplyForm.supplierId || undefined,
-      }
-      if (supplyModal.editing) {
-        await updateSupply(supplyModal.editing.id, data)
-        toast.success('Insumo actualizado')
-      } else {
-        await createSupply(data)
-        toast.success('Insumo creado')
-      }
-      setSupplyModal({ open: false, editing: null })
-      await load()
-    } catch {
-      toast.error('Error al guardar')
-    } finally {
-      setSupplySaving(false)
+  function saveSupply() {
+    const data = {
+      name: supplyForm.name,
+      unit: supplyForm.unit === CUSTOM_UNIT_VALUE ? (customUnit.trim() || undefined) : (supplyForm.unit || undefined),
+      supplierId: supplyForm.supplierId || undefined,
+    }
+    saveSupplyMutation.mutate({ editing: supplyModal.editing, data })
+  }
+
+  function confirmAction() {
+    if (confirmDialog.type === 'delete') {
+      deleteSupplyMutation.mutate(confirmDialog.id)
+    } else {
+      resetStockMutation.mutate(confirmDialog.id)
     }
   }
 
-  async function confirmAction() {
-    const isDelete = confirmDialog.type === 'delete'
-    try {
-      if (isDelete) {
-        await deleteSupply(confirmDialog.id)
-        toast.success('Insumo eliminado')
-      } else {
-        await resetSupplyStock(confirmDialog.id)
-        toast.success('Stock actualizado')
-      }
-      setConfirmDialog({ open: false, type: 'delete', id: '', name: '' })
-      await load()
-    } catch {
-      toast.error('Error al guardar')
-    }
-  }
-
-  async function savePurchase(e: React.FormEvent) {
+  function savePurchase(e: React.FormEvent) {
     e.preventDefault()
     const quantityPurchased = parseFloat(purchaseForm.quantity)
     const totalPrice = parseFloat(purchaseForm.totalPrice)
@@ -192,23 +202,13 @@ export default function InsumosPage() {
       return
     }
 
-    setPurchaseSaving(true)
-    try {
-      await createSupplyPurchase({
-        supplyId: purchaseForm.supplyId,
-        supplierId: purchaseForm.supplierId,
-        quantityPurchased,
-        totalPrice,
-        notes: purchaseForm.notes || undefined,
-      })
-      setPurchaseForm(EMPTY_PURCHASE_FORM)
-      toast.success('Compra registrada')
-      await load()
-    } catch {
-      toast.error('Error al guardar')
-    } finally {
-      setPurchaseSaving(false)
-    }
+    purchaseMutation.mutate({
+      supplyId: purchaseForm.supplyId,
+      supplierId: purchaseForm.supplierId,
+      quantityPurchased,
+      totalPrice,
+      notes: purchaseForm.notes || undefined,
+    })
   }
 
   const purchaseQuantity = parseFloat(purchaseForm.quantity)

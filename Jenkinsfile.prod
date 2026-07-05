@@ -70,6 +70,56 @@ pipeline {
             }
         }
 
+        stage('Test Backend') {
+            when {
+                expression { params.DEPLOY_WHAT == 'both' || params.DEPLOY_WHAT == 'backend' }
+            }
+            steps {
+                dir('back') {
+                    script {
+                        echo "🧪 Corriendo tests del backend antes de deploy a PRODUCCIÓN..."
+                        sh '''
+                            dotnet test --configuration Release
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Test Frontend') {
+            when {
+                expression { params.DEPLOY_WHAT == 'both' || params.DEPLOY_WHAT == 'frontend' }
+            }
+            steps {
+                dir('front') {
+                    script {
+                        echo "🧪 Corriendo tests del frontend (vitest) antes de deploy a PRODUCCIÓN..."
+                        sh '''
+                            npm install
+                            npm run test
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Test SuperAdmin') {
+            when {
+                expression { params.DEPLOY_WHAT == 'superadmin' || params.DEPLOY_WHAT == 'all' }
+            }
+            steps {
+                dir('superadmin') {
+                    script {
+                        echo "🧪 Corriendo tests del superadmin (vitest) antes de deploy a PRODUCCIÓN..."
+                        sh '''
+                            npm install
+                            npm run test
+                        '''
+                    }
+                }
+            }
+        }
+
         stage('Build Backend') {
             when {
                 expression { params.DEPLOY_WHAT == 'both' || params.DEPLOY_WHAT == 'backend' }

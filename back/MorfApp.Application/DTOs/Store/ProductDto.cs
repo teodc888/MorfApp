@@ -10,5 +10,6 @@ public record ProductDto(
     string Emoji,
     string? ImageUrl,
     List<string> Tags,
+    bool IsOutOfStock,
     List<ModifierGroupDto> ModifierGroups
 );

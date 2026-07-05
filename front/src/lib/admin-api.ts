@@ -30,6 +30,7 @@ type CreateProductBody = {
   sortOrder: number
   isActive: boolean
   tags: string[]
+  isOutOfStock: boolean
 }
 
 let isRefreshing = false
@@ -93,7 +94,7 @@ export async function adminFetch(path: string, options: RequestInit = {}): Promi
 
   if (!newToken) {
     if (typeof window !== 'undefined') {
-      window.location.href = './login'
+      window.location.href = '/admin/login'
     }
     return res
   }
@@ -124,6 +125,24 @@ export async function login(email: string, password: string) {
     body: JSON.stringify({ email, password }),
   })
   return parseJson<{ accessToken: string; refreshToken: string; expiresIn: number }>(res)
+}
+
+export async function forgotPassword(email: string): Promise<void> {
+  const res = await fetch(`${API_URL}/api/auth/forgot-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  })
+  return assertOk(res)
+}
+
+export async function resetPassword(token: string, newPassword: string): Promise<void> {
+  const res = await fetch(`${API_URL}/api/auth/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, newPassword }),
+  })
+  return assertOk(res)
 }
 
 export async function getAdminMe(): Promise<TenantAdmin> {
@@ -215,11 +234,6 @@ export async function deleteCategory(id: string): Promise<void> {
     const text = await res.text().catch(() => '')
     throw new Error(`Delete category failed ${res.status}: ${text}`)
   }
-}
-
-export async function getAdminProducts(): Promise<ProductAdmin[]> {
-  const res = await adminFetch('/api/admin/products')
-  return parseJson<ProductAdmin[]>(res)
 }
 
 export async function createProduct(body: CreateProductBody): Promise<ProductAdmin> {
@@ -559,6 +573,7 @@ export type OrderItemFromApi = {
     optionName: string
     extraPrice: number
   }>
+  observations?: string | null
 }
 
 export type OrderAdmin = {
@@ -571,23 +586,36 @@ export type OrderAdmin = {
   address: string | null
   notes: string | null
   paymentMethod: string | null
-  status: 'pending' | 'confirmed' | 'cancelled'
+  status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivered' | 'cancelled'
   createdAt: string
   confirmedAt: string | null
 }
 
+export type GetOrdersParams = {
+  status?: string
+  // Lista de OrderStatus a filtrar (ej. ['pending', 'confirmed', 'preparing', 'ready']).
+  // Si se manda con al menos un valor, tiene prioridad sobre `status` (el backend lo ignora
+  // en ese caso). Case-insensitive del lado del backend.
+  statuses?: string[]
+  search?: string
+  limit?: number
+  offset?: number
+}
+
 export async function getOrders(
-  status?: string,
-  search?: string,
-  limit: number = 10,
-  offset: number = 0
+  params: GetOrdersParams = {}
 ): Promise<{ items: OrderAdmin[], total: number, limit: number, offset: number }> {
-  const params = new URLSearchParams()
-  if (status) params.append('status', status)
-  if (search) params.append('q', search)
-  params.append('limit', limit.toString())
-  params.append('offset', offset.toString())
-  const query = params.toString() ? `?${params.toString()}` : ''
+  const { status, statuses, search, limit = 10, offset = 0 } = params
+  const usp = new URLSearchParams()
+  if (statuses && statuses.length > 0) {
+    usp.append('statuses', statuses.join(','))
+  } else if (status) {
+    usp.append('status', status)
+  }
+  if (search) usp.append('q', search)
+  usp.append('limit', limit.toString())
+  usp.append('offset', offset.toString())
+  const query = usp.toString() ? `?${usp.toString()}` : ''
   const res = await adminFetch(`/api/admin/orders${query}`)
   return parseJson<{ items: OrderAdmin[], total: number, limit: number, offset: number }>(res)
 }
@@ -600,6 +628,37 @@ export async function confirmOrder(id: string): Promise<void> {
 export async function cancelOrder(id: string): Promise<void> {
   const res = await adminFetch(`/api/admin/orders/${id}/cancel`, { method: 'POST' })
   return assertOk(res)
+}
+
+export async function updateOrderStatus(id: string, status: 'preparing' | 'ready' | 'delivered'): Promise<void> {
+  const res = await adminFetch(`/api/admin/orders/${id}/status`, {
+    method: 'POST',
+    body: JSON.stringify({ status }),
+  })
+  return assertOk(res)
+}
+
+// ── Tenant pause ──────────────────────────────────────────────────────────
+
+export async function updateTenantPause(isPaused: boolean): Promise<{ isPaused: boolean }> {
+  const res = await adminFetch('/api/admin/tenant/pause', {
+    method: 'PUT',
+    body: JSON.stringify({ isPaused }),
+  })
+  return parseJson<{ isPaused: boolean }>(res)
+}
+
+// ── Auth ──────────────────────────────────────────────────────────
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  const res = await adminFetch('/api/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify({ currentPassword, newPassword }),
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => null) as { message?: string } | null
+    throw new Error(body?.message ?? `Error ${res.status} al cambiar la contraseña`)
+  }
 }
 
 // ── Metrics ──────────────────────────────────────────────────────────
@@ -658,4 +717,48 @@ export async function getMetrics(period: MetricsPeriod): Promise<MetricsData> {
 
   const res = await adminFetch(url)
   return parseJson<MetricsData>(res)
+}
+
+// ── Export CSV ──────────────────────────────────────────────────────────
+
+async function triggerCsvDownload(res: Response, fallbackFilename: string): Promise<void> {
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new Error(`Export failed ${res.status}: ${text}`)
+  }
+
+  const blob = await res.blob()
+  const disposition = res.headers.get('Content-Disposition') ?? ''
+  const match = /filename="?([^"]+)"?/.exec(disposition)
+  const filename = match?.[1] ?? fallbackFilename
+
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
+
+export async function exportOrders(params?: { status?: string; from?: string; to?: string }): Promise<void> {
+  const search = new URLSearchParams()
+  if (params?.status) search.append('status', params.status)
+  if (params?.from) search.append('from', params.from)
+  if (params?.to) search.append('to', params.to)
+  const query = search.toString() ? `?${search.toString()}` : ''
+
+  const res = await adminFetch(`/api/admin/orders/export${query}`)
+  return triggerCsvDownload(res, 'pedidos.csv')
+}
+
+export async function exportMetrics(params?: { from?: string; to?: string }): Promise<void> {
+  const search = new URLSearchParams()
+  if (params?.from) search.append('from', params.from)
+  if (params?.to) search.append('to', params.to)
+  const query = search.toString() ? `?${search.toString()}` : ''
+
+  const res = await adminFetch(`/api/admin/metrics/export${query}`)
+  return triggerCsvDownload(res, 'metricas.csv')
 }

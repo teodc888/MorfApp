@@ -1,7 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { toast } from 'sonner'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   getAdminCategories,
   createCategory,
@@ -34,6 +36,7 @@ type ProductForm = {
   imageUrl: string
   sortOrder: number
   isActive: boolean
+  isOutOfStock: boolean
 }
 
 type ConfirmDialog = { open: boolean; type: 'category' | 'product' | null; id: string; name: string }
@@ -56,50 +59,43 @@ const EMOJI_OPTIONS = [
 const EMPTY_CAT: CategoryForm = { name: '', emoji: '🍽️', sortOrder: 0, isActive: true }
 const EMPTY_PROD: ProductForm = {
   categoryId: '', name: '', description: '', price: '',
-  emoji: '🍔', imageUrl: '', sortOrder: 0, isActive: true,
+  emoji: '🍔', imageUrl: '', sortOrder: 0, isActive: true, isOutOfStock: false,
 }
 
 export default function MenuPage() {
-  const [categories, setCategories] = useState<CategoryAdmin[]>([])
-  const [availableGroups, setAvailableGroups] = useState<ModifierGroupAdmin[]>([])
-  const [availableSupplies, setAvailableSupplies] = useState<SupplyDto[]>([])
-  const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
+
+  const categoriesQuery = useQuery({ queryKey: ['admin-categories'], queryFn: getAdminCategories })
+  const groupsQuery = useQuery({ queryKey: ['modifier-groups'], queryFn: getModifierGroups })
+  const suppliesQuery = useQuery({ queryKey: ['supplies'], queryFn: getSupplies })
+
+  const categories = (categoriesQuery.data ?? []) as CategoryAdmin[]
+  const availableGroups: ModifierGroupAdmin[] = groupsQuery.data ?? []
+  const availableSupplies: SupplyDto[] = suppliesQuery.data ?? []
+  const loading = categoriesQuery.isLoading || groupsQuery.isLoading || suppliesQuery.isLoading
+
+  useEffect(() => {
+    if (categoriesQuery.error || groupsQuery.error || suppliesQuery.error) {
+      toast.error('No se pudieron cargar las categorías')
+    }
+  }, [categoriesQuery.error, groupsQuery.error, suppliesQuery.error])
 
   const [catModal, setCatModal] = useState<{ open: boolean; editing: CategoryAdmin | null }>({ open: false, editing: null })
   const [catForm, setCatForm] = useState<CategoryForm>(EMPTY_CAT)
-  const [catSaving, setCatSaving] = useState(false)
 
   const [prodModal, setProdModal] = useState<{ open: boolean; editing: ProductAdmin | null; defaultCategoryId: string }>({ open: false, editing: null, defaultCategoryId: '' })
   const [prodForm, setProdForm] = useState<ProductForm>(EMPTY_PROD)
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([])
-  const [prodSaving, setProdSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
 
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog>({ open: false, type: null, id: '', name: '' })
   const [discountModal, setDiscountModal] = useState<{ prodId: string; prodName: string; current: number | null } | null>(null)
   const [discountInput, setDiscountInput] = useState('')
-  const [discountSaving, setDiscountSaving] = useState(false)
 
   const [, setProductSupplies] = useState<ProductSupplyDto[]>([])
   const [selectedSupplyIds, setSelectedSupplyIds] = useState<string[]>([])
   const [supplyQuantities, setSupplyQuantities] = useState<Record<string, string>>({})
   const [supplyUnknownQty, setSupplyUnknownQty] = useState<Record<string, boolean>>({})
-
-  const load = useCallback(async () => {
-    try {
-      const [data, groups, supplies] = await Promise.all([getAdminCategories(), getModifierGroups(), getSupplies()])
-      setCategories(data as CategoryAdmin[])
-      setAvailableGroups(groups)
-      setAvailableSupplies(supplies)
-    } catch {
-      toast.error('No se pudieron cargar las categorías')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { load() }, [load])
 
   function openNewCat() {
     setCatForm({ ...EMPTY_CAT, sortOrder: categories.length })
@@ -109,33 +105,38 @@ export default function MenuPage() {
     setCatForm({ name: cat.name, emoji: cat.emoji, sortOrder: cat.sortOrder, isActive: cat.isActive })
     setCatModal({ open: true, editing: cat })
   }
-  async function saveCat() {
-    setCatSaving(true)
-    try {
+
+  const catMutation = useMutation({
+    mutationFn: async () => {
       if (catModal.editing) {
         await updateCategory(catModal.editing.id, { ...catForm, isActive: catForm.isActive ?? true })
       } else {
         await createCategory({ name: catForm.name, emoji: catForm.emoji, sortOrder: catForm.sortOrder })
       }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-categories'] })
       setCatModal({ open: false, editing: null })
-      await load()
       toast.success('Categoría guardada')
-    } catch {
-      toast.error('Error al guardar categoría')
-    } finally {
-      setCatSaving(false)
-    }
+    },
+    onError: () => toast.error('Error al guardar categoría'),
+  })
+  function saveCat() {
+    catMutation.mutate()
   }
-  async function confirmRemoveCat() {
-    if (confirmDialog.type !== 'category') return
-    try {
-      await deleteCategory(confirmDialog.id)
+
+  const deleteCatMutation = useMutation({
+    mutationFn: (id: string) => deleteCategory(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-categories'] })
       setConfirmDialog({ open: false, type: null, id: '', name: '' })
-      await load()
       toast.success('Categoría eliminada')
-    } catch {
-      toast.error('Error al eliminar categoría')
-    }
+    },
+    onError: () => toast.error('Error al eliminar categoría'),
+  })
+  function confirmRemoveCat() {
+    if (confirmDialog.type !== 'category') return
+    deleteCatMutation.mutate(confirmDialog.id)
   }
 
   function openNewProd(categoryId: string) {
@@ -154,6 +155,7 @@ export default function MenuPage() {
       description: prod.description ?? '', price: String(prod.price),
       emoji: prod.emoji, imageUrl: prod.imageUrl ?? '',
       sortOrder: prod.sortOrder, isActive: prod.isActive,
+      isOutOfStock: prod.isOutOfStock,
     })
     setSelectedGroupIds((prod as ProductAdmin & { modifierGroupIds?: string[] }).modifierGroupIds ?? [])
     setProductSupplies([])
@@ -176,14 +178,15 @@ export default function MenuPage() {
       setSupplyUnknownQty(unknownQty)
     } catch { /* no bloqueamos */ }
   }
-  async function saveProd() {
-    setProdSaving(true)
-    try {
+
+  const saveProdMutation = useMutation({
+    mutationFn: async () => {
       const body = {
         categoryId: prodForm.categoryId, name: prodForm.name,
         description: prodForm.description, price: parseFloat(prodForm.price) || 0,
         emoji: prodForm.emoji, imageUrl: prodForm.imageUrl || null,
         sortOrder: prodForm.sortOrder, isActive: prodForm.isActive, tags: [],
+        isOutOfStock: prodForm.isOutOfStock,
       }
       const suppliesPayload = selectedSupplyIds.map((id) => ({
         supplyId: id,
@@ -199,54 +202,59 @@ export default function MenuPage() {
         await updateProductModifierGroups(created.id, selectedGroupIds)
         await updateProductSupplies(created.id, suppliesPayload)
       }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-categories'] })
       setProdModal({ open: false, editing: null, defaultCategoryId: '' })
-      await load()
       toast.success('Producto guardado')
-    } catch {
-      toast.error('Error al guardar producto')
-    } finally {
-      setProdSaving(false)
-    }
+    },
+    onError: () => toast.error('Error al guardar producto'),
+  })
+  function saveProd() {
+    saveProdMutation.mutate()
   }
-  async function confirmRemoveProd() {
-    if (confirmDialog.type !== 'product') return
-    try {
-      await deleteProduct(confirmDialog.id)
+
+  const deleteProdMutation = useMutation({
+    mutationFn: (id: string) => deleteProduct(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-categories'] })
       setConfirmDialog({ open: false, type: null, id: '', name: '' })
-      await load()
       toast.success('Producto eliminado')
-    } catch {
-      toast.error('Error al eliminar producto')
-    }
+    },
+    onError: () => toast.error('Error al eliminar producto'),
+  })
+  function confirmRemoveProd() {
+    if (confirmDialog.type !== 'product') return
+    deleteProdMutation.mutate(confirmDialog.id)
   }
+
   function openDiscountModal(prod: ProductAdmin) {
     setDiscountModal({ prodId: prod.id, prodName: prod.name, current: prod.discountPercent ?? null })
     setDiscountInput(prod.discountPercent ? String(prod.discountPercent) : '')
   }
-  async function saveDiscount() {
-    if (!discountModal) return
-    setDiscountSaving(true)
-    try {
-      const percent = discountInput.trim() === '' ? null : (parseInt(discountInput) || null)
-      await updateProductDiscount(discountModal.prodId, percent)
+
+  const discountMutation = useMutation({
+    mutationFn: (percent: number | null) => updateProductDiscount(discountModal!.prodId, percent),
+    onSuccess: (_data, percent) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-categories'] })
       setDiscountModal(null)
       setDiscountInput('')
-      await load()
-      toast.success('Descuento guardado')
-    } catch {
-      toast.error('Error al guardar descuento')
-    } finally {
-      setDiscountSaving(false)
-    }
+      toast.success(percent === null ? 'Descuento eliminado' : 'Descuento guardado')
+    },
+    onError: (_err, percent) => {
+      toast.error(percent === null ? 'Error al quitar descuento' : 'Error al guardar descuento')
+    },
+  })
+  function saveDiscount() {
+    if (!discountModal) return
+    const percent = discountInput.trim() === '' ? null : (parseInt(discountInput) || null)
+    discountMutation.mutate(percent)
   }
   function removeDiscount() {
     if (!discountModal) return
-    setDiscountSaving(true)
-    updateProductDiscount(discountModal.prodId, null)
-      .then(() => { setDiscountModal(null); setDiscountInput(''); toast.success('Descuento eliminado'); return load() })
-      .catch(() => toast.error('Error al quitar descuento'))
-      .finally(() => setDiscountSaving(false))
+    discountMutation.mutate(null)
   }
+
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -269,6 +277,10 @@ export default function MenuPage() {
 
   const catFormValid = catForm.name.trim() !== '' && catForm.emoji.trim() !== ''
   const prodFormValid = prodForm.name.trim() !== '' && prodForm.categoryId.trim() !== '' && prodForm.price.trim() !== '' && !isNaN(parseFloat(prodForm.price)) && parseFloat(prodForm.price) > 0
+
+  const catSaving = catMutation.isPending
+  const prodSaving = saveProdMutation.isPending
+  const discountSaving = discountMutation.isPending
 
   if (loading) {
     return (
@@ -351,6 +363,7 @@ export default function MenuPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
                       <span className="serif" style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>{prod.name}</span>
                       {!p.isActive && <span className="chip">Pausado</span>}
+                      {p.isOutOfStock && <span className="chip error">Sin stock</span>}
                       {p.discountPercent && (
                         <span className="chip warning">-{p.discountPercent}%</span>
                       )}
@@ -492,9 +505,8 @@ export default function MenuPage() {
               <div className="field">
                 <label>Imagen</label>
                 {prodForm.imageUrl && (
-                  <div style={{ position: 'relative', marginBottom: 8 }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={prodForm.imageUrl} alt="Preview" style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--outline-soft)' }} />
+                  <div style={{ position: 'relative', marginBottom: 8, width: '100%', height: 140, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--outline-soft)' }}>
+                    <Image src={prodForm.imageUrl} alt="Preview" fill style={{ objectFit: 'cover' }} unoptimized />
                     <button onClick={() => setProdForm(f => ({ ...f, imageUrl: '' }))} style={{ position: 'absolute', top: 8, right: 8, background: 'white', border: 'none', borderRadius: '50%', width: 28, height: 28, display: 'grid', placeItems: 'center', cursor: 'pointer', boxShadow: 'var(--shadow-card)' }}>
                       <span className="mat xs">close</span>
                     </button>
@@ -535,6 +547,15 @@ export default function MenuPage() {
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>Disponible</div>
                   <div style={{ fontSize: 12, color: 'var(--muted)' }}>Si lo apagás, no aparece en la carta.</div>
+                </div>
+              </label>
+
+              {/* Out of stock toggle */}
+              <label className="tap" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'var(--surface-container)', borderRadius: 10, cursor: 'pointer' }}>
+                <input type="checkbox" checked={prodForm.isOutOfStock} onChange={e => setProdForm(f => ({ ...f, isOutOfStock: e.target.checked }))} style={{ width: 18, height: 18, accentColor: 'var(--primary)' }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>Agotado hoy</div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)' }}>El producto sigue visible en la carta pero los clientes no podrán pedirlo hasta que lo reactives.</div>
                 </div>
               </label>
 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
+import { toast } from 'sonner'
 import { getSuperAdminTenants, updateTenant, resetTenantPassword, type SuperAdminTenant } from '@/lib/superadmin-api'
 
 const PLANS = ['Basico', 'Pro', 'Negocio']
@@ -102,7 +103,7 @@ export default function EditTenantPage() {
       const path = data.setupUrl.replace('/activate', '/setup')
       setResetUrl(`${frontendBase}${path}`)
     } catch (err) {
-      alert('Error al generar el link: ' + (err instanceof Error ? err.message : 'desconocido'))
+      toast.error('Error al generar el link: ' + (err instanceof Error ? err.message : 'desconocido'))
     } finally {
       setResettingPassword(false)
     }

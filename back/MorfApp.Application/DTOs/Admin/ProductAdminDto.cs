@@ -13,6 +13,7 @@ public record ProductAdminDto(
     string? ImageUrl,
     int SortOrder,
     bool IsActive,
+    bool IsOutOfStock,
     List<string> Tags,
     List<string> ModifierGroupIds
 );
@@ -26,6 +27,7 @@ public record CreateProductRequest(
     string? ImageUrl,
     int SortOrder,
     bool IsActive,
+    bool IsOutOfStock,
     List<string> Tags
 );
 
@@ -38,6 +40,7 @@ public record UpdateProductRequest(
     string? ImageUrl,
     int SortOrder,
     bool IsActive,
+    bool IsOutOfStock,
     List<string> Tags
 );
 

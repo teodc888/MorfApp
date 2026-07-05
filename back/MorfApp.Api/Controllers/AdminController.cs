@@ -21,14 +21,14 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
     // ── Tenant info ──────────────────────────────────────────────────────────
 
     [HttpGet("me")]
-    public async Task<ActionResult<TenantInfoDto>> GetMe()
+    public async Task<ActionResult<TenantInfoDto>> GetMe(CancellationToken ct = default)
     {
         var tenant = await db.Tenants
             .Include(t => t.Branding)
             .Include(t => t.DeliveryConfig)
             .Include(t => t.PaymentConfig)
             .Include(t => t.BusinessHours)
-            .FirstOrDefaultAsync(t => t.Id == TenantId);
+            .FirstOrDefaultAsync(t => t.Id == TenantId, ct);
 
         if (tenant is null) return NotFound();
 
@@ -36,15 +36,15 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
     }
 
     [HttpPut("me")]
-    public async Task<IActionResult> UpdateMe([FromBody] UpdateTenantRequest req)
+    public async Task<IActionResult> UpdateMe([FromBody] UpdateTenantRequest req, CancellationToken ct = default)
     {
-        var tenant = await db.Tenants.FindAsync(TenantId);
+        var tenant = await db.Tenants.FindAsync(new object[] { TenantId }, ct);
         if (tenant is null) return NotFound();
 
         tenant.Name = req.Name;
         tenant.WhatsappNumber = req.WhatsappNumber;
         tenant.UpdatedAt = DateTime.UtcNow;
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(ct);
         return NoContent();
     }
 
@@ -158,6 +158,23 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
         return NoContent();
     }
 
+    // PUT /api/admin/tenant/pause
+    // Pausa o reanuda la tienda de forma inmediata, sin importar el horario configurado.
+    // Mientras IsPaused=true, StoreController.IsCurrentlyOpen()/GetTenant fuerzan isOpen=false
+    // y CreateOrder rechaza pedidos nuevos con 409 STORE_CLOSED.
+    [HttpPut("tenant/pause")]
+    public async Task<IActionResult> UpdateTenantPause([FromBody] UpdateTenantPauseRequest req)
+    {
+        var tenant = await db.Tenants.FindAsync(TenantId);
+        if (tenant is null) return NotFound();
+
+        tenant.IsPaused = req.IsPaused;
+        tenant.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+
+        return Ok(new { isPaused = tenant.IsPaused });
+    }
+
     [HttpPut("whatsapp-template")]
     public async Task<IActionResult> UpdateWhatsAppTemplate([FromBody] UpdateWhatsAppTemplateRequest req)
     {
@@ -203,20 +220,20 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
     // ── Categories ───────────────────────────────────────────────────────────
 
     [HttpGet("categories")]
-    public async Task<ActionResult<List<CategoryAdminDto>>> GetCategories()
+    public async Task<ActionResult<List<CategoryAdminDto>>> GetCategories(CancellationToken ct = default)
     {
         var cats = await db.Categories
             .Where(c => c.TenantId == TenantId)
             .OrderBy(c => c.SortOrder)
             .Include(c => c.Products.OrderBy(p => p.SortOrder))
                 .ThenInclude(p => p.ModifierGroups)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         return Ok(cats.Select(MapCategory).ToList());
     }
 
     [HttpPost("categories")]
-    public async Task<ActionResult<CategoryAdminDto>> CreateCategory([FromBody] CreateCategoryRequest req)
+    public async Task<ActionResult<CategoryAdminDto>> CreateCategory([FromBody] CreateCategoryRequest req, CancellationToken ct = default)
     {
         var cat = new Category
         {
@@ -226,47 +243,47 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
             SortOrder = req.SortOrder
         };
         db.Categories.Add(cat);
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(ct);
 
         var created = await db.Categories
             .Include(c => c.Products)
                 .ThenInclude(p => p.ModifierGroups)
-            .FirstAsync(c => c.Id == cat.Id);
+            .FirstAsync(c => c.Id == cat.Id, ct);
         return Created($"/api/admin/categories/{cat.Id}", MapCategory(created));
     }
 
     [HttpPut("categories/{id}")]
-    public async Task<IActionResult> UpdateCategory(string id, [FromBody] UpdateCategoryRequest req)
+    public async Task<IActionResult> UpdateCategory(string id, [FromBody] UpdateCategoryRequest req, CancellationToken ct = default)
     {
-        var cat = await db.Categories.FirstOrDefaultAsync(c => c.Id == id && c.TenantId == TenantId);
+        var cat = await db.Categories.FirstOrDefaultAsync(c => c.Id == id && c.TenantId == TenantId, ct);
         if (cat is null) return NotFound();
 
         cat.Name = req.Name;
         cat.Emoji = req.Emoji ?? "🍽️";
         cat.SortOrder = req.SortOrder;
         cat.IsActive = req.IsActive;
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(ct);
         return NoContent();
     }
 
     [HttpDelete("categories/{id}")]
-    public async Task<IActionResult> DeleteCategory(string id)
+    public async Task<IActionResult> DeleteCategory(string id, CancellationToken ct = default)
     {
-        var cat = await db.Categories.FirstOrDefaultAsync(c => c.Id == id && c.TenantId == TenantId);
+        var cat = await db.Categories.FirstOrDefaultAsync(c => c.Id == id && c.TenantId == TenantId, ct);
         if (cat is null) return NotFound();
 
         db.Categories.Remove(cat);
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(ct);
         return NoContent();
     }
 
     // ── Products ─────────────────────────────────────────────────────────────
 
     [HttpPost("products")]
-    public async Task<ActionResult<ProductAdminDto>> CreateProduct([FromBody] CreateProductRequest req)
+    public async Task<ActionResult<ProductAdminDto>> CreateProduct([FromBody] CreateProductRequest req, CancellationToken ct = default)
     {
         var catExists = await db.Categories
-            .AnyAsync(c => c.Id == req.CategoryId && c.TenantId == TenantId);
+            .AnyAsync(c => c.Id == req.CategoryId && c.TenantId == TenantId, ct);
         if (!catExists) return BadRequest(new { message = "Categoría no encontrada" });
 
         var product = new Product
@@ -280,17 +297,18 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
             ImageUrl = req.ImageUrl,
             SortOrder = req.SortOrder,
             IsActive = req.IsActive,
+            IsOutOfStock = req.IsOutOfStock,
             Tags = req.Tags
         };
         db.Products.Add(product);
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(ct);
         return Created($"/api/admin/products/{product.Id}", MapProduct(product));
     }
 
     [HttpPut("products/{id}")]
-    public async Task<IActionResult> UpdateProduct(string id, [FromBody] UpdateProductRequest req)
+    public async Task<IActionResult> UpdateProduct(string id, [FromBody] UpdateProductRequest req, CancellationToken ct = default)
     {
-        var product = await db.Products.FirstOrDefaultAsync(p => p.Id == id && p.TenantId == TenantId);
+        var product = await db.Products.FirstOrDefaultAsync(p => p.Id == id && p.TenantId == TenantId, ct);
         if (product is null) return NotFound();
 
         product.CategoryId = req.CategoryId;
@@ -301,52 +319,53 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
         product.ImageUrl = req.ImageUrl;
         product.SortOrder = req.SortOrder;
         product.IsActive = req.IsActive;
+        product.IsOutOfStock = req.IsOutOfStock;
         product.Tags = req.Tags;
         product.UpdatedAt = DateTime.UtcNow;
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(ct);
         return NoContent();
     }
 
     [HttpPut("products/{id}/discount")]
-    public async Task<IActionResult> UpdateProductDiscount(string id, [FromBody] UpdateProductDiscountRequest req)
+    public async Task<IActionResult> UpdateProductDiscount(string id, [FromBody] UpdateProductDiscountRequest req, CancellationToken ct = default)
     {
-        var product = await db.Products.FirstOrDefaultAsync(p => p.Id == id && p.TenantId == TenantId);
+        var product = await db.Products.FirstOrDefaultAsync(p => p.Id == id && p.TenantId == TenantId, ct);
         if (product is null) return NotFound();
 
         product.DiscountPercent = req.DiscountPercent is > 0 ? req.DiscountPercent : null;
         product.UpdatedAt = DateTime.UtcNow;
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(ct);
         return NoContent();
     }
 
     [HttpPut("products/{id}/modifier-groups")]
-    public async Task<IActionResult> UpdateProductModifierGroups(string id, [FromBody] UpdateProductModifierGroupsRequest req)
+    public async Task<IActionResult> UpdateProductModifierGroups(string id, [FromBody] UpdateProductModifierGroupsRequest req, CancellationToken ct = default)
     {
         var product = await db.Products
             .Include(p => p.ModifierGroups)
-            .FirstOrDefaultAsync(p => p.Id == id && p.TenantId == TenantId);
+            .FirstOrDefaultAsync(p => p.Id == id && p.TenantId == TenantId, ct);
         if (product is null) return NotFound();
 
         var newGroups = await db.ModifierGroups
             .Where(g => req.ModifierGroupIds.Contains(g.Id) && g.TenantId == TenantId)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         product.ModifierGroups.Clear();
         foreach (var group in newGroups)
             product.ModifierGroups.Add(group);
 
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(ct);
         return NoContent();
     }
 
     [HttpDelete("products/{id}")]
-    public async Task<IActionResult> DeleteProduct(string id)
+    public async Task<IActionResult> DeleteProduct(string id, CancellationToken ct = default)
     {
-        var product = await db.Products.FirstOrDefaultAsync(p => p.Id == id && p.TenantId == TenantId);
+        var product = await db.Products.FirstOrDefaultAsync(p => p.Id == id && p.TenantId == TenantId, ct);
         if (product is null) return NotFound();
 
         db.Products.Remove(product);
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(ct);
         return NoContent();
     }
 
@@ -498,7 +517,10 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
     // ── Mappers ──────────────────────────────────────────────────────────────
 
     private static TenantInfoDto MapTenantInfo(Domain.Entities.Tenant t) => new(
-        t.Id, t.Slug, t.Name, t.WhatsappNumber, t.WhatsAppMessageTemplate, t.Plan.ToString(),
+        t.Id, t.Slug, t.Name, t.WhatsappNumber, t.WhatsAppMessageTemplate, t.Plan.ToString(), t.IsPaused,
+        t.SubscriptionEndsAt.HasValue
+            ? (int?)Math.Floor((t.SubscriptionEndsAt.Value - DateTime.UtcNow).TotalDays)
+            : null,
         t.Branding is null ? null : new BrandingAdminDto(
             t.Branding.ColorPrimary, t.Branding.ColorAccent,
             t.Branding.LogoUrl, t.Branding.BannerUrl,
@@ -526,7 +548,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
 
     private static ProductAdminDto MapProduct(Product p) => new(
         p.Id, p.CategoryId, p.Name, p.Description,
-        p.Price, p.DiscountPercent, p.Emoji, p.ImageUrl, p.SortOrder, p.IsActive, p.Tags,
+        p.Price, p.DiscountPercent, p.Emoji, p.ImageUrl, p.SortOrder, p.IsActive, p.IsOutOfStock, p.Tags,
         p.ModifierGroups.Select(g => g.Id).ToList()
     );
 
@@ -540,17 +562,20 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
     // ── Promotions ────────────────────────────────────────────────────────────
 
     [HttpGet("promotions")]
-    public async Task<List<PromotionAdminDto>> GetPromotions()
+    public async Task<List<PromotionAdminDto>> GetPromotions(CancellationToken ct = default)
     {
         var promotions = await db.Promotions
             .Where(p => p.TenantId == TenantId)
             .Include(p => p.ModifierGroups)
             .OrderBy(p => p.SortOrder)
-            .ToListAsync();
+            .ToListAsync(ct);
 
-        var allProducts = await db.Products
-            .Where(p => p.TenantId == TenantId)
-            .ToListAsync();
+        var neededProductIds = promotions.SelectMany(p => p.ProductIds).Distinct().ToList();
+        var allProducts = neededProductIds.Count == 0
+            ? new List<Product>()
+            : await db.Products
+                .Where(p => p.TenantId == TenantId && neededProductIds.Contains(p.Id))
+                .ToListAsync(ct);
 
         return promotions.Select(promo =>
         {

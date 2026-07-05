@@ -2,7 +2,8 @@
 
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { formatPrice } from '@/lib/utils'
+import { formatPrice, loadPendingWhatsAppOrder, buildOrderFollowUpMessage } from '@/lib/utils'
+import { useTenant } from '@/components/store/StoreProviders'
 import { STITCH } from '@/lib/stitch-theme'
 
 const DS = {
@@ -19,22 +20,41 @@ const DS = {
 
 export default function SuccessPage() {
   const searchParams = useSearchParams()
-  
+  const tenant = useTenant()
+
   const orderId = searchParams.get('orderId') || '—'
   const total = searchParams.get('total') || '0'
   const estimatedTime = searchParams.get('time') || '30-45 min'
 
+  const handleSendWhatsApp = () => {
+    const pending = loadPendingWhatsAppOrder(orderId)
+    if (pending) {
+      window.open(`https://wa.me/${pending.phoneNumber}?text=${encodeURIComponent(pending.message)}`, '_blank')
+      return
+    }
+    const fallbackMessage = buildOrderFollowUpMessage(tenant.name, tenant.branding.emojiIcon, orderId, parseFloat(total))
+    const number = tenant.whatsappNumber.replace(/\D/g, '')
+    window.open(`https://wa.me/${number}?text=${encodeURIComponent(fallbackMessage)}`, '_blank')
+  }
+
+  const ambientBackgroundStyle = tenant.branding.bannerUrl
+    ? {
+        backgroundImage: `url(${tenant.branding.bannerUrl})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        filter: 'blur(20px)',
+      }
+    : {
+        background: `linear-gradient(135deg, ${tenant.branding.colorPrimary}, ${tenant.branding.colorAccent})`,
+        filter: 'blur(20px)',
+      }
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4" style={{ backgroundColor: DS.bg }}>
-      {/* Ambient Background - blurred image */}
-      <div 
+      {/* Ambient Background - blurred image or tenant gradient */}
+      <div
         className="absolute inset-0 pointer-events-none opacity-10"
-        style={{
-          backgroundImage: 'url(https://lh3.googleusercontent.com/aida/ADBb0uhAyYvilYnT2PB-MYz3FKdoWh_kYoQUZh8gCCNmX6PwVXMQwWrhZheD9XAaayRPsAT4hhaAZP9wjUWsumDQIPdAYHdOBldE4QaqfpmXnWYmd_aOeAsBgHQr7AWe6-WqTapaicrgBrHcuwOq4wDCgDVviSwRd29tbo3xv3fqCc57T3uU6jiVmVxZVO3ZhdfW3aWkwKFJIeE2P2sF_frMXmkdpUUCUdMTvsXRLm63IXB58qPNMdchxFKKyRF3vavuuUIBJlmpBaSCyvE)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          filter: 'blur(20px)',
-        }}
+        style={ambientBackgroundStyle}
       />
 
       <main className="w-full max-w-md mx-auto relative z-10 flex flex-col items-center">
@@ -118,7 +138,35 @@ export default function SuccessPage() {
           </div>
         </div>
 
-        {/* Action Button */}
+        {/* Action Buttons */}
+        <button
+          type="button"
+          onClick={handleSendWhatsApp}
+          className="w-full py-3 rounded-xl font-semibold text-white flex justify-center items-center gap-2 mb-3"
+          style={{
+            backgroundColor: '#25D366',
+            boxShadow: '0px 4px 12px rgba(37,211,102,0.3)',
+          }}
+        >
+          <span>💬</span>
+          Enviar pedido por WhatsApp
+        </button>
+
+        {orderId !== '—' && (
+          <Link
+            href={`/store/${tenant.slug}/order/${orderId}`}
+            className="w-full py-3 rounded-xl font-semibold flex justify-center items-center gap-2 mb-3"
+            style={{
+              backgroundColor: 'transparent',
+              border: `2px solid ${DS.primary}`,
+              color: DS.primary,
+            }}
+          >
+            <span>📦</span>
+            Seguir mi pedido
+          </Link>
+        )}
+
         <Link
           href="/"
           className="w-full py-3 rounded-xl font-semibold text-white flex justify-center items-center gap-2"

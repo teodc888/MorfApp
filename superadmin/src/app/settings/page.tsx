@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { toast } from 'sonner'
 import { getSettings, updateSettings } from '@/lib/superadmin-api'
 
 const TEMPLATE_VARIABLES = [
@@ -14,8 +15,6 @@ const DEFAULT_TEMPLATE = `Hola! 👋 Te escribimos desde MorfApp. Tu plan *{plan
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
   const [template, setTemplate] = useState(DEFAULT_TEMPLATE)
   const [showVarMenu, setShowVarMenu] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -37,7 +36,7 @@ export default function SettingsPage() {
       setTemplate(settings.notificationMessageTemplate || DEFAULT_TEMPLATE)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al cargar configuración'
-      setError(msg)
+      toast.error(msg)
     } finally {
       setLoading(false)
     }
@@ -64,18 +63,15 @@ export default function SettingsPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setError(null)
-    setSuccess(false)
     setSubmitting(true)
     setShowVarMenu(false)
 
     try {
       await updateSettings(template)
-      setSuccess(true)
-      setTimeout(() => setSuccess(false), 3000)
+      toast.success('Cambios guardados correctamente')
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al guardar'
-      setError(msg)
+      toast.error(msg)
     } finally {
       setSubmitting(false)
     }
@@ -170,14 +166,6 @@ export default function SettingsPage() {
             {submitting ? 'Guardando...' : 'Guardar cambios'}
           </button>
         </div>
-
-        {/* Mensajes */}
-        {error && (
-          <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>
-        )}
-        {success && (
-          <p className="text-sm text-green-600 bg-green-50 px-3 py-2 rounded-lg">✓ Cambios guardados correctamente</p>
-        )}
       </form>
     </div>
   )

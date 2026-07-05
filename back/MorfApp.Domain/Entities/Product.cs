@@ -13,6 +13,7 @@ public class Product
     public string? ImageUrl { get; set; }
     public int SortOrder { get; set; }
     public bool IsActive { get; set; } = true;
+    public bool IsOutOfStock { get; set; } = false;
     public bool IsBuilder { get; set; }
     public List<string> Tags { get; set; } = [];
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

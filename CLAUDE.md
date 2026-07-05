@@ -93,13 +93,13 @@ The SuperAdmin app (`superadmin/`) is a **completely separate Next.js app** — 
 - `proxy.ts` — Next.js middleware that rewrites subdomain requests to app routes
 - `app/admin/` — **MAIN admin panel** (client-side, JWT-gated)
   - Routes: `login`, `branding`, `config`, `menu`, `modifiers`, `orders`, `promotions`, `whatsapp`, `metrics`, `insumos`, `proveedores`
-  - **ONLY work here** — `app/store/[tenant]/admin/` exists but is NOT used
-- `app/store/[tenant]/` — public storefront (SSR, `next: { revalidate: 60 }`)
+  - **ONLY work here** — the old unused admin at `app/store/[tenant]/admin/` was removed in Sprint 5 (it was dead code, never wired up)
+- `app/store/[tenant]/` — public storefront (SSR, `next: { revalidate: 60 }` for `getTenant`/`getMenu`/`getPromotions`; mutations like `createOrder`/`registerRedemption` and the order-tracking read stay `no-store`)
 - `lib/api.ts` — SSR-safe fetch helpers for the store (uses `NEXT_INTERNAL_API_URL` on server)
 - `lib/admin-api.ts` — authenticated fetch wrapper with automatic token refresh and retry queue
 - `lib/auth.ts` — JWT storage in `localStorage` (access + refresh token)
-- `lib/useWebSocket.ts` — WebSocket hook for real-time order updates; auto-reconnects every 3s on disconnect; invalidates TanStack Query `['orders']` and `['metrics']` cache on events
-- `store/cart.ts` — Zustand store for cart state (in-memory, not persisted)
+- `lib/useWebSocket.ts` — WebSocket hook for real-time order updates; auto-reconnects every 3s on disconnect (reconnect timeout is cancelled and the socket closed on unmount, including while still `CONNECTING`); invalidates TanStack Query `['orders']` and `['metrics']` cache on events
+- `store/cart.ts` — Zustand store for cart state, **persisted to `localStorage`** via `zustand/middleware` `persist` (key `morfapp-cart`) — survives page reloads
 - `types/store.ts` — shared TypeScript types for the full domain model
 
 **State management**: TanStack Query handles server state for admin; `useCartStore` (Zustand) handles cart client state.
@@ -292,11 +292,11 @@ curl -s -o /dev/null -w "PROD API: %{http_code}\n" https://api.morfapp.app/healt
 
 - **Next.js version is 16.2.4** — read `node_modules/next/dist/docs/` before using APIs from training data; this version has breaking changes vs. Next.js 13/14.
 - The `back/`, `front/`, and `superadmin/` directories are entirely separate projects — never mix files into the repo root.
-- `IsCurrentlyOpen()` in `StoreController` uses UTC time; tenant timezone (`America/Argentina/Buenos_Aires`) is stored but not yet applied — TODO.
+- `IsCurrentlyOpen()` in `StoreController` already converts `DateTime.UtcNow` to the tenant timezone (`America/Argentina/Buenos_Aires`, hardcoded via `TimeZoneInfo.FindSystemTimeZoneById`) before comparing against `BusinessHour` — this is resolved, no longer a TODO. Note it doesn't yet read `Tenant.Timezone` per-tenant, it's hardcoded to Argentina for all tenants.
 
 ## Common mistakes to avoid
 
-- **Admin routes**: ONLY work in `front/src/app/admin/`. The `app/store/[tenant]/admin/` directory is NOT used.
+- **Admin routes**: ONLY work in `front/src/app/admin/`. The old `app/store/[tenant]/admin/` directory (unused dead code) was deleted in Sprint 5.
 - **SuperAdmin vs Admin**: SuperAdmin (`superadmin/` app) manages tenants at platform level. Admin (`front/app/admin/`) manages a single tenant's menu, orders, etc. They are different apps with different auth.
 - **Deployment env vars**: Running `npm run build` without env vars uses `.env.local` defaults (usually PROD). Always pass `NEXT_PUBLIC_API_URL` explicitly during build.
 - **After deploying**: always test actual functionality in the browser. A 200 status means the server is up, not that the feature works.

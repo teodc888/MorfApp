@@ -16,6 +16,4 @@ public record PromotionDto(
     List<ProductDto> Products,
     List<ModifierGroupDto> ModifierGroups);
 
-public record RegisterRedemptionRequest(string PhoneNumber, int Quantity);
-
 public record RedemptionStatusDto(int Used, int? MaxPerUser, bool CanRedeem);

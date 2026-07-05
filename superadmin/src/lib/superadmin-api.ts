@@ -48,8 +48,42 @@ export type SuperAdminSettings = {
   updatedAt: string
 }
 
+export type OrderCountByTenant = {
+  tenantId: string
+  tenantName: string
+  orderCount: number
+}
+
+export type TenantWithoutRecentOrders = {
+  tenantId: string
+  tenantName: string
+  lastOrderAt: string | null
+}
+
+export type UpcomingExpiration = {
+  tenantId: string
+  tenantName: string
+  subscriptionEndsAt: string
+  daysRemaining: number
+}
+
+export type SuperAdminDashboardDto = {
+  activeTenants: number
+  pendingTenants: number
+  expiredTenants: number
+  suspendedTenants: number
+  ordersLast7Days: OrderCountByTenant[]
+  ordersLast30Days: OrderCountByTenant[]
+  tenantsWithoutRecentOrders: TenantWithoutRecentOrders[]
+  upcomingExpirations: UpcomingExpiration[]
+}
+
 export async function getSuperAdminTenants(): Promise<SuperAdminTenant[]> {
   return json<SuperAdminTenant[]>(await adminFetch('/api/superadmin/tenants'))
+}
+
+export async function getSuperAdminDashboard(): Promise<SuperAdminDashboardDto> {
+  return json<SuperAdminDashboardDto>(await adminFetch('/api/superadmin/dashboard'))
 }
 
 export async function createTenant(payload: CreateTenantPayload): Promise<SuperAdminTenant> {
@@ -90,6 +124,22 @@ export async function getSettings(): Promise<SuperAdminSettings> {
 
 export async function resetTenantPassword(id: string): Promise<{ setupUrl: string }> {
   const res = await adminFetch(`/api/superadmin/tenants/${id}/reset-password`, {
+    method: 'POST',
+  })
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new Error(`API error ${res.status}: ${text}`)
+  }
+  return res.json()
+}
+
+export type ImpersonateResponse = {
+  accessToken: string
+  expiresIn: number
+}
+
+export async function impersonateTenant(id: string): Promise<ImpersonateResponse> {
+  const res = await adminFetch(`/api/superadmin/tenants/${id}/impersonate`, {
     method: 'POST',
   })
   if (!res.ok) {

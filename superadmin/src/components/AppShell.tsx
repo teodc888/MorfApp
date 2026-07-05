@@ -42,7 +42,7 @@ export default function AppShell({ children }: Props) {
   }
 
   // Páginas autenticadas — layout con sidebar
-  const isActive = (segment: string) => pathname.includes(segment)
+  const isActive = (segment: string) => segment === '/' ? pathname === '/' : pathname.includes(segment)
 
   return (
     <div className="min-h-screen bg-gray-50 flex w-full">
@@ -53,6 +53,17 @@ export default function AppShell({ children }: Props) {
           <span className="ml-1 text-xs text-gray-400 font-normal">super</span>
         </div>
         <nav className="flex-1 py-4 px-2 space-y-1">
+          <Link
+            href="/"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              isActive('/')
+                ? 'bg-indigo-50 text-indigo-600'
+                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+            }`}
+          >
+            <span className="text-base">📊</span>
+            Dashboard
+          </Link>
           <Link
             href="/tenants"
             className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${

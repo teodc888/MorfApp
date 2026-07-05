@@ -69,6 +69,8 @@ ssh teo@100.95.233.68
 | `psicoapp-frontend` | 3400 | https://psicoapp.teodc.com |
 | `aulavirtual` | 3700 | https://avstv.teodc.com + https://aulavirtual.teodc.com |
 | `combustible-api` | 8001 | https://api-combustible.teodc.com |
+| `entrenos-frontend` | 3450 | https://entre-nos.teodc.com |
+| `entrenos-api` | 5450 | https://api-entrenos.teodc.com |
 | `combustible-frontend` | 3600 | https://combustible.teodc.com |
 | `basecamp-game` | 3800 | https://basecamp-game.teodc.com |
 | `hilo-api` | 5080 | https://hilo-api.teodc.com |

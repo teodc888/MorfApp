@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using MorfApp.Application.Interfaces;
@@ -7,6 +8,7 @@ using MorfApp.Api;
 using MorfApp.Api.Services;
 using MorfApp.Infrastructure.Persistence;
 using System.Text;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -54,7 +56,43 @@ builder.Services.AddCors(options =>
     });
 });
 
+// Rate limiting — partición por IP. auth: fuerza bruta en login/reset; public: registro de tenants;
+// store: creación de pedidos / redemptions de promos.
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddPolicy("auth", httpContext => RateLimitPartition.GetFixedWindowLimiter(
+        partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        factory: _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 5,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+        }));
+
+    options.AddPolicy("public", httpContext => RateLimitPartition.GetFixedWindowLimiter(
+        partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        factory: _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 3,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+        }));
+
+    options.AddPolicy("store", httpContext => RateLimitPartition.GetFixedWindowLimiter(
+        partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        factory: _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 30,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+        }));
+});
+
 builder.Services.AddScoped<IEmailService, EmailService>();
+
+builder.Services.AddHostedService<MorfApp.Api.Services.SubscriptionExpirationService>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -185,6 +223,7 @@ if (string.IsNullOrWhiteSpace(uploadsPath))
 Directory.CreateDirectory(uploadsPath);
 
 app.UseCors();
+app.UseRateLimiter();
 
 // Global exception handler — must ir DESPUÉS de UseCors para que los headers CORS ya estén seteados
 // Evita que el browser vea "CORS error" en lugar del verdadero error 500
@@ -196,15 +235,16 @@ app.Use(async (context, next) =>
     }
     catch (Exception ex)
     {
+        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Excepción no manejada en {Path}", context.Request.Path);
+
         if (!context.Response.HasStarted)
         {
             context.Response.StatusCode = 500;
             context.Response.ContentType = "application/json";
-            var payload = System.Text.Json.JsonSerializer.Serialize(new
-            {
-                message = "Error interno del servidor",
-                detail = ex.Message
-            });
+            var payload = app.Environment.IsDevelopment()
+                ? System.Text.Json.JsonSerializer.Serialize(new { message = "Error interno del servidor", detail = ex.Message })
+                : System.Text.Json.JsonSerializer.Serialize(new { message = "Error interno del servidor" });
             await context.Response.WriteAsync(payload);
         }
     }

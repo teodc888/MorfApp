@@ -1,21 +1,99 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using MorfApp.Application.DTOs.SuperAdmin;
 using MorfApp.Application.Interfaces;
 using MorfApp.Domain.Entities;
 using MorfApp.Domain.Enums;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Text;
 
 namespace MorfApp.Api.Controllers;
 
 [ApiController]
 [Route("api/superadmin")]
 [Authorize]
-public class SuperAdminController(IAppDbContext db, IEmailService emailService, IConfiguration config) : ControllerBase
+public class SuperAdminController(IAppDbContext db, IEmailService emailService, IConfiguration config, ILogger<SuperAdminController> logger) : ControllerBase
 {
     private bool IsSuperAdmin =>
         User.FindFirstValue("is_superadmin") == "true";
+
+    // Constantes de negocio del dashboard
+    private const int ChurnWindowDays = 14;
+    private const int UpcomingExpirationWindowDays = 7;
+
+    [HttpGet("dashboard")]
+    public async Task<ActionResult<SuperAdminDashboardDto>> GetDashboard()
+    {
+        if (!IsSuperAdmin) return Forbid();
+
+        var now = DateTime.UtcNow;
+
+        var tenants = await db.Tenants.ToListAsync();
+        var activeCount    = tenants.Count(t => t.Status == TenantStatus.Active);
+        var pendingCount   = tenants.Count(t => t.Status == TenantStatus.Pending);
+        var expiredCount   = tenants.Count(t => t.Status == TenantStatus.Inactive);
+        var suspendedCount = tenants.Count(t => t.Status == TenantStatus.Suspended);
+
+        var cutoff7  = now.AddDays(-7);
+        var cutoff30 = now.AddDays(-30);
+        var cutoffChurn = now.AddDays(-ChurnWindowDays);
+
+        var tenantNames = tenants.ToDictionary(t => t.Id, t => t.Name);
+
+        var orders7 = await db.Orders
+            .Where(o => o.CreatedAt >= cutoff7)
+            .GroupBy(o => o.TenantId)
+            .Select(g => new { TenantId = g.Key, Count = g.Count() })
+            .ToListAsync();
+
+        var orders30 = await db.Orders
+            .Where(o => o.CreatedAt >= cutoff30)
+            .GroupBy(o => o.TenantId)
+            .Select(g => new { TenantId = g.Key, Count = g.Count() })
+            .ToListAsync();
+
+        var ordersLast7Days = orders7
+            .Select(x => new TenantOrderCountDto(x.TenantId, tenantNames.GetValueOrDefault(x.TenantId, "?"), x.Count))
+            .OrderByDescending(x => x.OrderCount)
+            .ToList();
+
+        var ordersLast30Days = orders30
+            .Select(x => new TenantOrderCountDto(x.TenantId, tenantNames.GetValueOrDefault(x.TenantId, "?"), x.Count))
+            .OrderByDescending(x => x.OrderCount)
+            .ToList();
+
+        var lastOrderByTenant = await db.Orders
+            .GroupBy(o => o.TenantId)
+            .Select(g => new { TenantId = g.Key, LastOrderAt = g.Max(o => o.CreatedAt) })
+            .ToDictionaryAsync(x => x.TenantId, x => x.LastOrderAt);
+
+        var churnAlerts = tenants
+            .Where(t => t.Status == TenantStatus.Active)
+            .Where(t => !lastOrderByTenant.TryGetValue(t.Id, out var last) || last < cutoffChurn)
+            .Select(t => new ChurnAlertDto(
+                t.Id, t.Name,
+                lastOrderByTenant.TryGetValue(t.Id, out var l) ? l : (DateTime?)null))
+            .ToList();
+
+        var upcomingExpirations = tenants
+            .Where(t => t.Status == TenantStatus.Active
+                     && t.SubscriptionEndsAt.HasValue
+                     && t.SubscriptionEndsAt.Value >= now
+                     && t.SubscriptionEndsAt.Value <= now.AddDays(UpcomingExpirationWindowDays))
+            .Select(t => new UpcomingExpirationDto(
+                t.Id, t.Name, t.SubscriptionEndsAt!.Value,
+                (int)Math.Ceiling((t.SubscriptionEndsAt.Value - now).TotalDays)))
+            .OrderBy(x => x.DaysRemaining)
+            .ToList();
+
+        return Ok(new SuperAdminDashboardDto(
+            activeCount, pendingCount, expiredCount, suspendedCount,
+            ordersLast7Days, ordersLast30Days, churnAlerts, upcomingExpirations
+        ));
+    }
 
     [HttpGet("tenants")]
     public async Task<ActionResult<List<SuperAdminTenantDto>>> GetTenants()
@@ -217,6 +295,48 @@ public class SuperAdminController(IAppDbContext db, IEmailService emailService, 
         {
             return Ok(new { message = "Negocio activado pero no se pudo enviar el email", setupUrl, error = ex.Message });
         }
+    }
+
+    [HttpPost("tenants/{id}/impersonate")]
+    public async Task<ActionResult<ImpersonateResponse>> ImpersonateTenant(string id)
+    {
+        if (!IsSuperAdmin) return Forbid();
+
+        var tenant = await db.Tenants.FindAsync(id);
+        if (tenant is null) return NotFound();
+
+        var superAdminId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        var superAdminEmail = User.FindFirstValue(ClaimTypes.Email)
+            ?? User.FindFirstValue(JwtRegisteredClaimNames.Email);
+
+        var expiryMinutes = config.GetValue<int>("Jwt:ExpiryMinutes", 15);
+        var secret = config["Jwt:Secret"]!;
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+        var claims = new List<Claim>
+        {
+            new(JwtRegisteredClaimNames.Sub, superAdminId ?? string.Empty),
+            new(JwtRegisteredClaimNames.Email, superAdminEmail ?? string.Empty),
+            new("is_superadmin", "false"),
+            new("tenant_id", tenant.Id),
+            new("tenant_slug", tenant.Slug),
+            new("tenant_plan", tenant.Plan.ToString()),
+            new("impersonated", "true"),
+        };
+
+        var token = new JwtSecurityToken(
+            claims: claims,
+            expires: DateTime.UtcNow.AddMinutes(expiryMinutes),
+            signingCredentials: creds
+        );
+
+        var accessToken = new JwtSecurityTokenHandler().WriteToken(token);
+
+        logger.LogWarning("Superadmin {SuperAdminId} impersonó al tenant {TenantId} ({TenantSlug})", superAdminId, tenant.Id, tenant.Slug);
+
+        return Ok(new ImpersonateResponse(accessToken, expiryMinutes * 60));
     }
 
     [HttpGet("settings")]

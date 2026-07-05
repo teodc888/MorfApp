@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
-import { getAdminMe, updateAdminMe, updateDelivery, updateHours } from '@/lib/admin-api'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { getAdminMe, updateAdminMe, updateDelivery, updateHours, changePassword } from '@/lib/admin-api'
 import type { BusinessHour } from '@/types/store'
 
 type DeliveryForm = {
@@ -31,90 +32,127 @@ const DEFAULT_HOURS: BusinessHour[] = Array.from({ length: 7 }, (_, i) => ({
 }))
 
 export default function ConfigPage() {
-  const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
 
   const [tenantName, setTenantName] = useState('')
   const [whatsappNumber, setWhatsappNumber] = useState('')
-  const [localSaving, setLocalSaving] = useState(false)
 
   const [delivery, setDelivery] = useState<DeliveryForm>(DEFAULT_DELIVERY)
-  const [deliverySaving, setDeliverySaving] = useState(false)
 
   const [hours, setHours] = useState<BusinessHour[]>(DEFAULT_HOURS)
-  const [hoursSaving, setHoursSaving] = useState(false)
 
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordSaving, setPasswordSaving] = useState(false)
+
+  const { data: tenant, isLoading } = useQuery({
+    queryKey: ['admin-me'],
+    queryFn: getAdminMe,
+  })
 
   useEffect(() => {
-    getAdminMe()
-      .then((tenant) => {
-        setTenantName(tenant.name)
-        setWhatsappNumber(tenant.whatsappNumber ?? '')
+    if (!tenant) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTenantName(tenant.name)
+    setWhatsappNumber(tenant.whatsappNumber ?? '')
 
-        const d = tenant.delivery
-        if (d) {
-          setDelivery({
-            mode: (d.mode?.toLowerCase() ?? 'delivery') as 'delivery' | 'pickup' | 'both',
-            deliveryCost: d.deliveryCost != null ? String(d.deliveryCost) : '',
-            freeDeliveryFrom: d.freeDeliveryFrom != null ? String(d.freeDeliveryFrom) : '',
-            minOrderAmount: d.minOrderAmount != null ? String(d.minOrderAmount) : '',
-            estimatedMinutes: d.estimatedMinutes ?? '',
-            pickupAddress: d.pickupAddress ?? '',
-          })
-        }
-
-        if (tenant.hours?.length > 0) {
-          const filled = Array.from({ length: 7 }, (_, i) => {
-            const found = tenant.hours.find((h) => h.dayOfWeek === i)
-            return found ?? { dayOfWeek: i, isOpen: false, opensAt: '09:00', closesAt: '22:00' }
-          })
-          setHours(filled)
-        }
-
+    const d = tenant.delivery
+    if (d) {
+      setDelivery({
+        mode: (d.mode?.toLowerCase() ?? 'delivery') as 'delivery' | 'pickup' | 'both',
+        deliveryCost: d.deliveryCost != null ? String(d.deliveryCost) : '',
+        freeDeliveryFrom: d.freeDeliveryFrom != null ? String(d.freeDeliveryFrom) : '',
+        minOrderAmount: d.minOrderAmount != null ? String(d.minOrderAmount) : '',
+        estimatedMinutes: d.estimatedMinutes ?? '',
+        pickupAddress: d.pickupAddress ?? '',
       })
-      .catch(() => toast.error('No se pudo cargar la configuración'))
-      .finally(() => setLoading(false))
-  }, [])
-
-  async function saveLocal() {
-    setLocalSaving(true)
-    try {
-      await updateAdminMe({ name: tenantName, whatsappNumber })
-      toast.success('Guardado correctamente')
-    } catch {
-      toast.error('Error al guardar')
-    } finally {
-      setLocalSaving(false)
     }
-  }
 
-  async function saveDelivery() {
-    setDeliverySaving(true)
-    try {
-      await updateDelivery({
+    if (tenant.hours?.length > 0) {
+      const filled = Array.from({ length: 7 }, (_, i) => {
+        const found = tenant.hours.find((h) => h.dayOfWeek === i)
+        return found ?? { dayOfWeek: i, isOpen: false, opensAt: '09:00', closesAt: '22:00' }
+      })
+      setHours(filled)
+    }
+  }, [tenant])
+
+  const localMutation = useMutation({
+    mutationFn: () => updateAdminMe({ name: tenantName, whatsappNumber }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-me'] })
+      toast.success('Guardado correctamente')
+    },
+    onError: () => toast.error('Error al guardar'),
+  })
+
+  const deliveryMutation = useMutation({
+    mutationFn: () =>
+      updateDelivery({
         mode: delivery.mode.charAt(0).toUpperCase() + delivery.mode.slice(1),
         deliveryCost: delivery.deliveryCost ? parseFloat(delivery.deliveryCost) : null,
         freeDeliveryFrom: delivery.freeDeliveryFrom ? parseFloat(delivery.freeDeliveryFrom) : null,
         minOrderAmount: delivery.minOrderAmount ? parseFloat(delivery.minOrderAmount) : null,
         estimatedMinutes: delivery.estimatedMinutes || null,
         pickupAddress: delivery.pickupAddress || null,
-      })
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-me'] })
       toast.success('Guardado correctamente')
-    } catch {
-      toast.error('Error al guardar')
-    } finally {
-      setDeliverySaving(false)
-    }
+    },
+    onError: () => toast.error('Error al guardar'),
+  })
+
+  const hoursMutation = useMutation({
+    mutationFn: () => updateHours(hours),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-me'] })
+      toast.success('Guardado correctamente')
+    },
+    onError: () => toast.error('Error al guardar'),
+  })
+
+  function saveLocal() {
+    localMutation.mutate()
   }
 
-  async function saveHours() {
-    setHoursSaving(true)
+  function saveDelivery() {
+    deliveryMutation.mutate()
+  }
+
+  function saveHours() {
+    hoursMutation.mutate()
+  }
+
+  const localSaving = localMutation.isPending
+  const deliverySaving = deliveryMutation.isPending
+  const hoursSaving = hoursMutation.isPending
+
+  async function savePassword() {
+    if (!currentPassword) {
+      toast.error('Ingresá tu contraseña actual')
+      return
+    }
+    if (newPassword.length < 8) {
+      toast.error('La nueva contraseña debe tener al menos 8 caracteres')
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error('Las contraseñas nuevas no coinciden')
+      return
+    }
+    setPasswordSaving(true)
     try {
-      await updateHours(hours)
-      toast.success('Guardado correctamente')
-    } catch {
-      toast.error('Error al guardar')
+      await changePassword(currentPassword, newPassword)
+      toast.success('Contraseña actualizada correctamente')
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al cambiar la contraseña')
     } finally {
-      setHoursSaving(false)
+      setPasswordSaving(false)
     }
   }
 
@@ -126,7 +164,7 @@ export default function ConfigPage() {
     setDelivery((f) => ({ ...f, [key]: value }))
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div style={{ fontFamily: 'var(--sans)', minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid var(--primary)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
@@ -274,6 +312,26 @@ export default function ConfigPage() {
           </div>
           <button className="btn btn-primary btn-block" disabled={hoursSaving} onClick={saveHours}>
             {hoursSaving ? 'Guardando...' : 'Guardar horarios'}
+          </button>
+        </Section>
+
+        {/* Cuenta */}
+        <Section title="Cuenta">
+          <div className="field">
+            <label>Contraseña actual</label>
+            <input className="input" type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
+          </div>
+          <div className="field">
+            <label>Nueva contraseña</label>
+            <input className="input" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+            <div className="text-xs muted">Mínimo 8 caracteres. Al cambiarla, otras sesiones activas se cerrarán.</div>
+          </div>
+          <div className="field">
+            <label>Confirmar nueva contraseña</label>
+            <input className="input" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+          </div>
+          <button className="btn btn-primary btn-block" disabled={passwordSaving} onClick={savePassword}>
+            {passwordSaving ? 'Cambiando...' : 'Cambiar contraseña'}
           </button>
         </Section>
 

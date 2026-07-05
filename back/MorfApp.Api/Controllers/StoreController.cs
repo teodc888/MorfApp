@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using MorfApp.Application.DTOs.Store;
 using MorfApp.Application.Interfaces;
@@ -11,22 +12,26 @@ namespace MorfApp.Api.Controllers;
 [Route("api/store")]
 public class StoreController(
     IAppDbContext db,
-    MorfApp.Api.WebSocket.WebSocketConnectionManager wsManager) : ControllerBase
+    MorfApp.Api.WebSocket.WebSocketConnectionManager wsManager,
+    ILogger<StoreController> logger) : ControllerBase
 {
     [HttpGet("{slug}")]
-    public async Task<ActionResult<TenantPublicDto>> GetTenant(string slug)
+    public async Task<ActionResult<TenantPublicDto>> GetTenant(string slug, CancellationToken ct = default)
     {
         var tenant = await db.Tenants
             .Include(t => t.Branding)
             .Include(t => t.DeliveryConfig)
             .Include(t => t.PaymentConfig)
             .Include(t => t.BusinessHours)
-            .FirstOrDefaultAsync(t => t.Slug == slug);
+            .FirstOrDefaultAsync(t => t.Slug == slug, ct);
 
         if (tenant is null || tenant.Status == TenantStatus.Suspended)
             return NotFound();
 
-        var isOpen = IsCurrentlyOpen(tenant.BusinessHours);
+        if (tenant.Status == TenantStatus.Inactive)
+            return StatusCode(403);
+
+        var isOpen = !tenant.IsPaused && IsCurrentlyOpen(tenant.BusinessHours);
 
         var dto = new TenantPublicDto(
             Id: tenant.Id,
@@ -74,10 +79,10 @@ public class StoreController(
     }
 
     [HttpGet("{slug}/menu")]
-    public async Task<ActionResult<List<CategoryDto>>> GetMenu(string slug)
+    public async Task<ActionResult<List<CategoryDto>>> GetMenu(string slug, CancellationToken ct = default)
     {
         var tenant = await db.Tenants
-            .FirstOrDefaultAsync(t => t.Slug == slug && t.Status != TenantStatus.Suspended);
+            .FirstOrDefaultAsync(t => t.Slug == slug && t.Status != TenantStatus.Suspended, ct);
 
         if (tenant is null) return NotFound();
         if (tenant.Status == TenantStatus.Inactive) return StatusCode(403);
@@ -88,17 +93,17 @@ public class StoreController(
             .Include(c => c.Products.Where(p => p.IsActive).OrderBy(p => p.SortOrder))
                 .ThenInclude(p => p.ModifierGroups.OrderBy(g => g.SortOrder))
                     .ThenInclude(g => g.Options.Where(o => o.IsActive).OrderBy(o => o.SortOrder))
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var result = categories.Select(c => new CategoryDto(
             c.Id, c.Name, c.Emoji, c.SortOrder,
             c.Products.Select(p =>
             {
                 var finalPrice = p.DiscountPercent is > 0
-                    ? (decimal?)Math.Round(p.Price * (1 - p.DiscountPercent.Value / 100m), 0)
+                    ? (decimal?)CalculateFinalPrice(p.Price, p.DiscountPercent)
                     : null;
                 return new ProductDto(
-                    p.Id, p.Name, p.Description, p.Price, finalPrice, p.DiscountPercent, p.Emoji, p.ImageUrl, p.Tags,
+                    p.Id, p.Name, p.Description, p.Price, finalPrice, p.DiscountPercent, p.Emoji, p.ImageUrl, p.Tags, p.IsOutOfStock,
                     p.ModifierGroups.Select(g => new ModifierGroupDto(
                         g.Id, g.Name, g.Type.ToString().ToLowerInvariant(), g.IsRequired, g.MaxSelect,
                         g.Options.Select(o => new ModifierOptionDto(o.Id, o.Name, o.Emoji, o.ExtraPrice))
@@ -112,9 +117,9 @@ public class StoreController(
     }
 
     [HttpGet("{slug}/promotions")]
-    public async Task<List<PromotionDto>> GetPromotions(string slug)
+    public async Task<List<PromotionDto>> GetPromotions(string slug, CancellationToken ct = default)
     {
-        var tenant = await db.Tenants.FirstOrDefaultAsync(t => t.Slug == slug);
+        var tenant = await db.Tenants.FirstOrDefaultAsync(t => t.Slug == slug, ct);
         if (tenant is null)
             return new();
 
@@ -123,13 +128,16 @@ public class StoreController(
             .Include(p => p.ModifierGroups)
                 .ThenInclude(mg => mg.Options)
             .OrderBy(p => p.SortOrder)
-            .ToListAsync();
+            .ToListAsync(ct);
 
-        var allProducts = await db.Products
-            .Where(p => p.TenantId == tenant.Id)
-            .Include(p => p.ModifierGroups)
-                .ThenInclude(mg => mg.Options)
-            .ToListAsync();
+        var neededProductIds = promotions.SelectMany(p => p.ProductIds).Distinct().ToList();
+        var allProducts = neededProductIds.Count == 0
+            ? new List<Product>()
+            : await db.Products
+                .Where(p => p.TenantId == tenant.Id && neededProductIds.Contains(p.Id))
+                .Include(p => p.ModifierGroups)
+                    .ThenInclude(mg => mg.Options)
+                .ToListAsync(ct);
 
         return promotions.Select(promo =>
         {
@@ -144,68 +152,72 @@ public class StoreController(
         .ToList();
     }
 
-    [HttpPost("{slug}/promotions/{promoId}/redemptions")]
-    public async Task<IActionResult> RegisterRedemption(string slug, string promoId, [FromBody] RegisterRedemptionRequest req)
-    {
-        var tenant = await db.Tenants.FirstOrDefaultAsync(t => t.Slug == slug);
-        if (tenant is null)
-            return NotFound();
-
-        var promo = await db.Promotions
-            .FirstOrDefaultAsync(p => p.Id == promoId && p.TenantId == tenant.Id);
-        if (promo is null)
-            return NotFound();
-
-        // Normalizar teléfono (solo dígitos)
-        var normalizedPhone = string.Concat(req.PhoneNumber.Where(char.IsDigit));
-
-        // Contar redemptions existentes
-        var used = await db.PromoRedemptions
-            .Where(r => r.PromotionId == promoId && r.PhoneNumber == normalizedPhone)
-            .SumAsync(r => r.Quantity);
-
-        // Verificar límite
-        if (promo.MaxPerUser.HasValue && used + req.Quantity > promo.MaxPerUser)
-        {
-            return StatusCode(409, new RedemptionStatusDto(used, promo.MaxPerUser, false));
-        }
-
-        // Insertar redemption
-        var redemption = new PromoRedemption
-        {
-            Id = Guid.NewGuid().ToString(),
-            PromotionId = promoId,
-            TenantId = tenant.Id,
-            PhoneNumber = normalizedPhone,
-            Quantity = req.Quantity,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        db.PromoRedemptions.Add(redemption);
-        await db.SaveChangesAsync();
-
-        return Ok(new RedemptionStatusDto(used + req.Quantity, promo.MaxPerUser, true));
-    }
-
     [HttpGet("{slug}/promotions/{promoId}/redemption-status")]
-    public async Task<IActionResult> GetRedemptionStatus(string slug, string promoId, [FromQuery] string phone)
+    public async Task<IActionResult> GetRedemptionStatus(string slug, string promoId, [FromQuery] string phone, CancellationToken ct = default)
     {
-        var tenant = await db.Tenants.FirstOrDefaultAsync(t => t.Slug == slug);
+        var tenant = await db.Tenants.FirstOrDefaultAsync(t => t.Slug == slug, ct);
         if (tenant is null)
             return NotFound();
 
         var promo = await db.Promotions
-            .FirstOrDefaultAsync(p => p.Id == promoId && p.TenantId == tenant.Id);
+            .FirstOrDefaultAsync(p => p.Id == promoId && p.TenantId == tenant.Id, ct);
         if (promo is null)
             return NotFound();
 
         var normalizedPhone = string.Concat(phone.Where(char.IsDigit));
         var used = await db.PromoRedemptions
             .Where(r => r.PromotionId == promoId && r.PhoneNumber == normalizedPhone)
-            .SumAsync(r => r.Quantity);
+            .SumAsync(r => r.Quantity, ct);
 
         return Ok(new RedemptionStatusDto(used, promo.MaxPerUser, !promo.MaxPerUser.HasValue || used < promo.MaxPerUser));
     }
+
+    // GET /api/store/{slug}/orders/{id}
+    // Tracking público del pedido — sin autenticación. El cliente final consulta el estado de
+    // SU pedido usando el GUID que recibió al crearlo. No enumerable: se busca únicamente por
+    // id + slug del tenant. El teléfono del cliente se devuelve enmascarado (solo últimos 4 dígitos).
+    [HttpGet("{slug}/orders/{id}")]
+    public async Task<ActionResult<OrderTrackingDto>> GetOrderTracking(string slug, string id, CancellationToken ct = default)
+    {
+        var tenant = await db.Tenants
+            .Include(t => t.DeliveryConfig)
+            .FirstOrDefaultAsync(t => t.Slug == slug, ct);
+
+        if (tenant is null)
+            return NotFound();
+
+        var order = await db.Orders
+            .FirstOrDefaultAsync(o => o.Id == id && o.TenantId == tenant.Id, ct);
+
+        if (order is null)
+            return NotFound();
+
+        return Ok(MapOrderTracking(order, tenant.DeliveryConfig?.EstimatedMinutes));
+    }
+
+    private static OrderTrackingDto MapOrderTracking(Order o, string? estimatedMinutes) => new(
+        o.Id,
+        o.Status.ToString().ToLower(),
+        o.Items.Select(i => new OrderTrackingItemDto(
+            i.ProductName,
+            i.Quantity,
+            i.UnitPrice,
+            i.Modifiers.Select(m => new OrderTrackingModifierDto(m.OptionName, m.ExtraPrice)).ToList(),
+            i.Observations
+        )).ToList(),
+        o.TotalPrice,
+        o.DeliveryMode,
+        o.Address,
+        estimatedMinutes,
+        o.CustomerName,
+        MaskPhone(o.CustomerPhone),
+        o.CreatedAt,
+        o.ConfirmedAt
+    );
+
+    // Enmascara el teléfono dejando visibles solo los últimos 4 dígitos, ej: "**1234".
+    private static string MaskPhone(string phone) =>
+        phone.Length >= 4 ? $"**{phone[^4..]}" : "**";
 
     private static PromotionDto MapPromotionPublic(Promotion p, List<Product> products)
     {
@@ -222,10 +234,10 @@ public class StoreController(
             products.Select(prod =>
             {
                 var finalPrice = prod.DiscountPercent is > 0
-                    ? (decimal?)Math.Round(prod.Price * (1 - prod.DiscountPercent.Value / 100m), 0)
+                    ? (decimal?)CalculateFinalPrice(prod.Price, prod.DiscountPercent)
                     : null;
                 return new ProductDto(
-                    prod.Id, prod.Name, prod.Description, prod.Price, finalPrice, prod.DiscountPercent, prod.Emoji, prod.ImageUrl, prod.Tags,
+                    prod.Id, prod.Name, prod.Description, prod.Price, finalPrice, prod.DiscountPercent, prod.Emoji, prod.ImageUrl, prod.Tags, prod.IsOutOfStock,
                     prod.ModifierGroups.Select(g => new ModifierGroupDto(
                         g.Id, g.Name, g.Type.ToString().ToLowerInvariant(), g.IsRequired, g.MaxSelect,
                         g.Options.Select(o => new ModifierOptionDto(o.Id, o.Name, o.Emoji, o.ExtraPrice))
@@ -241,11 +253,15 @@ public class StoreController(
         );
     }
 
+    // Prefijo usado por el frontend para distinguir promociones dentro del carrito (ver PromoModal.tsx).
+    private const string PromoIdPrefix = "promo:";
+
     // POST /api/store/{slug}/orders
     // Crea un nuevo pedido para el tenant identificado por slug.
     // No requiere autenticación — endpoint público para clientes.
     [HttpPost("{slug}/orders")]
-    public async Task<ActionResult<CreateOrderResponse>> CreateOrder(string slug, [FromBody] CreateOrderRequest req)
+    [EnableRateLimiting("store")]
+    public async Task<ActionResult<CreateOrderResponse>> CreateOrder(string slug, [FromBody] CreateOrderRequest req, CancellationToken ct = default)
     {
         // 1. Validar campos obligatorios
         if (req.Items is null || req.Items.Count == 0)
@@ -264,35 +280,202 @@ public class StoreController(
         if (mode == "delivery" && string.IsNullOrWhiteSpace(req.Address))
             return BadRequest(new { message = "La dirección es obligatoria para delivery." });
 
-        // 2. Buscar tenant por slug
+        if (req.Items.Any(i => i.Quantity <= 0))
+            return BadRequest(new { message = "La cantidad de un item debe ser mayor a 0." });
+
+        // 2. Buscar tenant por slug (con DeliveryConfig y BusinessHours para validar cierre y envío)
         var tenant = await db.Tenants
-            .FirstOrDefaultAsync(t => t.Slug == slug && t.Status != TenantStatus.Suspended);
+            .Include(t => t.DeliveryConfig)
+            .Include(t => t.BusinessHours)
+            .FirstOrDefaultAsync(t => t.Slug == slug && t.Status != TenantStatus.Suspended, ct);
 
         if (tenant is null)
             return NotFound(new { message = "Tienda no encontrada." });
 
+        if (tenant.Status == TenantStatus.Inactive)
+            return StatusCode(403, new { message = "Esta tienda no está disponible en este momento." });
+
+        // 2a. Bloqueo si el local está pausado manualmente por el admin (independiente del horario).
+        if (tenant.IsPaused)
+        {
+            return StatusCode(409, new
+            {
+                message = "El local está pausado en este momento.",
+                code = "STORE_CLOSED",
+                isOpen = false
+            });
+        }
+
+        // 2b. Bloqueo si el local está cerrado. Si no hay horarios configurados, se considera "siempre abierto".
+        if (tenant.BusinessHours.Count > 0 && !IsCurrentlyOpen(tenant.BusinessHours))
+        {
+            return StatusCode(409, new
+            {
+                message = "El local está cerrado en este momento.",
+                code = "STORE_CLOSED",
+                isOpen = false
+            });
+        }
+
         // 3. Normalizar teléfono (solo dígitos)
         var normalizedPhone = string.Concat(req.CustomerPhone.Where(char.IsDigit));
 
-        // 4. Construir items como value objects (snapshot)
-        var items = req.Items.Select(i => new OrderItem
-        {
-            ProductId   = i.ProductId,
-            ProductName = i.ProductName,
-            Quantity    = i.Quantity,
-            UnitPrice   = i.Price + i.ExtraPrice,
-            Modifiers   = new List<OrderItemModifier>()
-        }).ToList();
+        // 4. Separar items en productos normales y promociones ("promo:<id>")
+        var productItemRequests = req.Items
+            .Where(i => i.ProductId is null || !i.ProductId.StartsWith(PromoIdPrefix, StringComparison.Ordinal))
+            .ToList();
+        var promoItemRequests = req.Items
+            .Where(i => i.ProductId is not null && i.ProductId.StartsWith(PromoIdPrefix, StringComparison.Ordinal))
+            .ToList();
 
-        // 5. Crear el pedido
+        var productIds = productItemRequests
+            .Select(i => i.ProductId)
+            .Where(id => id is not null)
+            .Distinct()
+            .ToList();
+        var promoIds = promoItemRequests
+            .Select(i => i.ProductId!.Substring(PromoIdPrefix.Length))
+            .Distinct()
+            .ToList();
+
+        var products = await db.Products
+            .Where(p => p.TenantId == tenant.Id && productIds.Contains(p.Id))
+            .Include(p => p.ModifierGroups)
+                .ThenInclude(g => g.Options)
+            .ToListAsync(ct);
+
+        var promotions = await db.Promotions
+            .Where(p => p.TenantId == tenant.Id && promoIds.Contains(p.Id))
+            .Include(p => p.ModifierGroups)
+                .ThenInclude(g => g.Options)
+            .ToListAsync(ct);
+
+        // 5. Recalcular precios server-side (ignorando lo que mande el cliente)
+        var orderItems = new List<OrderItem>();
+
+        foreach (var i in productItemRequests)
+        {
+            var product = products.FirstOrDefault(p => p.Id == i.ProductId);
+            if (product is null || !product.IsActive)
+                return BadRequest(new { message = "Uno o más productos no están disponibles." });
+
+            if (product.IsOutOfStock)
+                return BadRequest(new { message = $"El producto '{product.Name}' está sin stock." });
+
+            var (unitPrice, modifiers, error) = ResolveItemPricing(
+                basePrice: CalculateFinalPrice(product.Price, product.DiscountPercent),
+                availableOptions: product.ModifierGroups.SelectMany(g => g.Options),
+                requestedModifiers: i.Modifiers);
+
+            if (error is not null)
+                return BadRequest(new { message = error });
+
+            orderItems.Add(new OrderItem
+            {
+                ProductId = product.Id,
+                ProductName = product.Name,
+                Quantity = i.Quantity,
+                UnitPrice = unitPrice,
+                Modifiers = modifiers,
+                Observations = string.IsNullOrWhiteSpace(i.Observations) ? null : i.Observations.Trim()
+            });
+        }
+
+        foreach (var i in promoItemRequests)
+        {
+            var promoId = i.ProductId!.Substring(PromoIdPrefix.Length);
+            var promo = promotions.FirstOrDefault(p => p.Id == promoId);
+            if (promo is null || !promo.IsActive)
+                return BadRequest(new { message = "Una o más promociones no están disponibles." });
+
+            var (unitPrice, modifiers, error) = ResolveItemPricing(
+                basePrice: promo.Price,
+                availableOptions: promo.ModifierGroups.SelectMany(g => g.Options),
+                requestedModifiers: i.Modifiers);
+
+            if (error is not null)
+                return BadRequest(new { message = error });
+
+            orderItems.Add(new OrderItem
+            {
+                ProductId = i.ProductId!,
+                ProductName = promo.Name,
+                Quantity = i.Quantity,
+                UnitPrice = unitPrice,
+                Modifiers = modifiers,
+                Observations = string.IsNullOrWhiteSpace(i.Observations) ? null : i.Observations.Trim()
+            });
+        }
+
+        // 5b. Registrar redemptions de promociones de forma atómica con el pedido.
+        // Se valida el límite por usuario (MaxPerUser) y se crea el PromoRedemption acá,
+        // pero recién se persiste junto con el Order en el único SaveChangesAsync de más abajo.
+        var promoQuantitiesById = promoItemRequests
+            .GroupBy(i => i.ProductId!.Substring(PromoIdPrefix.Length))
+            .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
+
+        foreach (var (promoId, qtyPedida) in promoQuantitiesById)
+        {
+            var promo = promotions.FirstOrDefault(p => p.Id == promoId);
+            if (promo is null)
+                continue;
+
+            if (promo.MaxPerUser.HasValue)
+            {
+                var used = await db.PromoRedemptions
+                    .Where(r => r.PromotionId == promoId && r.PhoneNumber == normalizedPhone)
+                    .SumAsync(r => r.Quantity, ct);
+
+                if (used + qtyPedida > promo.MaxPerUser.Value)
+                {
+                    return StatusCode(409, new
+                    {
+                        message = "Ya alcanzaste el límite de esta promoción.",
+                        code = "PROMO_LIMIT_REACHED",
+                        promoId = promoId,
+                        used = used,
+                        maxPerUser = promo.MaxPerUser.Value
+                    });
+                }
+            }
+
+            var redemption = new PromoRedemption
+            {
+                Id = Guid.NewGuid().ToString(),
+                PromotionId = promoId,
+                TenantId = tenant.Id,
+                PhoneNumber = normalizedPhone,
+                Quantity = qtyPedida,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            db.PromoRedemptions.Add(redemption);
+        }
+
+        var subtotal = orderItems.Sum(oi => oi.UnitPrice * oi.Quantity);
+
+        // 6. Costo de envío server-side
+        decimal deliveryCost = 0;
+        if (mode == "delivery" && tenant.DeliveryConfig is not null)
+        {
+            var cfg = tenant.DeliveryConfig;
+            var freeFrom = cfg.FreeDeliveryFrom;
+            deliveryCost = freeFrom.HasValue && subtotal >= freeFrom.Value
+                ? 0
+                : cfg.DeliveryCost ?? 0;
+        }
+
+        var totalPrice = subtotal + deliveryCost;
+
+        // 7. Crear el pedido
         var order = new Order
         {
             Id            = Guid.NewGuid().ToString(),
             TenantId      = tenant.Id,
             CustomerName  = req.CustomerName.Trim(),
             CustomerPhone = normalizedPhone,
-            Items         = items,
-            TotalPrice    = req.Total,
+            Items         = orderItems,
+            TotalPrice    = totalPrice,
             DeliveryMode  = mode,
             Address       = mode == "delivery" ? req.Address?.Trim() : null,
             Notes         = string.IsNullOrWhiteSpace(req.Notes) ? null : req.Notes.Trim(),
@@ -304,7 +487,7 @@ public class StoreController(
         try
         {
             db.Orders.Add(order);
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(ct);
 
             // Emitir evento WebSocket
             await wsManager.BroadcastToTenantAsync(tenant.Id, new MorfApp.Api.WebSocket.WebSocketEvent
@@ -313,20 +496,64 @@ public class StoreController(
                 Data = new { orderId = order.Id, customerName = order.CustomerName, totalPrice = order.TotalPrice }
             });
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            logger.LogError(ex, "Error al guardar pedido para tenant {TenantId}", tenant.Id);
             return StatusCode(500, new { message = "Error al guardar el pedido. Intente nuevamente." });
         }
 
         return Ok(new CreateOrderResponse(order.Id, true));
     }
 
+    // Valida los modificadores pedidos contra las opciones reales del producto/promo y calcula
+    // el precio unitario final (precio base con descuento + suma de extras tomados de la DB).
+    private static (decimal UnitPrice, List<OrderItemModifier> Modifiers, string? Error) ResolveItemPricing(
+        decimal basePrice,
+        IEnumerable<ModifierOption> availableOptions,
+        List<CreateOrderItemModifierRequest>? requestedModifiers)
+    {
+        var modifiers = new List<OrderItemModifier>();
+        decimal extras = 0;
+
+        if (requestedModifiers is { Count: > 0 })
+        {
+            var optionsById = availableOptions.ToDictionary(o => o.Id);
+            foreach (var m in requestedModifiers)
+            {
+                if (string.IsNullOrEmpty(m.OptionId) || !optionsById.TryGetValue(m.OptionId, out var option))
+                    return (0, modifiers, "Una opción de personalización no es válida.");
+
+                extras += option.ExtraPrice;
+                modifiers.Add(new OrderItemModifier
+                {
+                    OptionId = option.Id,
+                    OptionName = option.Name,
+                    ExtraPrice = option.ExtraPrice
+                });
+            }
+        }
+
+        return (basePrice + extras, modifiers, null);
+    }
+
+    // Fórmula única de precio con descuento, compartida por GetMenu, MapPromotionPublic y CreateOrder.
+    private static decimal CalculateFinalPrice(decimal price, int? discountPercent) =>
+        discountPercent is > 0
+            ? Math.Round(price * (1 - discountPercent.Value / 100m), 0)
+            : price;
+
     private static bool IsCurrentlyOpen(ICollection<Domain.Entities.BusinessHour> hours)
     {
         var tz = TimeZoneInfo.FindSystemTimeZoneById("America/Argentina/Buenos_Aires");
-        var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz);
-        var today = (int)now.DayOfWeek;
-        var hour = now.ToString("HH:mm");
+        var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz);
+        return IsCurrentlyOpen(hours, nowLocal);
+    }
+
+    // Overload testeable: acepta la hora local ya calculada, sin depender de TimeZoneInfo/DateTime.UtcNow.
+    internal static bool IsCurrentlyOpen(ICollection<Domain.Entities.BusinessHour> hours, DateTime nowLocal)
+    {
+        var today = (int)nowLocal.DayOfWeek;
+        var hour = nowLocal.ToString("HH:mm");
 
         var todayHours = hours.FirstOrDefault(h => h.DayOfWeek == today);
         if (todayHours is null || !todayHours.IsOpen) return false;

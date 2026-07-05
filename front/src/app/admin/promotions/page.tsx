@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { toast } from 'sonner'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   getPromotions,
   createPromotion,
@@ -13,7 +14,6 @@ import {
   getAdminCategories,
   getModifierGroups,
   type PromotionAdmin,
-  type ModifierGroupAdmin,
 } from '@/lib/admin-api'
 import Image from 'next/image'
 import { formatPrice } from '@/lib/utils'
@@ -49,43 +49,42 @@ const EMPTY_FORM: PromotionForm = {
 }
 
 export default function PromotionsPage() {
-  const [promotions, setPromotions] = useState<PromotionAdmin[]>([])
-  const [categories, setCategories] = useState<Array<{ id: string; name: string; products: Array<{ id: string; name: string; price: number }> }>>([])
-  const [modifierGroups, setModifierGroups] = useState<ModifierGroupAdmin[]>([])
-  const [products, setProducts] = useState<Array<{ id: string; name: string; price: number }>>([])
-  const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
+
+  const promotionsQuery = useQuery({ queryKey: ['promotions'], queryFn: getPromotions })
+  const categoriesQuery = useQuery({ queryKey: ['admin-categories'], queryFn: getAdminCategories })
+  const modifierGroupsQuery = useQuery({ queryKey: ['modifier-groups'], queryFn: getModifierGroups })
+
+  const promotions = useMemo(() => promotionsQuery.data ?? [], [promotionsQuery.data])
+  const categories = useMemo(
+    () => (categoriesQuery.data ?? []) as unknown as Array<{ id: string; name: string; products: Array<{ id: string; name: string; price: number }> }>,
+    [categoriesQuery.data]
+  )
+  const modifierGroups = useMemo(() => modifierGroupsQuery.data ?? [], [modifierGroupsQuery.data])
+  const products = useMemo(
+    () => categories.flatMap(c => c.products.map(p => ({ id: p.id, name: p.name, price: p.price }))),
+    [categories]
+  )
+
+  const loading = promotionsQuery.isLoading || categoriesQuery.isLoading || modifierGroupsQuery.isLoading
+
   const [modal, setModal] = useState<{ open: boolean; editing: PromotionAdmin | null }>({ open: false, editing: null })
   const [form, setForm] = useState<PromotionForm>(EMPTY_FORM)
   const [selectedProducts, setSelectedProducts] = useState<{[key: string]: number}>({})
   const [selectedModifierGroupIds, setSelectedModifierGroupIds] = useState<string[]>([])
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
-  const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<ConfirmDeleteDialog>({ open: false, id: null, name: '' })
 
-  const load = useCallback(async () => {
-    try {
-      const [promos, cats, groups] = await Promise.all([
-        getPromotions(),
-        getAdminCategories(),
-        getModifierGroups(),
-      ])
-      setPromotions(promos)
-      setCategories(cats as unknown as Array<{ id: string; name: string; products: Array<{ id: string; name: string; price: number }> }>)
-      setModifierGroups(groups)
-      const flatProducts = cats.flatMap(c => c.products.map(p => ({ id: p.id, name: p.name, price: p.price })))
-      setProducts(flatProducts)
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Error cargando promociones')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  const promoModalRef = useRef<HTMLDivElement>(null)
+  const deleteModalRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    load()
-  }, [load])
+    const error = promotionsQuery.error || categoriesQuery.error || modifierGroupsQuery.error
+    if (error) {
+      toast.error(error instanceof Error ? error.message : 'Error cargando promociones')
+    }
+  }, [promotionsQuery.error, categoriesQuery.error, modifierGroupsQuery.error])
 
   const originalPrice = useMemo(() => {
     return Object.entries(selectedProducts).reduce((sum, [productId, qty]) => {
@@ -137,11 +136,8 @@ export default function PromotionsPage() {
     setModal({ open: true, editing: promo })
   }
 
-  const save = useCallback(async () => {
-    if (!form.name.trim()) return
-
-    setSaving(true)
-    try {
+  const saveMutation = useMutation({
+    mutationFn: async () => {
       const productIds = Object.entries(selectedProducts).flatMap(([id, qty]) => Array(qty).fill(id))
       const body = {
         name: form.name,
@@ -169,36 +165,47 @@ export default function PromotionsPage() {
         })
         await updatePromotionProducts(modal.editing.id, body.productIds)
         await updatePromotionModifierGroups(modal.editing.id, body.modifierGroupIds)
-        toast.success('Promoción actualizada')
-      } else {
-        await createPromotion(body)
-        toast.success('Promoción creada')
+        return 'updated' as const
       }
 
+      await createPromotion(body)
+      return 'created' as const
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['promotions'] })
       setModal({ open: false, editing: null })
-      await load()
-    } catch {
+      toast.success(result === 'updated' ? 'Promoción actualizada' : 'Promoción creada')
+    },
+    onError: () => {
       toast.error('Error al guardar')
-    } finally {
-      setSaving(false)
-    }
-  }, [form, selectedProducts, selectedModifierGroupIds, modal, load])
+    },
+  })
+
+  const save = () => {
+    if (!form.name.trim()) return
+    saveMutation.mutate()
+  }
 
   const openDeleteDialog = (id: string, name: string) => {
     setConfirmDelete({ open: true, id, name })
   }
 
-  const confirmRemove = useCallback(async () => {
-    if (!confirmDelete.id) return
-    try {
-      await deletePromotion(confirmDelete.id)
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deletePromotion(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['promotions'] })
       setConfirmDelete({ open: false, id: null, name: '' })
       toast.success('Promoción eliminada')
-      await load()
-    } catch {
+    },
+    onError: () => {
       toast.error('Error al guardar')
-    }
-  }, [confirmDelete.id, load])
+    },
+  })
+
+  const confirmRemove = () => {
+    if (!confirmDelete.id) return
+    deleteMutation.mutate(confirmDelete.id)
+  }
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.currentTarget.files?.[0]
@@ -219,6 +226,40 @@ export default function PromotionsPage() {
       setUploading(false)
     }
   }
+
+  useEffect(() => {
+    if (!modal.open) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setModal({ open: false, editing: null })
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [modal.open])
+
+  useEffect(() => {
+    if (modal.open) {
+      promoModalRef.current?.focus()
+    }
+  }, [modal.open])
+
+  useEffect(() => {
+    if (!confirmDelete.open) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setConfirmDelete({ open: false, id: null, name: '' })
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [confirmDelete.open])
+
+  useEffect(() => {
+    if (confirmDelete.open) {
+      deleteModalRef.current?.focus()
+    }
+  }, [confirmDelete.open])
 
   if (loading) {
     return (
@@ -340,7 +381,11 @@ export default function PromotionsPage() {
       {modal.open && (
         <div className="modal-backdrop modal-center" onClick={() => setModal({ open: false, editing: null })}>
           <div
+            ref={promoModalRef}
             className="modal-sheet"
+            role="dialog"
+            aria-modal="true"
+            tabIndex={-1}
             onClick={(e) => e.stopPropagation()}
             style={{ maxHeight: '90dvh', overflowY: 'auto' }}
           >
@@ -348,7 +393,7 @@ export default function PromotionsPage() {
               <h2 className="serif" style={{ margin: 0, fontSize: 24, color: 'var(--primary-dark)', fontWeight: 700 }}>
                 {modal.editing ? 'Editar promo' : 'Nueva promo'}
               </h2>
-              <button onClick={() => setModal({ open: false, editing: null })} className="tap" style={{ width: 32, height: 32, borderRadius: 16, display: 'grid', placeItems: 'center', color: 'var(--muted)', fontSize: 20 }}>
+              <button onClick={() => setModal({ open: false, editing: null })} aria-label="Cerrar" className="tap" style={{ width: 32, height: 32, borderRadius: 16, display: 'grid', placeItems: 'center', color: 'var(--muted)', fontSize: 20 }}>
                 ✕
               </button>
             </div>
@@ -600,6 +645,7 @@ export default function PromotionsPage() {
                               ...sp,
                               [prod.id]: Math.max(0, (sp[prod.id] || 0) - 1)
                             }))}
+                            aria-label={`Restar ${prod.name}`}
                             className="tap"
                             style={{
                               width: 24,
@@ -623,6 +669,7 @@ export default function PromotionsPage() {
                               ...sp,
                               [prod.id]: (sp[prod.id] || 0) + 1
                             }))}
+                            aria-label={`Agregar ${prod.name}`}
                             className="tap"
                             style={{
                               width: 24,
@@ -732,13 +779,13 @@ export default function PromotionsPage() {
               <button
                 className="btn btn-primary"
                 onClick={save}
-                disabled={saving || !promoFormValid}
+                disabled={saveMutation.isPending || !promoFormValid}
                 style={{
                   flex: 1,
-                  opacity: saving || !promoFormValid ? 0.5 : 1,
+                  opacity: saveMutation.isPending || !promoFormValid ? 0.5 : 1,
                 }}
               >
-                {saving ? 'Guardando...' : modal.editing ? 'Guardar cambios' : 'Crear promo'}
+                {saveMutation.isPending ? 'Guardando...' : modal.editing ? 'Guardar cambios' : 'Crear promo'}
               </button>
             </div>
 
@@ -762,7 +809,11 @@ export default function PromotionsPage() {
       {confirmDelete.open && (
         <div className="modal-backdrop modal-center" onClick={() => setConfirmDelete({ open: false, id: null, name: '' })}>
           <div
+            ref={deleteModalRef}
             className="modal-sheet"
+            role="dialog"
+            aria-modal="true"
+            tabIndex={-1}
             onClick={(e) => e.stopPropagation()}
             style={{ maxWidth: 380 }}
           >

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using MorfApp.Application.DTOs.Auth;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using MorfApp.Application.Interfaces;
 using MorfApp.Domain.Entities;
 using System.IdentityModel.Tokens.Jwt;
@@ -14,8 +15,11 @@ namespace MorfApp.Api.Controllers;
 
 [ApiController]
 [Route("api/auth")]
-public class AuthController(IAppDbContext db, IConfiguration config) : ControllerBase
+[EnableRateLimiting("auth")]
+public class AuthController(IAppDbContext db, IConfiguration config, ILogger<AuthController> logger, IEmailService emailService) : ControllerBase
 {
+    internal static string HashToken(string token) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
+
     [HttpPost("login")]
     public async Task<ActionResult<AuthResponse>> Login([FromBody] LoginRequest req)
     {
@@ -32,8 +36,9 @@ public class AuthController(IAppDbContext db, IConfiguration config) : Controlle
             var response = await IssueTokens(user!);
             return Ok(response);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            logger.LogWarning(ex, "Error inesperado en login para {Email}", req.Email);
             return Unauthorized(new { message = "Credenciales inválidas" });
         }
     }
@@ -41,12 +46,26 @@ public class AuthController(IAppDbContext db, IConfiguration config) : Controlle
     [HttpPost("refresh")]
     public async Task<ActionResult<AuthResponse>> Refresh([FromBody] RefreshRequest req)
     {
+        var hashedToken = HashToken(req.RefreshToken);
         var stored = await db.RefreshTokens
             .Include(r => r.AdminUser)
             .ThenInclude(u => u.Tenant)
-            .FirstOrDefaultAsync(r => r.Token == req.RefreshToken && !r.IsRevoked);
+            .FirstOrDefaultAsync(r => r.Token == hashedToken);
 
-        if (stored is null || stored.ExpiresAt < DateTime.UtcNow)
+        if (stored is null)
+            return Unauthorized(new { message = "Token inválido o expirado" });
+
+        if (stored.IsRevoked)
+        {
+            // Reuso de un refresh token ya revocado: posible robo de sesión.
+            // Revocamos todas las sesiones activas del usuario por seguridad.
+            await RevokeActiveRefreshTokensAsync(stored.AdminUserId);
+            await db.SaveChangesAsync();
+
+            return Unauthorized(new { message = "Token inválido o expirado" });
+        }
+
+        if (stored.ExpiresAt < DateTime.UtcNow)
             return Unauthorized(new { message = "Token inválido o expirado" });
 
         stored.IsRevoked = true;
@@ -76,8 +95,9 @@ public class AuthController(IAppDbContext db, IConfiguration config) : Controlle
     [HttpPost("logout")]
     public async Task<IActionResult> Logout([FromBody] RefreshRequest req)
     {
+        var hashedToken = HashToken(req.RefreshToken);
         var stored = await db.RefreshTokens
-            .FirstOrDefaultAsync(r => r.Token == req.RefreshToken);
+            .FirstOrDefaultAsync(r => r.Token == hashedToken);
 
         if (stored is not null)
         {
@@ -86,6 +106,109 @@ public class AuthController(IAppDbContext db, IConfiguration config) : Controlle
         }
 
         return NoContent();
+    }
+
+    // POST /api/auth/change-password
+    // Requiere JWT válido del admin logueado (no es público). Verifica la contraseña actual con
+    // BCrypt, hashea la nueva, y revoca TODOS los refresh tokens activos del usuario para forzar
+    // re-login en otras pestañas/dispositivos.
+    [Authorize]
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest req)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
+
+        var user = await db.AdminUsers.FirstOrDefaultAsync(u => u.Id == userId);
+        if (user is null)
+            return Unauthorized();
+
+        if (!BCrypt.Net.BCrypt.Verify(req.CurrentPassword, user.PasswordHash))
+            return BadRequest(new { message = "La contraseña actual es incorrecta." });
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.NewPassword);
+        user.UpdatedAt = DateTime.UtcNow;
+
+        await RevokeActiveRefreshTokensAsync(user.Id);
+
+        await db.SaveChangesAsync();
+
+        return Ok(new { message = "Contraseña actualizada correctamente." });
+    }
+
+    [AllowAnonymous]
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest req)
+    {
+        var user = await db.AdminUsers.FirstOrDefaultAsync(u => u.Email == req.Email && !u.IsSuperadmin);
+
+        if (user is not null)
+        {
+            // Invalidar tokens de recuperación/setup previos sin usar de este usuario
+            var oldTokens = db.SetupTokens.Where(s => s.AdminUserId == user.Id && !s.IsUsed);
+            await oldTokens.ForEachAsync(s => s.IsUsed = true);
+
+            var token = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N");
+            db.SetupTokens.Add(new SetupToken
+            {
+                AdminUserId = user.Id,
+                Token = token,
+                ExpiresAt = DateTime.UtcNow.AddHours(1),
+                IsUsed = false,
+            });
+            await db.SaveChangesAsync();
+
+            var frontendUrl = config["App:FrontendUrl"] ?? "https://morfapp.app";
+            var resetUrl = $"{frontendUrl}/admin/reset-password?token={token}";
+
+            try
+            {
+                await emailService.SendPasswordResetEmailAsync(user.Email, user.Email, resetUrl);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "No se pudo enviar el email de recuperación de contraseña a {Email}", req.Email);
+            }
+        }
+
+        // Responder siempre 200 para no filtrar qué emails existen
+        return Ok(new { message = "Si el email existe, vas a recibir un correo con instrucciones." });
+    }
+
+    [AllowAnonymous]
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest req)
+    {
+        var setupToken = await db.SetupTokens
+            .Include(s => s.AdminUser)
+            .FirstOrDefaultAsync(s => s.Token == req.Token && !s.IsUsed);
+
+        if (setupToken is null || setupToken.ExpiresAt < DateTime.UtcNow)
+            return BadRequest(new { message = "El link es inválido o ya expiró" });
+
+        setupToken.AdminUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.NewPassword);
+        setupToken.AdminUser.UpdatedAt = DateTime.UtcNow;
+        setupToken.IsUsed = true;
+
+        await RevokeActiveRefreshTokensAsync(setupToken.AdminUserId);
+
+        await db.SaveChangesAsync();
+
+        return Ok(new { message = "Contraseña actualizada correctamente." });
+    }
+
+    // Revoca (sin persistir) todos los refresh tokens activos de un usuario — el caller es
+    // responsable de llamar SaveChangesAsync junto con el resto de sus cambios.
+    private async Task RevokeActiveRefreshTokensAsync(string userId)
+    {
+        var activeTokens = await db.RefreshTokens
+            .Where(r => r.AdminUserId == userId && !r.IsRevoked)
+            .ToListAsync();
+        foreach (var t in activeTokens)
+            t.IsRevoked = true;
     }
 
     private async Task<AuthResponse> IssueTokens(AdminUser user)
@@ -98,7 +221,7 @@ public class AuthController(IAppDbContext db, IConfiguration config) : Controlle
         db.RefreshTokens.Add(new RefreshToken
         {
             AdminUserId = user.Id,
-            Token = refreshToken,
+            Token = HashToken(refreshToken),
             ExpiresAt = DateTime.UtcNow.AddDays(refreshDays)
         });
         await db.SaveChangesAsync();

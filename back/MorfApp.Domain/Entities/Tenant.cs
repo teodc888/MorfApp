@@ -8,6 +8,7 @@ public class Tenant
     public string Slug { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public TenantStatus Status { get; set; } = TenantStatus.Active;
+    public bool IsPaused { get; set; } = false;
     public TenantPlan Plan { get; set; } = TenantPlan.Basico;
     public string OwnerName { get; set; } = string.Empty;
     public string OwnerPhone { get; set; } = string.Empty;

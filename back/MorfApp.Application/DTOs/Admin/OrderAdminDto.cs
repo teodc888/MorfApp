@@ -22,7 +22,8 @@ public record OrderItemDto(
     string ProductName,
     int Quantity,
     decimal UnitPrice,
-    List<OrderItemModifierDto> Modifiers
+    List<OrderItemModifierDto> Modifiers,
+    string? Observations
 );
 
 public record OrderItemModifierDto(

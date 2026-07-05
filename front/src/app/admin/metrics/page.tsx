@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { useWebSocket } from '@/lib/useWebSocket'
 import {
   LineChart,
@@ -14,7 +15,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
-import { getMetrics, type MetricsPeriod, type MetricsData } from '@/lib/admin-api'
+import { getMetrics, exportMetrics, type MetricsPeriod, type MetricsData } from '@/lib/admin-api'
 import { formatPrice } from '@/lib/utils'
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -303,11 +304,44 @@ function HourlyChart({ data }: { data: MetricsData['ordersByHour'] }) {
   )
 }
 
+// ── Export helpers ───────────────────────────────────────────────────
+
+function toDateInputValue(d: Date): string {
+  return d.toISOString().slice(0, 10)
+}
+
+function suggestedRangeFor(period: MetricsPeriod): { from: string; to: string } {
+  const now = new Date()
+  switch (period) {
+    case 'today': {
+      const today = toDateInputValue(now)
+      return { from: today, to: today }
+    }
+    case 'week': {
+      const from = new Date(now)
+      from.setDate(from.getDate() - 6)
+      return { from: toDateInputValue(from), to: toDateInputValue(now) }
+    }
+    case 'month': {
+      const from = new Date(now.getFullYear(), now.getMonth(), 1)
+      return { from: toDateInputValue(from), to: toDateInputValue(now) }
+    }
+    case 'year': {
+      const from = new Date(now.getFullYear(), 0, 1)
+      return { from: toDateInputValue(from), to: toDateInputValue(now) }
+    }
+  }
+}
+
 // ── Page ──────────────────────────────────────────────────────────────
 
 export default function MetricsPage() {
   const [period, setPeriod] = useState<MetricsPeriod>('today')
   const [lastUpdateLabel, setLastUpdateLabel] = useState<string>('')
+  const [showExportPanel, setShowExportPanel] = useState(false)
+  const [exportFrom, setExportFrom] = useState('')
+  const [exportTo, setExportTo] = useState('')
+  const [isExporting, setIsExporting] = useState(false)
   useWebSocket()
 
   const {
@@ -336,6 +370,27 @@ export default function MetricsPage() {
     return () => clearInterval(id)
   }, [dataUpdatedAt])
 
+  const handleOpenExport = () => {
+    if (!showExportPanel) {
+      const range = suggestedRangeFor(period)
+      setExportFrom(range.from)
+      setExportTo(range.to)
+    }
+    setShowExportPanel((v) => !v)
+  }
+
+  const handleDownload = async () => {
+    setIsExporting(true)
+    try {
+      await exportMetrics({ from: exportFrom || undefined, to: exportTo || undefined })
+      setShowExportPanel(false)
+    } catch {
+      toast.error('Error al exportar las métricas')
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
@@ -349,12 +404,62 @@ export default function MetricsPage() {
             )}
           </p>
         </div>
-        <button
-          onClick={() => refetch()}
-          className="self-start sm:self-auto text-sm px-4 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg font-medium transition-colors"
-        >
-          Actualizar
-        </button>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <div className="relative">
+            <button
+              onClick={handleOpenExport}
+              className="text-sm px-4 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg font-medium transition-colors"
+            >
+              📥 Exportar CSV
+            </button>
+            {showExportPanel && (
+              <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-200 rounded-xl shadow-lg p-4 z-20">
+                <p className="text-sm font-semibold text-gray-700 mb-3">Exportar métricas</p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Desde</label>
+                    <input
+                      type="date"
+                      value={exportFrom}
+                      onChange={(e) => setExportFrom(e.target.value)}
+                      className="w-full text-sm border border-gray-300 rounded-lg px-3 py-1.5"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Hasta</label>
+                    <input
+                      type="date"
+                      value={exportTo}
+                      onChange={(e) => setExportTo(e.target.value)}
+                      className="w-full text-sm border border-gray-300 rounded-lg px-3 py-1.5"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 justify-end mt-4">
+                  <button
+                    onClick={() => setShowExportPanel(false)}
+                    className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleDownload}
+                    disabled={isExporting}
+                    className="px-3 py-1.5 text-sm bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50"
+                  >
+                    {isExporting ? 'Descargando...' : 'Descargar'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+          <button
+            onClick={() => refetch()}
+            className="text-sm px-4 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg font-medium transition-colors"
+          >
+            Actualizar
+          </button>
+        </div>
       </div>
 
       {/* Tabs de período */}
