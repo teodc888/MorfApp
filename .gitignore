@@ -19,6 +19,8 @@ publish/
 publish-pre/
 publish-prod/
 back/32
+back/MorfApp.Tests/TestResults/
+*.log
 
 # .NET secrets (environment-specific config)
 appsettings.Development.json

@@ -266,6 +266,7 @@ export function PromoModal({ promo, onClose }: Props) {
         imageUrl: promo.imageUrl,
         tags: [],
         modifierGroups: promo.modifierGroups,
+        isOutOfStock: false,
       },
       qty,
       selections,

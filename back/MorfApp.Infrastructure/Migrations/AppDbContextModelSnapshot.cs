@@ -540,6 +540,10 @@ namespace MorfApp.Infrastructure.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_builder");
 
+                    b.Property<bool>("IsOutOfStock")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_out_of_stock");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text")
@@ -1072,6 +1076,10 @@ namespace MorfApp.Infrastructure.Migrations
                     b.Property<string>("CustomDomain")
                         .HasColumnType("text")
                         .HasColumnName("custom_domain");
+
+                    b.Property<bool>("IsPaused")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_paused");
 
                     b.Property<string>("Locale")
                         .IsRequired()

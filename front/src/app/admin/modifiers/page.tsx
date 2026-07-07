@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   getModifierGroups,
   createModifierGroup,
@@ -30,28 +31,18 @@ const EMPTY_GROUP: GroupForm = {
 const EMPTY_OPTION: ModifierOptionForm = { name: '', emoji: '', extraPrice: 0, sortOrder: 0 }
 
 export default function ModifiersPage() {
-  const [groups, setGroups] = useState<ModifierGroupAdmin[]>([])
-  const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
 
   const [modal, setModal] = useState<{ open: boolean; editing: ModifierGroupAdmin | null }>({
     open: false,
     editing: null,
   })
   const [form, setForm] = useState<GroupForm>(EMPTY_GROUP)
-  const [saving, setSaving] = useState(false)
 
-  const load = useCallback(async () => {
-    try {
-      setGroups(await getModifierGroups())
-    } catch {
-      toast.error('No se pudieron cargar los grupos')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { load() }, [load])
+  const { data: groups = [], isLoading } = useQuery({
+    queryKey: ['modifier-groups'],
+    queryFn: getModifierGroups,
+  })
 
   function openNew() {
     setForm({ ...EMPTY_GROUP, options: [] })
@@ -75,10 +66,8 @@ export default function ModifiersPage() {
     setModal({ open: true, editing: g })
   }
 
-  async function save() {
-    if (!form.name.trim()) return
-    setSaving(true)
-    try {
+  const saveMutation = useMutation({
+    mutationFn: async () => {
       const body = {
         name: form.name,
         type: form.type,
@@ -92,25 +81,34 @@ export default function ModifiersPage() {
       } else {
         await createModifierGroup(body)
       }
+    },
+    onSuccess: () => {
       setModal({ open: false, editing: null })
-      await load()
+      queryClient.invalidateQueries({ queryKey: ['modifier-groups'] })
       toast.success('Grupo guardado')
-    } catch {
-      toast.error('Error al guardar el grupo')
-    } finally {
-      setSaving(false)
-    }
+    },
+    onError: () => toast.error('Error al guardar el grupo'),
+  })
+
+  function save() {
+    if (!form.name.trim()) return
+    saveMutation.mutate()
   }
 
-  async function remove(id: string) {
-    if (!confirm('¿Eliminar este grupo? Se desasignará de todos los productos.')) return
-    try {
-      await deleteModifierGroup(id)
-      await load()
+  const saving = saveMutation.isPending
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteModifierGroup(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['modifier-groups'] })
       toast.success('Grupo eliminado')
-    } catch {
-      toast.error('Error al eliminar el grupo')
-    }
+    },
+    onError: () => toast.error('Error al eliminar el grupo'),
+  })
+
+  function remove(id: string) {
+    if (!confirm('¿Eliminar este grupo? Se desasignará de todos los productos.')) return
+    deleteMutation.mutate(id)
   }
 
   function addOption() {
@@ -132,7 +130,7 @@ export default function ModifiersPage() {
     setForm((f) => ({ ...f, options: f.options.filter((_, i) => i !== index) }))
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div style={{ fontFamily: 'var(--sans)', minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid var(--primary)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />

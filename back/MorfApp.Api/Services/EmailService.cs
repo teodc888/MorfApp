@@ -23,6 +23,31 @@ public class EmailService(IConfiguration config) : IEmailService
         };
         message.Body = bodyBuilder.ToMessageBody();
 
+        await SendAsync(message);
+    }
+
+    public async Task SendPasswordResetEmailAsync(string toEmail, string ownerName, string resetUrl)
+    {
+        var message = new MimeMessage();
+        message.From.Add(new MailboxAddress(
+            config["Email:FromName"] ?? "MorfApp",
+            config["Email:FromEmail"]!));
+        message.To.Add(new MailboxAddress(ownerName, toEmail));
+        message.Subject = "Recuperá tu contraseña en MorfApp";
+
+        var bodyBuilder = new BodyBuilder
+        {
+            HtmlBody = BuildPasswordResetHtml(ownerName, resetUrl),
+            TextBody = $"Hola {ownerName}! Recibimos un pedido para restablecer tu contraseña. Ingresá a este link (válido por 1 hora): {resetUrl}. Si no fuiste vos, ignorá este mensaje."
+        };
+        message.Body = bodyBuilder.ToMessageBody();
+
+        await SendAsync(message);
+    }
+
+    // Boilerplate de transporte SMTP compartido por todos los tipos de email.
+    private async Task SendAsync(MimeMessage message)
+    {
         using var client = new SmtpClient();
         client.Timeout = 15000;
         await client.ConnectAsync(
@@ -65,6 +90,45 @@ public class EmailService(IConfiguration config) : IEmailService
                   </p>
                   <p style="color:#aaa;font-size:12px;margin:0;">
                     Si no solicitaste esta cuenta, podés ignorar este email.
+                  </p>
+                </td></tr>
+                <tr><td style="background:#f9f9f9;padding:20px 40px;text-align:center;border-top:1px solid #eee;">
+                  <p style="color:#aaa;font-size:12px;margin:0;">© 2025 MorfApp · <a href="https://morfapp.app" style="color:#c2652a;text-decoration:none;">morfapp.app</a></p>
+                </td></tr>
+              </table>
+            </td></tr>
+          </table>
+        </body>
+        </html>
+        """;
+
+    private static string BuildPasswordResetHtml(string ownerName, string resetUrl) => $"""
+        <!DOCTYPE html>
+        <html lang="es">
+        <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+        <body style="margin:0;padding:0;background:#f5f5f5;font-family:Arial,sans-serif;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 20px;">
+            <tr><td align="center">
+              <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+                <tr><td style="background:#c2652a;padding:32px 40px;text-align:center;">
+                  <h1 style="color:#ffffff;margin:0;font-size:28px;font-weight:700;">MorfApp</h1>
+                  <p style="color:rgba(255,255,255,0.85);margin:8px 0 0;font-size:14px;">Tu menú digital</p>
+                </td></tr>
+                <tr><td style="padding:40px;">
+                  <h2 style="color:#1a1a1a;margin:0 0 16px;font-size:22px;">Recuperá tu contraseña</h2>
+                  <p style="color:#444;line-height:1.6;margin:0 0 16px;">
+                    Hola {ownerName}! Recibimos un pedido para restablecer la contraseña de tu cuenta en MorfApp.
+                  </p>
+                  <p style="color:#444;line-height:1.6;margin:0 0 32px;">
+                    Hacé clic en el botón de abajo para elegir una nueva contraseña:
+                  </p>
+                  <div style="text-align:center;margin:0 0 32px;">
+                    <a href="{resetUrl}" style="display:inline-block;background:#c2652a;color:#ffffff;text-decoration:none;padding:16px 40px;border-radius:8px;font-size:16px;font-weight:700;">
+                      Restablecer contraseña
+                    </a>
+                  </div>
+                  <p style="color:#888;font-size:13px;line-height:1.6;margin:0 0 8px;">
+                    Este link es válido por <strong>1 hora</strong>. Si no lo solicitaste, ignorá este email.
                   </p>
                 </td></tr>
                 <tr><td style="background:#f9f9f9;padding:20px 40px;text-align:center;border-top:1px solid #eee;">

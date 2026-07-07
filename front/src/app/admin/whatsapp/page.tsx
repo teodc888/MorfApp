@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { toast } from 'sonner'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getAdminMe, updateWhatsAppTemplate } from '@/lib/admin-api'
 import { buildWhatsAppMessage, type CustomerForm } from '@/lib/utils'
 import type { TenantPublic, CartItem } from '@/types/store'
@@ -34,6 +35,7 @@ const DEMO_CART: CartItem[] = [
       imageUrl: null,
       tags: [],
       modifierGroups: [],
+      isOutOfStock: false,
     },
     qty: 2,
     selections: {
@@ -57,6 +59,7 @@ const DEMO_CART: CartItem[] = [
       imageUrl: null,
       tags: [],
       modifierGroups: [],
+      isOutOfStock: false,
     },
     qty: 1,
     selections: {},
@@ -74,67 +77,61 @@ const DEMO_CUSTOMER: CustomerForm = {
 }
 
 export default function WhatsAppPage() {
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
+  const queryClient = useQueryClient()
   const [template, setTemplate] = useState<string | null>(null)
   const [tenantData, setTenantData] = useState<TenantPublic | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const data = await getAdminMe()
-        setTemplate(data.whatsAppMessageTemplate ?? '')
-        // Create a public DTO from the admin DTO
-        setTenantData({
-          id: data.id,
-          slug: data.slug,
-          name: data.name,
-          whatsappNumber: data.whatsappNumber,
-          whatsAppMessageTemplate: data.whatsAppMessageTemplate,
-          isOpen: true,
-          status: 'Active',
-          branding: data.branding,
-          deliveryConfig: data.delivery || {
-            mode: 'both',
-            deliveryCost: null,
-            freeDeliveryFrom: null,
-            minOrderAmount: null,
-            estimatedMinutes: null,
-            pickupAddress: null,
-          },
-          paymentConfig: data.payment || {
-            deliveryCash: true,
-            deliveryTransfer: true,
-            deliveryCard: true,
-            pickupCash: true,
-            pickupTransfer: true,
-            pickupCard: true,
-          },
-          businessHours: data.hours,
-        })
-      } catch (err) {
-        toast.error('Error al cargar los datos')
-        console.error(err)
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [])
+  const { data, isLoading } = useQuery({
+    queryKey: ['admin-me'],
+    queryFn: getAdminMe,
+  })
 
-  const handleSave = async () => {
-    setSaving(true)
-    try {
-      await updateWhatsAppTemplate(template || null)
+  useEffect(() => {
+    if (!data) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTemplate(data.whatsAppMessageTemplate ?? '')
+    // Create a public DTO from the admin DTO
+    setTenantData({
+      id: data.id,
+      slug: data.slug,
+      name: data.name,
+      whatsappNumber: data.whatsappNumber,
+      whatsAppMessageTemplate: data.whatsAppMessageTemplate,
+      isOpen: true,
+      status: 'Active',
+      branding: data.branding,
+      deliveryConfig: data.delivery || {
+        mode: 'both',
+        deliveryCost: null,
+        freeDeliveryFrom: null,
+        minOrderAmount: null,
+        estimatedMinutes: null,
+        pickupAddress: null,
+      },
+      paymentConfig: data.payment || {
+        deliveryCash: true,
+        deliveryTransfer: true,
+        deliveryCard: true,
+        pickupCash: true,
+        pickupTransfer: true,
+        pickupCard: true,
+      },
+      businessHours: data.hours,
+    })
+  }, [data])
+
+  const saveMutation = useMutation({
+    mutationFn: () => updateWhatsAppTemplate(template || null),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-me'] })
       toast.success('Plantilla guardada')
-    } catch (err) {
-      toast.error('Error al guardar')
-      console.error(err)
-    } finally {
-      setSaving(false)
-    }
-  }
+    },
+    onError: () => toast.error('Error al guardar'),
+  })
+
+  const handleSave = () => saveMutation.mutate()
+  const saving = saveMutation.isPending
 
   const insertVariable = (variable: string) => {
     if (!textareaRef.current) return
@@ -161,7 +158,7 @@ export default function WhatsAppPage() {
         DEMO_CUSTOMER,
       )
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div style={{ fontFamily: 'var(--sans)', minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid var(--primary)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />

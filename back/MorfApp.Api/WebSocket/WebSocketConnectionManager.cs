@@ -5,7 +5,7 @@ using System.Text.Json;
 
 namespace MorfApp.Api.WebSocket;
 
-public class WebSocketConnectionManager
+public class WebSocketConnectionManager(ILogger<WebSocketConnectionManager> logger)
 {
     private readonly ConcurrentDictionary<string, WebSocketClientConnection> _connections = new();
 
@@ -20,7 +20,7 @@ public class WebSocketConnectionManager
         _connections.TryRemove(connectionId, out _);
     }
 
-    public async Task BroadcastToTenantAsync(string tenantId, WebSocketEvent @event)
+    public virtual async Task BroadcastToTenantAsync(string tenantId, WebSocketEvent @event)
     {
         var tenantConnections = _connections.Values
             .Where(c => c.TenantId == tenantId && c.Socket.State == WebSocketState.Open)
@@ -41,7 +41,7 @@ public class WebSocketConnectionManager
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error broadcasting to connection: {ex.Message}");
+                logger.LogWarning(ex, "Error al enviar evento WS al tenant {TenantId}", tenantId);
             }
         }
     }

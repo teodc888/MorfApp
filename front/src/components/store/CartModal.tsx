@@ -1,11 +1,21 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useMemo, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import type { TenantPublic, CartItem, SelectedOption } from '@/types/store'
 import { useCartStore } from '@/store/cart'
-import { formatPrice, buildWhatsAppMessage } from '@/lib/utils'
+import {
+  formatPrice,
+  buildWhatsAppMessage,
+  buildStorePath,
+  getStoreClosedMessage,
+  loadCustomerData,
+  saveCustomerData,
+  clearCustomerData,
+  savePendingWhatsAppOrder,
+} from '@/lib/utils'
 import type { CustomerForm } from '@/lib/utils'
-import { registerRedemption, createOrder, buildOrderItems } from '@/lib/api'
+import { createOrder, buildOrderItems, ApiError } from '@/lib/api'
 import { STITCH } from '@/lib/stitch-theme'
 
 type Props = {
@@ -94,6 +104,7 @@ function CartItemRow({ item }: { item: CartItem }) {
       <div className="flex items-center gap-1 flex-shrink-0">
         <button
           onClick={() => updateQty(item.cartId, item.qty - 1)}
+          aria-label="Disminuir cantidad"
           className="w-7 h-7 rounded-full flex items-center justify-center text-base transition-colors"
           style={{ backgroundColor: '#F3F4F6', color: DS.textMuted }}
         >
@@ -102,6 +113,7 @@ function CartItemRow({ item }: { item: CartItem }) {
         <span className="w-5 text-center text-sm font-semibold">{item.qty}</span>
         <button
           onClick={() => updateQty(item.cartId, item.qty + 1)}
+          aria-label="Aumentar cantidad"
           className="w-7 h-7 rounded-full flex items-center justify-center text-base transition-colors"
           style={{ backgroundColor: '#F3F4F6', color: DS.textMuted }}
         >
@@ -109,6 +121,7 @@ function CartItemRow({ item }: { item: CartItem }) {
         </button>
         <button
           onClick={() => removeItem(item.cartId)}
+          aria-label="Quitar del carrito"
           className="ml-1 w-7 h-7 rounded-full flex items-center justify-center text-sm"
           style={{ backgroundColor: '#FEE2E2', color: '#EF4444' }}
         >
@@ -120,22 +133,38 @@ function CartItemRow({ item }: { item: CartItem }) {
 }
 
 export function CartModal({ tenant, onClose }: Props) {
+  const router = useRouter()
   const items = useCartStore((s) => s.items)
   const total = useCartStore((s) => s.total())
   const clear = useCartStore((s) => s.clear)
   const [isClosing, setIsClosing] = useState(false)
-  const [redemptionError, setRedemptionError] = useState<string | null>(null)
   const [orderError, setOrderError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
 
   const [dragY, setDragY] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
   const dragStartY = useRef(0)
+  const dialogRef = useRef<HTMLDivElement>(null)
 
   const handleClose = () => {
     setIsClosing(true)
     setTimeout(onClose, 300)
   }
+
+  useEffect(() => {
+    dialogRef.current?.focus()
+  }, [])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleClose()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleDragStart = (clientY: number) => {
     dragStartY.current = clientY
@@ -198,6 +227,27 @@ export function CartModal({ tenant, onClose }: Props) {
     deliveryMode: deliveryMode === 'pickup' ? 'pickup' : 'delivery',
     paymentMethod: 'cash',
   })
+  const [hasSavedCustomerData, setHasSavedCustomerData] = useState(false)
+
+  useEffect(() => {
+    const saved = loadCustomerData()
+    if (saved) {
+      setHasSavedCustomerData(true)
+      setForm((prev) => ({
+        ...prev,
+        name: saved.name,
+        phone: saved.phone,
+        address: saved.address,
+      }))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const handleForgetCustomerData = () => {
+    clearCustomerData()
+    setHasSavedCustomerData(false)
+    setForm((prev) => ({ ...prev, name: '', phone: '', address: '' }))
+  }
 
   const handleInput = (field: keyof CustomerForm, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -240,38 +290,30 @@ export function CartModal({ tenant, onClose }: Props) {
     /^\d{8,}$/.test(form.phone.replace(/[\s+\-()]/g, '')) &&
     (activeDelivery === 'pickup' || form.address.trim().length > 0)
 
+  const closedMessage = useMemo(
+    () => (!tenant.isOpen ? getStoreClosedMessage(tenant.businessHours) : null),
+    [tenant.isOpen, tenant.businessHours]
+  )
+
+  const isConfirmDisabled = !isFormValid || shortfall > 0 || isSaving || !tenant.isOpen
+
   const handleConfirm = async () => {
     if (!isFormValid || shortfall > 0 || isSaving) return
 
-    setRedemptionError(null)
-    setOrderError(null)
-
-    // Validar redemptions para promos antes de guardar el pedido
-    try {
-      for (const item of items) {
-        if (item.product.id.startsWith('promo:')) {
-          const promoId = item.product.id.replace('promo:', '')
-          const status = await registerRedemption(tenant.slug, promoId, {
-            phoneNumber: form.phone,
-            quantity: item.qty,
-          })
-          if (!status.canRedeem) {
-            setRedemptionError(
-              `Ya alcanzaste el límite de esta promo. Máximo: ${status.maxPerUser}, Usado: ${status.used}`
-            )
-            return
-          }
-        }
-      }
-    } catch {
-      setRedemptionError('Error validando promoción')
+    if (!tenant.isOpen) {
+      setOrderError(closedMessage)
       return
     }
 
+    setOrderError(null)
+
     // Guardar pedido en BD antes de abrir WhatsApp
+    // El backend valida y registra el límite de redemption de promos (MaxPerUser)
+    // de forma atómica dentro de CreateOrder; si se excede, devuelve 409 PROMO_LIMIT_REACHED.
     setIsSaving(true)
+    let orderId: string
     try {
-      await createOrder(tenant.slug, {
+      const result = await createOrder(tenant.slug, {
         items: buildOrderItems(items),
         total: grandTotal,
         customerName: form.name,
@@ -281,23 +323,33 @@ export function CartModal({ tenant, onClose }: Props) {
         notes: form.notes || undefined,
         paymentMethod: form.paymentMethod,
       })
-    } catch {
-      setOrderError('Error al guardar pedido. Intenta de nuevo.')
+      orderId = result.orderId
+    } catch (err) {
+      if (err instanceof ApiError && err.code === 'STORE_CLOSED') {
+        setOrderError(closedMessage ?? 'Cerrado ahora')
+      } else if (err instanceof ApiError && err.code === 'PROMO_LIMIT_REACHED') {
+        setOrderError(err.message)
+      } else {
+        setOrderError('Error al guardar pedido. Intenta de nuevo.')
+      }
       setIsSaving(false)
       return
     }
     setIsSaving(false)
 
-    // Abrir WhatsApp (si llegó aquí, todas las validaciones pasaron y el pedido fue guardado)
+    // Armar mensaje de WhatsApp y guardarlo para que el usuario lo envíe desde /success
     const message = buildWhatsAppMessage(tenant, items, {
       ...form,
       deliveryMode: activeDelivery,
+    }, orderId)
+    savePendingWhatsAppOrder({
+      orderId,
+      phoneNumber: tenant.whatsappNumber.replace(/\D/g, ''),
+      message,
     })
-    const encoded = encodeURIComponent(message)
-    const number = tenant.whatsappNumber.replace(/\D/g, '')
-    window.open(`https://wa.me/${number}?text=${encoded}`, '_blank')
+    saveCustomerData({ name: form.name, phone: form.phone, address: form.address })
     clear()
-    handleClose()
+    router.push(buildStorePath(tenant.slug, `/success?orderId=${orderId}&total=${grandTotal}`))
   }
 
   return (
@@ -309,7 +361,12 @@ export function CartModal({ tenant, onClose }: Props) {
       />
 
       <div
-        className={`relative flex flex-col max-w-[520px] mx-auto w-full overflow-hidden transition-opacity duration-300 ${isClosing ? 'opacity-0 translate-y-full' : 'opacity-100 translate-y-0'}`}
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Tu pedido"
+        tabIndex={-1}
+        className={`relative flex flex-col max-w-[520px] mx-auto w-full overflow-hidden transition-opacity duration-300 outline-none ${isClosing ? 'opacity-0 translate-y-full' : 'opacity-100 translate-y-0'}`}
         style={{
           backgroundColor: DS.surface,
           borderTopLeftRadius: DS.radius,
@@ -380,6 +437,20 @@ export function CartModal({ tenant, onClose }: Props) {
 
               {/* Customer form */}
               <div className="flex flex-col gap-3 pb-4">
+                {hasSavedCustomerData && (
+                  <div className="flex items-center justify-between -mb-1">
+                    <span className="text-xs" style={{ color: DS.textMuted }}>Datos guardados</span>
+                    <button
+                      type="button"
+                      onClick={handleForgetCustomerData}
+                      className="text-xs w-5 h-5 rounded-full flex items-center justify-center"
+                      style={{ color: DS.textMuted, border: `1px solid ${DS.border}` }}
+                      aria-label="Olvidar datos guardados"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
                 <input
                   type="text"
                   placeholder="Tu nombre *"
@@ -469,9 +540,9 @@ export function CartModal({ tenant, onClose }: Props) {
         {/* Confirm button */}
         {items.length > 0 && (
           <div className="flex-shrink-0 px-4 pb-5 pt-2" style={{ borderTop: `1px solid ${DS.border}` }}>
-            {redemptionError && (
+            {closedMessage && (
               <div className="px-3 py-2 rounded text-sm mb-3" style={{ backgroundColor: '#FEE2E2', color: '#B91C1C' }}>
-                {redemptionError}
+                {closedMessage}
               </div>
             )}
             {orderError && (
@@ -481,12 +552,12 @@ export function CartModal({ tenant, onClose }: Props) {
             )}
             <button
               onClick={handleConfirm}
-              disabled={!isFormValid || shortfall > 0 || isSaving}
+              disabled={isConfirmDisabled}
               className="w-full py-3.5 rounded-xl font-bold text-sm text-white transition-all flex items-center justify-center gap-2"
               style={{
-                backgroundColor: isFormValid && shortfall === 0 && !isSaving ? DS.primary : '#D1D5DB',
-                opacity: isFormValid && shortfall === 0 && !isSaving ? 1 : 0.6,
-                cursor: isFormValid && shortfall === 0 && !isSaving ? 'pointer' : 'not-allowed',
+                backgroundColor: isConfirmDisabled ? '#D1D5DB' : DS.primary,
+                opacity: isConfirmDisabled ? 0.6 : 1,
+                cursor: isConfirmDisabled ? 'not-allowed' : 'pointer',
               }}
             >
               {isSaving ? (

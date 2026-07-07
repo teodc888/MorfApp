@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { isPlanPro } from '@/lib/auth'
 import {
   getSuppliers,
@@ -16,7 +17,7 @@ import {
   paySupplierPurchaseFull,
   paySupplierAllDebt,
 } from '@/lib/admin-api'
-import type { SupplierDebtDetailDto, SupplierDebtPurchaseDto, SupplierDto } from '@/types/store'
+import type { SupplierDebtPurchaseDto, SupplierDto } from '@/types/store'
 
 type SupplierForm = { name: string; phone: string; address: string; notes: string }
 type ConfirmDialog = { open: boolean; id: string; name: string; totalDebt: number }
@@ -26,40 +27,122 @@ const EMPTY_FORM: SupplierForm = { name: '', phone: '', address: '', notes: '' }
 
 export default function ProveedoresPage() {
   const router = useRouter()
-  const [suppliers, setSuppliers] = useState<SupplierDto[]>([])
-  const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
+
   const [modal, setModal] = useState<{ open: boolean; editing: SupplierDto | null }>({ open: false, editing: null })
   const [form, setForm] = useState<SupplierForm>(EMPTY_FORM)
-  const [saving, setSaving] = useState(false)
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog>({ open: false, id: '', name: '', totalDebt: 0 })
-  const [debtModal, setDebtModal] = useState<{ open: boolean; loading: boolean; detail: SupplierDebtDetailDto | null }>({ open: false, loading: false, detail: null })
+  const [debtSupplierId, setDebtSupplierId] = useState<string | null>(null)
   const [paymentForm, setPaymentForm] = useState<PaymentForm | null>(null)
-  const [paying, setPaying] = useState(false)
   const [showInactive, setShowInactive] = useState(false)
-  const [inactiveSuppliers, setInactiveSuppliers] = useState<SupplierDto[]>([])
   const [restoringId, setRestoringId] = useState<string | null>(null)
-
-  const load = useCallback(async () => {
-    try {
-      const [active, inactive] = await Promise.all([getSuppliers(), getInactiveSuppliers()])
-      setSuppliers(active)
-      setInactiveSuppliers(inactive)
-    } catch {
-      toast.error('No se pudieron cargar los proveedores')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
 
   // Guard: redirigir si no tiene plan Pro/Negocio
   useEffect(() => {
     if (!isPlanPro()) router.replace('/admin/menu')
   }, [router])
 
+  const { data: suppliers = [], isLoading: suppliersLoading } = useQuery({
+    queryKey: ['suppliers'],
+    queryFn: getSuppliers,
+  })
+
+  // Se carga siempre (no lazy): el botón "Ver dados de baja (N)" necesita saber
+  // cuántos hay inactivos para decidir si se muestra, antes de que el usuario
+  // interactúe con el toggle. Igual que el comportamiento original.
+  const { data: inactiveSuppliers = [], isLoading: inactiveLoading } = useQuery({
+    queryKey: ['suppliers-inactive'],
+    queryFn: getInactiveSuppliers,
+  })
+
+  const loading = suppliersLoading || inactiveLoading
+
+  const {
+    data: debtDetail,
+    isLoading: debtLoading,
+    error: debtError,
+  } = useQuery({
+    queryKey: ['supplier-debt', debtSupplierId],
+    queryFn: () => getSupplierDebtDetail(debtSupplierId as string),
+    enabled: !!debtSupplierId,
+  })
+
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    load()
-  }, [load])
+    if (debtError) {
+      toast.error('No se pudo cargar el detalle de deuda')
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDebtSupplierId(null)
+    }
+  }, [debtError])
+
+  const saveMutation = useMutation({
+    mutationFn: (vars: { editing: SupplierDto | null; data: { name: string; phone?: string; address?: string; notes?: string } }) =>
+      vars.editing ? updateSupplier(vars.editing.id, vars.data) : createSupplier(vars.data),
+    onSuccess: (_data, vars) => {
+      toast.success(vars.editing ? 'Proveedor actualizado' : 'Proveedor creado')
+      setModal({ open: false, editing: null })
+    },
+    onError: () => toast.error('Error al guardar'),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['suppliers'] }),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteSupplier(id),
+    onSuccess: () => {
+      toast.success('Proveedor dado de baja')
+      setConfirmDialog({ open: false, id: '', name: '', totalDebt: 0 })
+    },
+    onError: () => toast.error('Error al guardar'),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['suppliers'] })
+      queryClient.invalidateQueries({ queryKey: ['suppliers-inactive'] })
+    },
+  })
+
+  const restoreMutation = useMutation({
+    mutationFn: (id: string) => restoreSupplier(id),
+    onMutate: (id) => setRestoringId(id),
+    onSuccess: () => toast.success('Proveedor reactivado'),
+    onError: () => toast.error('Error al guardar'),
+    onSettled: () => {
+      setRestoringId(null)
+      queryClient.invalidateQueries({ queryKey: ['suppliers'] })
+      queryClient.invalidateQueries({ queryKey: ['suppliers-inactive'] })
+    },
+  })
+
+  const invalidateDebt = (supplierId: string) => {
+    queryClient.invalidateQueries({ queryKey: ['supplier-debt', supplierId] })
+    queryClient.invalidateQueries({ queryKey: ['suppliers'] })
+  }
+
+  const payFullMutation = useMutation({
+    mutationFn: ({ supplierId, purchaseId }: { supplierId: string; purchaseId: string }) =>
+      paySupplierPurchaseFull(supplierId, purchaseId),
+    onSuccess: () => toast.success('Compra marcada como pagada'),
+    onError: () => toast.error('Error al guardar'),
+    onSettled: (_data, _err, variables) => invalidateDebt(variables.supplierId),
+  })
+
+  const payAllMutation = useMutation({
+    mutationFn: (supplierId: string) => paySupplierAllDebt(supplierId),
+    onSuccess: () => toast.success('Deuda saldada'),
+    onError: () => toast.error('Error al guardar'),
+    onSettled: (_data, _err, supplierId) => invalidateDebt(supplierId),
+  })
+
+  const partialPaymentMutation = useMutation({
+    mutationFn: ({ supplierId, purchaseId, amount, notes }: { supplierId: string; purchaseId: string; amount: number; notes?: string }) =>
+      paySupplierPurchasePartial(supplierId, purchaseId, { amount, notes }),
+    onSuccess: () => {
+      setPaymentForm(null)
+      toast.success('Pago registrado')
+    },
+    onError: () => toast.error('Error al guardar'),
+    onSettled: (_data, _err, variables) => invalidateDebt(variables.supplierId),
+  })
+
+  const paying = payFullMutation.isPending || payAllMutation.isPending || partialPaymentMutation.isPending
 
   function openNew() {
     setForm(EMPTY_FORM)
@@ -71,109 +154,44 @@ export default function ProveedoresPage() {
     setModal({ open: true, editing: s })
   }
 
-  async function save() {
-    setSaving(true)
-    try {
-      const data = { name: form.name, phone: form.phone || undefined, address: form.address || undefined, notes: form.notes || undefined }
-      if (modal.editing) {
-        await updateSupplier(modal.editing.id, data)
-        toast.success('Proveedor actualizado')
-      } else {
-        await createSupplier(data)
-        toast.success('Proveedor creado')
-      }
-      setModal({ open: false, editing: null })
-      await load()
-    } catch {
-      toast.error('Error al guardar')
-    } finally {
-      setSaving(false)
-    }
+  function save() {
+    const data = { name: form.name, phone: form.phone || undefined, address: form.address || undefined, notes: form.notes || undefined }
+    saveMutation.mutate({ editing: modal.editing, data })
   }
 
-  async function confirmDelete() {
-    try {
-      await deleteSupplier(confirmDialog.id)
-      setConfirmDialog({ open: false, id: '', name: '', totalDebt: 0 })
-      toast.success('Proveedor dado de baja')
-      await load()
-    } catch {
-      toast.error('Error al guardar')
-    }
+  function confirmDelete() {
+    deleteMutation.mutate(confirmDialog.id)
   }
 
-  async function handleRestore(id: string) {
-    setRestoringId(id)
-    try {
-      await restoreSupplier(id)
-      toast.success('Proveedor reactivado')
-      await load()
-    } catch {
-      toast.error('Error al guardar')
-    } finally {
-      setRestoringId(null)
-    }
+  function handleRestore(id: string) {
+    restoreMutation.mutate(id)
   }
 
-  async function openDebtDetail(supplier: SupplierDto) {
-    setDebtModal({ open: true, loading: true, detail: null })
-    try {
-      setDebtModal({ open: true, loading: false, detail: await getSupplierDebtDetail(supplier.id) })
-    } catch {
-      setDebtModal({ open: false, loading: false, detail: null })
-      toast.error('No se pudo cargar el detalle de deuda')
-    }
+  function openDebtDetail(supplier: SupplierDto) {
+    setDebtSupplierId(supplier.id)
   }
 
-  async function refreshDebtDetail(detail: SupplierDebtDetailDto) {
-    setDebtModal({ open: true, loading: false, detail: await getSupplierDebtDetail(detail.supplierId) })
-    await load()
+  function payPurchaseFull(purchase: SupplierDebtPurchaseDto) {
+    if (!debtSupplierId) return
+    payFullMutation.mutate({ supplierId: debtSupplierId, purchaseId: purchase.purchaseId })
   }
 
-  async function payPurchaseFull(purchase: SupplierDebtPurchaseDto) {
-    if (!debtModal.detail) return
-    setPaying(true)
-    try {
-      await paySupplierPurchaseFull(debtModal.detail.supplierId, purchase.purchaseId)
-      toast.success('Compra marcada como pagada')
-      await refreshDebtDetail(debtModal.detail)
-    } catch {
-      toast.error('Error al guardar')
-    } finally {
-      setPaying(false)
-    }
+  function payAllDebt() {
+    if (!debtSupplierId) return
+    payAllMutation.mutate(debtSupplierId)
   }
 
-  async function payAllDebt() {
-    if (!debtModal.detail) return
-    setPaying(true)
-    try {
-      await paySupplierAllDebt(debtModal.detail.supplierId)
-      toast.success('Deuda saldada')
-      await refreshDebtDetail(debtModal.detail)
-    } catch {
-      toast.error('Error al guardar')
-    } finally {
-      setPaying(false)
-    }
-  }
-
-  async function submitPartialPayment() {
-    if (!debtModal.detail || !paymentForm) return
+  function submitPartialPayment() {
+    if (!debtSupplierId || !paymentForm) return
     const amount = Number(paymentForm.amount)
     if (!Number.isFinite(amount) || amount <= 0 || amount > paymentForm.purchase.pendingAmount) return
 
-    setPaying(true)
-    try {
-      await paySupplierPurchasePartial(debtModal.detail.supplierId, paymentForm.purchase.purchaseId, { amount, notes: paymentForm.notes || undefined })
-      setPaymentForm(null)
-      toast.success('Pago registrado')
-      await refreshDebtDetail(debtModal.detail)
-    } catch {
-      toast.error('Error al guardar')
-    } finally {
-      setPaying(false)
-    }
+    partialPaymentMutation.mutate({
+      supplierId: debtSupplierId,
+      purchaseId: paymentForm.purchase.purchaseId,
+      amount,
+      notes: paymentForm.notes || undefined,
+    })
   }
 
   function formatMoney(amount: number) {
@@ -183,6 +201,8 @@ export default function ProveedoresPage() {
   function formatDate(dateStr: string) {
     return new Date(dateStr).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
   }
+
+  const saving = saveMutation.isPending
 
   const partialPaymentAmount = paymentForm ? Number(paymentForm.amount) : 0
   const partialPaymentError = paymentForm && paymentForm.amount
@@ -510,8 +530,8 @@ export default function ProveedoresPage() {
       )}
 
       {/* Debt Detail Modal */}
-      {debtModal.open && (
-        <div className="modal-backdrop modal-center" onClick={() => setDebtModal({ open: false, loading: false, detail: null })}>
+      {debtSupplierId && (
+        <div className="modal-backdrop modal-center" onClick={() => setDebtSupplierId(null)}>
           <div
             className="modal-sheet"
             onClick={(e) => e.stopPropagation()}
@@ -522,17 +542,17 @@ export default function ProveedoresPage() {
                 <h2 className="serif" style={{ margin: 0, fontSize: 22, color: 'var(--primary-dark)', marginBottom: 4 }}>
                   Detalle de deuda
                 </h2>
-                {debtModal.detail && (
+                {debtDetail && (
                   <p style={{ margin: 0, fontSize: 13, color: 'var(--muted)' }}>
-                    {debtModal.detail.supplierName} · Deuda actual:{' '}
-                    <span style={{ color: debtModal.detail.totalDebt > 0 ? 'var(--error)' : 'var(--success)', fontWeight: 600 }}>
-                      {formatMoney(debtModal.detail.totalDebt)}
+                    {debtDetail.supplierName} · Deuda actual:{' '}
+                    <span style={{ color: debtDetail.totalDebt > 0 ? 'var(--error)' : 'var(--success)', fontWeight: 600 }}>
+                      {formatMoney(debtDetail.totalDebt)}
                     </span>
                   </p>
                 )}
               </div>
               <button
-                onClick={() => setDebtModal({ open: false, loading: false, detail: null })}
+                onClick={() => setDebtSupplierId(null)}
                 style={{
                   background: 'none',
                   border: 'none',
@@ -546,11 +566,11 @@ export default function ProveedoresPage() {
               </button>
             </div>
 
-            {debtModal.loading || !debtModal.detail ? (
+            {debtLoading || !debtDetail ? (
               <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--muted)' }}>Cargando...</div>
             ) : (
               <>
-                {debtModal.detail.totalDebt > 0 && (
+                {debtDetail.totalDebt > 0 && (
                   <button
                     className="btn btn-primary btn-block"
                     onClick={payAllDebt}
@@ -562,7 +582,7 @@ export default function ProveedoresPage() {
                 )}
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
-                  {debtModal.detail.purchases.map((purchase) => (
+                  {debtDetail.purchases.map((purchase) => (
                     <div key={purchase.purchaseId} className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                         <div>
@@ -627,13 +647,13 @@ export default function ProveedoresPage() {
                   ))}
                 </div>
 
-                {debtModal.detail.payments.length > 0 && (
+                {debtDetail.payments.length > 0 && (
                   <div>
                     <h3 className="serif" style={{ margin: '0 0 12px', fontSize: 16, color: 'var(--text)', fontWeight: 600 }}>
                       Historial de pagos
                     </h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {debtModal.detail.payments.map((payment) => (
+                      {debtDetail.payments.map((payment) => (
                         <div key={payment.id} className="card" style={{ padding: 12, background: 'var(--surface-container)' }}>
                           <div style={{ fontWeight: 600, color: 'var(--text)', fontSize: 13, marginBottom: 4 }}>
                             {formatMoney(payment.amount)} · {formatDate(payment.paidAt)}
@@ -654,8 +674,9 @@ export default function ProveedoresPage() {
               <button
                 className="btn btn-outline"
                 onClick={() => {
-                  setDebtModal({ open: false, loading: false, detail: null })
-                  if (debtModal.detail) openEdit(suppliers.find((s) => s.id === debtModal.detail!.supplierId)!)
+                  const currentDetail = debtDetail
+                  setDebtSupplierId(null)
+                  if (currentDetail) openEdit(suppliers.find((s) => s.id === currentDetail.supplierId)!)
                 }}
                 style={{ flex: 1 }}
               >
@@ -663,7 +684,7 @@ export default function ProveedoresPage() {
               </button>
               <button
                 className="btn btn-ghost"
-                onClick={() => setDebtModal({ open: false, loading: false, detail: null })}
+                onClick={() => setDebtSupplierId(null)}
                 style={{ flex: 1 }}
               >
                 Cerrar

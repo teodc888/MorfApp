@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.WebSockets;
 using System.Text;
+using Microsoft.IdentityModel.Tokens;
 
 namespace MorfApp.Api.WebSocket;
 
@@ -25,8 +26,9 @@ public class WebSocketHandler
             return;
         }
 
-        // Validar token y extraer tenant_id
-        var tenantId = ExtractTenantIdFromToken(token);
+        // Validar token (firma, expiración) y extraer tenant_id
+        var jwtSecret = _config["Jwt:Secret"]!;
+        var tenantId = ValidateAndExtractTenantId(token, jwtSecret);
         if (string.IsNullOrEmpty(tenantId))
         {
             context.Response.StatusCode = 401;
@@ -60,13 +62,27 @@ public class WebSocketHandler
         }
     }
 
-    private string? ExtractTenantIdFromToken(string token)
+    // Validación completa del JWT (firma, issuer/audience, expiración) con los mismos
+    // TokenValidationParameters que usa la autenticación normal en Program.cs.
+    // Testeable sin dependencias de instancia. Cualquier excepción (firma inválida,
+    // token expirado, malformado, etc.) se trata como token inválido -> devuelve null.
+    internal static string? ValidateAndExtractTenantId(string token, string jwtSecret)
     {
         try
         {
             var handler = new JwtSecurityTokenHandler();
-            var jwtToken = handler.ReadJwtToken(token);
-            return jwtToken.Claims.FirstOrDefault(c => c.Type == "tenant_id")?.Value;
+            var parameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+                ValidateIssuer = false,
+                ValidateAudience = false,
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero
+            };
+
+            var principal = handler.ValidateToken(token, parameters, out _);
+            return principal.Claims.FirstOrDefault(c => c.Type == "tenant_id")?.Value;
         }
         catch
         {

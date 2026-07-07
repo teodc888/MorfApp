@@ -1,16 +1,29 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
-type WebSocketEventType = 'new_order' | 'order_confirmed' | 'order_cancelled'
+type WebSocketEventType = 'new_order' | 'order_confirmed' | 'order_cancelled' | 'order_preparing' | 'order_ready' | 'order_delivered'
 
 interface WebSocketMessage {
   type: WebSocketEventType
   data?: Record<string, unknown>
 }
 
-export function useWebSocket() {
+export type NewOrderPayload = { orderId?: string; customerName?: string | null; totalPrice?: number }
+
+export type UseWebSocketOptions = {
+  onNewOrder?: (data: NewOrderPayload) => void
+}
+
+export function useWebSocket(options?: UseWebSocketOptions) {
   const queryClient = useQueryClient()
   const wsRef = useRef<WebSocket | null>(null)
+  const onNewOrderRef = useRef<UseWebSocketOptions['onNewOrder']>(options?.onNewOrder)
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const disposedRef = useRef(false)
+
+  useEffect(() => {
+    onNewOrderRef.current = options?.onNewOrder
+  })
 
   const connect = useCallback(() => {
     const token = localStorage.getItem('morf_access_token')
@@ -23,7 +36,7 @@ export function useWebSocket() {
     const ws = new WebSocket(wsUrl)
 
     ws.onopen = () => {
-      console.log('[WebSocket] Connected')
+      // conectado
     }
 
     ws.onmessage = (event) => {
@@ -34,19 +47,20 @@ export function useWebSocket() {
           type: (raw.type || raw.Type) as WebSocketEventType,
           data: raw.data || raw.Data
         }
-        console.log('[WebSocket] Message received:', message.type)
 
         if (message.type === 'new_order') {
-          console.log('[WebSocket] new_order - refetching all orders queries (same as Actualizar button)')
-
           // Refetch ALL orders queries - same as clicking "Actualizar" button
           queryClient.refetchQueries({ queryKey: ['orders'] })
-
-          console.log('[WebSocket] new_order - refetching metrics')
           queryClient.refetchQueries({ queryKey: ['metrics'] })
-        } else if (message.type === 'order_confirmed' || message.type === 'order_cancelled') {
-          console.log('[WebSocket] order status change:', message.type)
 
+          onNewOrderRef.current?.((message.data ?? {}) as NewOrderPayload)
+        } else if (
+          message.type === 'order_confirmed' ||
+          message.type === 'order_cancelled' ||
+          message.type === 'order_preparing' ||
+          message.type === 'order_ready' ||
+          message.type === 'order_delivered'
+        ) {
           // Refetch immediately, just like the button would
           queryClient.refetchQueries({ queryKey: ['orders'] })
           queryClient.refetchQueries({ queryKey: ['metrics'] })
@@ -57,10 +71,11 @@ export function useWebSocket() {
     }
 
     ws.onclose = () => {
-      console.log('[WebSocket] Disconnected')
-      // Reconectar después de 3 segundos
-      // eslint-disable-next-line react-hooks/immutability
-      setTimeout(connect, 3000)
+      // Reconectar después de 3 segundos, salvo que el componente ya se haya desmontado
+      if (!disposedRef.current) {
+        // eslint-disable-next-line react-hooks/immutability
+        reconnectTimeoutRef.current = setTimeout(connect, 3000)
+      }
     }
 
     ws.onerror = (error) => {
@@ -71,11 +86,20 @@ export function useWebSocket() {
   }, [queryClient])
 
   useEffect(() => {
+    disposedRef.current = false
     connect()
 
     return () => {
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.close()
+      disposedRef.current = true
+
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current)
+        reconnectTimeoutRef.current = null
+      }
+
+      const ws = wsRef.current
+      if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+        ws.close()
       }
     }
   }, [connect])

@@ -17,6 +17,7 @@ export type TenantAdmin = {
   delivery: DeliveryConfig | null
   payment: PaymentConfig | null
   hours: BusinessHour[]
+  isPaused: boolean
 }
 
 export type DeliveryConfig = {
@@ -85,6 +86,7 @@ export type Product = {
   imageUrl: string | null
   tags: string[]
   modifierGroups: ModifierGroup[]
+  isOutOfStock: boolean
 }
 
 export type Category = {
@@ -213,4 +215,31 @@ export interface InventoryMovementDto {
   reason: 'Purchase' | 'OrderDeducted' | 'ManualReset' | 'ManualAdjust'
   referenceId?: string
   createdAt: string
+}
+
+export type OrderTrackingModifier = {
+  optionName: string
+  extraPrice: number
+}
+
+export type OrderTrackingItem = {
+  productName: string
+  quantity: number
+  unitPrice: number
+  modifiers: OrderTrackingModifier[]
+  observations?: string | null
+}
+
+export type OrderTracking = {
+  id: string
+  status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivered' | 'cancelled'
+  items: OrderTrackingItem[]
+  totalPrice: number
+  deliveryMode: string
+  address: string | null
+  estimatedMinutes: string | null
+  customerName: string
+  customerPhoneMasked: string
+  createdAt: string
+  confirmedAt: string | null
 }

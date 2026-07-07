@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getAdminMe, updateBranding } from '@/lib/admin-api'
 
 type FormState = {
@@ -69,53 +70,57 @@ function shade(hex: string, percent: number): string {
 }
 
 export default function BrandingPage() {
+  const queryClient = useQueryClient()
   const [form, setForm] = useState<FormState>(DEFAULTS)
   const [tenantName, setTenantName] = useState('Mi local')
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
+
+  const { data: tenant, isLoading } = useQuery({
+    queryKey: ['admin-me'],
+    queryFn: getAdminMe,
+  })
 
   useEffect(() => {
-    getAdminMe()
-      .then((tenant) => {
-        const b = tenant.branding
-        setTenantName(tenant.name)
-        setForm({
-          colorPrimary: b.colorPrimary,
-          colorAccent: b.colorAccent,
-          logoUrl: b.logoUrl ?? '',
-          bannerUrl: b.bannerUrl ?? '',
-          tagline: b.tagline ?? '',
-          emojiIcon: b.emojiIcon,
-        })
-      })
-      .catch(() => toast.error('No se pudo cargar la información'))
-      .finally(() => setLoading(false))
-  }, [])
+    if (!tenant) return
+    const b = tenant.branding
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTenantName(tenant.name)
+    setForm({
+      colorPrimary: b.colorPrimary,
+      colorAccent: b.colorAccent,
+      logoUrl: b.logoUrl ?? '',
+      bannerUrl: b.bannerUrl ?? '',
+      tagline: b.tagline ?? '',
+      emojiIcon: b.emojiIcon,
+    })
+  }, [tenant])
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }))
   }
 
-  async function handleSave() {
-    setSaving(true)
-    try {
-      await updateBranding({
-        colorPrimary: form.colorPrimary,
-        colorAccent: form.colorAccent,
-        logoUrl: form.logoUrl || null,
-        bannerUrl: form.bannerUrl || null,
-        tagline: form.tagline || null,
-        emojiIcon: form.emojiIcon,
-      })
+  const saveMutation = useMutation({
+    mutationFn: updateBranding,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-me'] })
       toast.success('Apariencia guardada')
-    } catch {
-      toast.error('Error al guardar los cambios')
-    } finally {
-      setSaving(false)
-    }
+    },
+    onError: () => toast.error('Error al guardar los cambios'),
+  })
+
+  function handleSave() {
+    saveMutation.mutate({
+      colorPrimary: form.colorPrimary,
+      colorAccent: form.colorAccent,
+      logoUrl: form.logoUrl || null,
+      bannerUrl: form.bannerUrl || null,
+      tagline: form.tagline || null,
+      emojiIcon: form.emojiIcon,
+    })
   }
 
-  if (loading) {
+  const saving = saveMutation.isPending
+
+  if (isLoading) {
     return (
       <div style={{ fontFamily: 'var(--sans)', minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid var(--primary)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />

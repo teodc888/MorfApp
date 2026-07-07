@@ -13,6 +13,11 @@
 # testing
 /coverage
 
+# e2e (Playwright) — estado de auth con tokens JWT y artefactos de corridas
+/e2e/.auth/
+/test-results/
+/playwright-report/
+
 # next.js
 /.next/
 /out/

@@ -6,6 +6,7 @@ using MorfApp.Application.Interfaces;
 using MorfApp.Domain.Enums;
 using System.Globalization;
 using System.Security.Claims;
+using System.Text;
 
 namespace MorfApp.Api.Controllers;
 
@@ -16,6 +17,9 @@ public class MetricsController(IAppDbContext db) : ControllerBase
 {
     private string TenantId => User.FindFirstValue("tenant_id")
         ?? throw new UnauthorizedAccessException();
+
+    private static readonly List<OrderStatus> CompletedStatuses =
+        [OrderStatus.Confirmed, OrderStatus.Preparing, OrderStatus.Ready, OrderStatus.Delivered];
 
     // GET /api/admin/metrics/daily?date=2025-05-02
     [HttpGet("daily")]
@@ -31,7 +35,7 @@ public class MetricsController(IAppDbContext db) : ControllerBase
 
         var orders = await db.Orders
             .Where(o => o.TenantId == TenantId
-                     && o.Status == OrderStatus.Confirmed
+                     && CompletedStatuses.Contains(o.Status)
                      && o.CreatedAt >= from
                      && o.CreatedAt <= to)
             .ToListAsync();
@@ -100,7 +104,7 @@ public class MetricsController(IAppDbContext db) : ControllerBase
 
         var orders = await db.Orders
             .Where(o => o.TenantId == TenantId
-                     && o.Status == OrderStatus.Confirmed
+                     && CompletedStatuses.Contains(o.Status)
                      && o.CreatedAt >= from
                      && o.CreatedAt <= to)
             .ToListAsync();
@@ -164,7 +168,7 @@ public class MetricsController(IAppDbContext db) : ControllerBase
 
         var orders = await db.Orders
             .Where(o => o.TenantId == TenantId
-                     && o.Status == OrderStatus.Confirmed
+                     && CompletedStatuses.Contains(o.Status)
                      && o.CreatedAt >= from
                      && o.CreatedAt <= to)
             .ToListAsync();
@@ -220,7 +224,7 @@ public class MetricsController(IAppDbContext db) : ControllerBase
 
         var orders = await db.Orders
             .Where(o => o.TenantId == TenantId
-                     && o.Status == OrderStatus.Confirmed
+                     && CompletedStatuses.Contains(o.Status)
                      && o.CreatedAt >= from
                      && o.CreatedAt <= to)
             .ToListAsync();
@@ -259,6 +263,62 @@ public class MetricsController(IAppDbContext db) : ControllerBase
             revenueOverTime,
             ordersByHour: null,
             totalCustomers));
+    }
+
+    // GET /api/admin/metrics/export?from=2025-05-01&to=2025-05-31
+    // Exporta métricas diarias (pedidos completados: confirmados, en preparación, listos o entregados) en formato CSV (separador ';', UTF-8 con BOM).
+    // Si no se pasan from/to, default a los últimos 30 días.
+    [HttpGet("export")]
+    public async Task<IActionResult> ExportMetrics(
+        [FromQuery] DateTime? from = null,
+        [FromQuery] DateTime? to = null)
+    {
+        var tenant = await db.Tenants.FirstOrDefaultAsync(t => t.Id == TenantId);
+        if (tenant == null)
+            return Unauthorized();
+
+        var toDate = to ?? DateTime.UtcNow;
+        var fromDate = from ?? toDate.AddDays(-30);
+
+        var orders = await db.Orders
+            .Where(o => o.TenantId == TenantId
+                     && CompletedStatuses.Contains(o.Status)
+                     && o.CreatedAt >= fromDate
+                     && o.CreatedAt <= toDate)
+            .ToListAsync();
+
+        var tz = TimeZoneInfo.FindSystemTimeZoneById(tenant.Timezone);
+        var culture = new CultureInfo("es-AR");
+
+        var dailyRows = orders
+            .GroupBy(o => TimeZoneInfo.ConvertTimeFromUtc(o.CreatedAt, tz).Date)
+            .Select(g => new
+            {
+                Fecha = g.Key,
+                CantidadPedidos = g.Count(),
+                Facturacion = g.Sum(o => o.TotalPrice),
+            })
+            .OrderBy(r => r.Fecha)
+            .ToList();
+
+        var sb = new StringBuilder();
+        sb.AppendLine("Fecha;CantidadPedidos;Facturacion;TicketPromedio");
+
+        foreach (var row in dailyRows)
+        {
+            var ticketPromedio = row.CantidadPedidos == 0 ? 0m : Math.Round(row.Facturacion / row.CantidadPedidos, 2);
+
+            sb.AppendLine(string.Join(';', new[]
+            {
+                row.Fecha.ToString("yyyy-MM-dd"),
+                row.CantidadPedidos.ToString(CultureInfo.InvariantCulture),
+                row.Facturacion.ToString("F2", culture),
+                ticketPromedio.ToString("F2", culture)
+            }));
+        }
+
+        var bytes = CsvHelper.ToUtf8BomBytes(sb.ToString());
+        return File(bytes, "text/csv", $"metricas_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv");
     }
 
     // ── Helper ────────────────────────────────────────────────────────────────

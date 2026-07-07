@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { login } from '@/lib/admin-api'
 import { saveTokens, isAuthenticated } from '@/lib/auth'
 
@@ -87,6 +88,13 @@ export default function LoginPage() {
           >
             {loading ? 'Ingresando...' : 'Ingresar'}
           </button>
+
+          <Link
+            href="/admin/forgot-password"
+            className="block text-sm text-center text-gray-500 hover:text-orange-600"
+          >
+            ¿Olvidaste tu contraseña?
+          </Link>
         </form>
       </div>
     </div>

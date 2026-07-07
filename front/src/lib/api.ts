@@ -1,4 +1,4 @@
-import type { TenantPublic, Category, Promotion, CartItem } from '@/types/store'
+import type { TenantPublic, Category, Promotion, CartItem, OrderTracking } from '@/types/store'
 
 export type CreateOrderPayload = {
   items: Array<{
@@ -49,7 +49,7 @@ const API_URL = typeof window === 'undefined'
 
 export async function getTenant(slug: string): Promise<TenantPublic> {
   const res = await fetch(`${API_URL}/api/store/${slug}`, {
-    cache: 'no-store',
+    next: { revalidate: 60 },
   })
   if (!res.ok) {
     throw new Error(`getTenant failed: ${res.status}`)
@@ -59,7 +59,7 @@ export async function getTenant(slug: string): Promise<TenantPublic> {
 
 export async function getMenu(slug: string): Promise<Category[]> {
   const res = await fetch(`${API_URL}/api/store/${slug}/menu`, {
-    cache: 'no-store',
+    next: { revalidate: 60 },
   })
   if (!res.ok) {
     throw new Error(`getMenu failed: ${res.status}`)
@@ -68,9 +68,21 @@ export async function getMenu(slug: string): Promise<Category[]> {
 }
 
 export async function getPromotions(slug: string): Promise<Promotion[]> {
-  const res = await fetch(`${API_URL}/api/store/${slug}/promotions`, { cache: 'no-store' })
+  const res = await fetch(`${API_URL}/api/store/${slug}/promotions`, { next: { revalidate: 60 } })
   if (!res.ok) return []
   return res.json()
+}
+
+export class ApiError extends Error {
+  status: number
+  code?: string
+
+  constructor(message: string, status: number, code?: string) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+    this.code = code
+  }
 }
 
 export async function createOrder(
@@ -82,20 +94,24 @@ export async function createOrder(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
-  if (!res.ok) throw new Error(`createOrder failed: ${res.status}`)
+  if (!res.ok) {
+    let body: { message?: string; code?: string } | undefined
+    try {
+      body = await res.json()
+    } catch {
+      body = undefined
+    }
+    throw new ApiError(body?.message ?? 'Error al guardar pedido', res.status, body?.code)
+  }
   return res.json()
 }
 
-export async function registerRedemption(
-  slug: string,
-  promoId: string,
-  body: { phoneNumber: string; quantity: number }
-): Promise<{ used: number; maxPerUser: number | null; canRedeem: boolean }> {
-  const res = await fetch(`${API_URL}/api/store/${slug}/promotions/${promoId}/redemptions`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+export async function getOrderTracking(slug: string, orderId: string): Promise<OrderTracking> {
+  const res = await fetch(`${API_URL}/api/store/${slug}/orders/${orderId}`, {
+    cache: 'no-store',
   })
-  if (!res.ok) throw new Error(`Redemption failed: ${res.status}`)
-  return res.json()
+  if (!res.ok) {
+    throw new Error(`getOrderTracking failed: ${res.status}`)
+  }
+  return res.json() as Promise<OrderTracking>
 }

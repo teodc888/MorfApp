@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { toast } from 'sonner'
 import {
   getSuperAdminTenants,
   updateTenantStatus,
   activateTenant,
+  impersonateTenant,
   buildWhatsAppNotificationUrl,
   getSettings,
   type SuperAdminTenant,
@@ -45,18 +47,14 @@ export default function TenantsPage() {
   const [activating, setActivating] = useState<string | null>(null)
   const [confirmDialog, setConfirmDialog] = useState<{ tenantId: string; tenantName: string } | null>(null)
   const [activateDialog, setActivateDialog] = useState<{ tenantId: string; tenantName: string; ownerEmail: string } | null>(null)
+  const [impersonateDialog, setImpersonateDialog] = useState<{ tenantId: string; tenantName: string; tenantSlug: string } | null>(null)
+  const [impersonating, setImpersonating] = useState<string | null>(null)
   const [messageTemplate, setMessageTemplate] = useState<string>('')
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
   useEffect(() => {
     load()
     loadTemplate()
   }, [])
-
-  function showToast(message: string, type: 'success' | 'error' = 'success') {
-    setToast({ message, type })
-    setTimeout(() => setToast(null), 4000)
-  }
 
   async function loadTemplate() {
     try {
@@ -89,7 +87,7 @@ export default function TenantsPage() {
       await updateTenantStatus(tenant.id, newStatus)
       setTenants(prev => prev.map(t => t.id === tenant.id ? { ...t, status: newStatus } : t))
     } catch {
-      showToast('No se pudo cambiar el estado', 'error')
+      toast.error('No se pudo cambiar el estado')
     } finally {
       setToggling(null)
     }
@@ -102,7 +100,7 @@ export default function TenantsPage() {
       await updateTenantStatus(confirmDialog.tenantId, 'Inactive')
       setTenants(prev => prev.map(t => t.id === confirmDialog.tenantId ? { ...t, status: 'Inactive' } : t))
     } catch {
-      showToast('No se pudo cambiar el estado', 'error')
+      toast.error('No se pudo cambiar el estado')
     } finally {
       setToggling(null)
       setConfirmDialog(null)
@@ -115,14 +113,43 @@ export default function TenantsPage() {
     try {
       const result = await activateTenant(activateDialog.tenantId)
       setTenants(prev => prev.map(t => t.id === activateDialog.tenantId ? { ...t, status: 'Active' } : t))
-      showToast(result.setupUrl
+      toast.success(result.setupUrl
         ? 'Negocio activado. Se envió el email al dueño.'
         : `Negocio activado (no se pudo enviar el email).`)
     } catch {
-      showToast('No se pudo activar el negocio', 'error')
+      toast.error('No se pudo activar el negocio')
     } finally {
       setActivating(null)
       setActivateDialog(null)
+    }
+  }
+
+  async function confirmImpersonate() {
+    if (!impersonateDialog) return
+    setImpersonating(impersonateDialog.tenantId)
+    try {
+      const result = await impersonateTenant(impersonateDialog.tenantId)
+      const snippet = `localStorage.setItem('morf_access_token', '${result.accessToken}'); localStorage.removeItem('morf_refresh_token'); location.href = '/admin'`
+      let copied = false
+      try {
+        await navigator.clipboard.writeText(snippet)
+        copied = true
+      } catch {
+        copied = false
+      }
+      if (typeof window !== 'undefined') {
+        window.open(`https://${impersonateDialog.tenantSlug}.morfapp.app/admin/login`, '_blank', 'noopener,noreferrer')
+      }
+      if (copied) {
+        toast.success('Script copiado al portapapeles. Abrí la consola del navegador (F12) en la pestaña nueva y pegalo para iniciar sesión como este negocio. El acceso expira en 15 minutos.', { duration: 8000 })
+      } else {
+        toast.error(`No se pudo copiar automáticamente. Token: ${result.accessToken}`, { duration: 15000 })
+      }
+    } catch {
+      toast.error('No se pudo generar el acceso de impersonation')
+    } finally {
+      setImpersonating(null)
+      setImpersonateDialog(null)
     }
   }
 
@@ -143,14 +170,6 @@ export default function TenantsPage() {
 
   return (
     <div>
-      {toast && (
-        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg text-sm font-medium transition-all ${
-          toast.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
-        }`}>
-          {toast.message}
-        </div>
-      )}
-
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Negocios</h1>
@@ -307,6 +326,15 @@ export default function TenantsPage() {
                             💬 Notificar
                           </a>
                         )}
+                        {tenant.status === 'Active' && (
+                          <button
+                            onClick={() => setImpersonateDialog({ tenantId: tenant.id, tenantName: tenant.name, tenantSlug: tenant.slug })}
+                            disabled={impersonating === tenant.id}
+                            className="px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
+                          >
+                            {impersonating === tenant.id ? '...' : '🔑 Entrar como'}
+                          </button>
+                        )}
                         <Link
                           href={`/tenants/${tenant.id}/edit`}
                           className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
@@ -397,6 +425,35 @@ export default function TenantsPage() {
                   className="flex-1 py-2 px-4 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium rounded-lg text-sm transition-colors"
                 >
                   {activating === activateDialog.tenantId ? 'Activando...' : 'Activar negocio'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {impersonateDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-xl max-w-sm mx-4">
+            <div className="p-6">
+              <h2 className="text-lg font-bold text-gray-900 mb-2">Entrar como &quot;{impersonateDialog.tenantName}&quot;</h2>
+              <p className="text-sm text-gray-600 mb-6">
+                Se va a generar un acceso temporal de 15 minutos para soporte, sin pedir contraseña. Se abrirá una pestaña nueva con el panel de admin del negocio y se copiará al portapapeles un script que hay que pegar en la consola del navegador (F12) de esa pestaña para iniciar sesión.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setImpersonateDialog(null)}
+                  disabled={impersonating === impersonateDialog.tenantId}
+                  className="flex-1 py-2 px-4 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-100 text-gray-900 font-medium rounded-lg text-sm transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmImpersonate}
+                  disabled={impersonating === impersonateDialog.tenantId}
+                  className="flex-1 py-2 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white font-medium rounded-lg text-sm transition-colors"
+                >
+                  {impersonating === impersonateDialog.tenantId ? 'Generando...' : 'Entrar como'}
                 </button>
               </div>
             </div>

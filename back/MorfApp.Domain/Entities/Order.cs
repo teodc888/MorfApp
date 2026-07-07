@@ -30,6 +30,7 @@ public class OrderItem
     public int Quantity { get; set; }
     public decimal UnitPrice { get; set; }
     public List<OrderItemModifier> Modifiers { get; set; } = new();
+    public string? Observations { get; set; }
 }
 
 public class OrderItemModifier

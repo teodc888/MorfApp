@@ -23,9 +23,23 @@ public class CreateOrderItemRequest
     [System.Text.Json.Serialization.JsonPropertyName("qty")]
     public int Quantity { get; set; }
 
+    // Precios legacy — ya no se usan para el cálculo (recalculado server-side),
+    // se mantienen por compatibilidad con clientes viejos.
     [System.Text.Json.Serialization.JsonPropertyName("unitPrice")]
     public decimal Price { get; set; }
 
     [System.Text.Json.Serialization.JsonPropertyName("extraPrice")]
     public decimal ExtraPrice { get; set; }
+
+    [System.Text.Json.Serialization.JsonPropertyName("modifiers")]
+    public List<CreateOrderItemModifierRequest>? Modifiers { get; set; }
+
+    [System.Text.Json.Serialization.JsonPropertyName("observations")]
+    public string? Observations { get; set; }
+}
+
+public class CreateOrderItemModifierRequest
+{
+    [System.Text.Json.Serialization.JsonPropertyName("optionId")]
+    public string? OptionId { get; set; }
 }

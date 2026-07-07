@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using MorfApp.Application.DTOs.Public;
 using MorfApp.Application.Interfaces;
@@ -13,6 +14,7 @@ namespace MorfApp.Api.Controllers;
 [ApiController]
 [Route("api/public")]
 [AllowAnonymous]
+[EnableRateLimiting("public")]
 public class PublicController(IAppDbContext db) : ControllerBase
 {
     [HttpPost("register")]

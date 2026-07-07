@@ -1,279 +1,312 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using MorfApp.Api.Controllers;
 using MorfApp.Application.DTOs.Admin;
-using MorfApp.Application.Interfaces;
 using MorfApp.Domain.Entities;
 using MorfApp.Domain.Enums;
-using MorfApp.Infrastructure.Persistence;
-using Npgsql.NameTranslation;
-using System.Security.Claims;
+using System.Text;
 using Xunit;
 
 namespace MorfApp.Tests.Controllers;
 
-public class MetricsControllerTests : IAsyncLifetime
+/// <summary>
+/// Tests del MetricsController — usa EF InMemory (sin PostgreSQL).
+/// </summary>
+public class MetricsControllerTests : TestBase
 {
-    private readonly MetricsController _controller;
-    private readonly AppDbContext _context;
-    private readonly string _tenantId;
-    private readonly string _connectionString = "Host=localhost;Port=5432;Database=morfapp_pre;Username=morfapp;Password=morfapp2024!";
-
-    public MetricsControllerTests()
+    private MetricsController CreateController()
     {
-        _tenantId = $"test-{Guid.NewGuid()}";
-
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseSnakeCaseNamingConvention()
-            .UseNpgsql(_connectionString)
-            .Options;
-
-        _context = new AppDbContext(options);
-
-        _controller = new MetricsController(_context);
-
-        var claims = new List<Claim>
-        {
-            new Claim("tenant_id", _tenantId)
-        };
-        var identity = new ClaimsIdentity(claims);
-        var principal = new ClaimsPrincipal(identity);
-
-        _controller.ControllerContext = new ControllerContext
-        {
-            HttpContext = new DefaultHttpContext { User = principal }
-        };
-    }
-
-    public async Task InitializeAsync()
-    {
-        // Cleanup antes de cada test - usa SQL directo
-        using var connection = new Npgsql.NpgsqlConnection(_connectionString);
-        await connection.OpenAsync();
-        using var cmd = connection.CreateCommand();
-        cmd.CommandText = "DELETE FROM orders WHERE tenant_id = @tenantId; DELETE FROM tenants WHERE id = @tenantId;";
-        cmd.Parameters.AddWithValue("tenantId", _tenantId);
-        await cmd.ExecuteNonQueryAsync();
-    }
-
-    public async Task DisposeAsync()
-    {
-        // Cleanup después de cada test - usa SQL directo
-        using var connection = new Npgsql.NpgsqlConnection(_connectionString);
-        await connection.OpenAsync();
-        using var cmd = connection.CreateCommand();
-        cmd.CommandText = "DELETE FROM orders WHERE tenant_id = @tenantId; DELETE FROM tenants WHERE id = @tenantId;";
-        cmd.Parameters.AddWithValue("tenantId", _tenantId);
-        await cmd.ExecuteNonQueryAsync();
-        await _context.DisposeAsync();
+        var ctrl = new MetricsController(Db);
+        SetupTenantClaims(ctrl, TenantId);
+        return ctrl;
     }
 
     [Fact]
     public async Task GetDaily_WithConfirmedOrders_ReturnsMetricsDto()
     {
-        var tenant = new Tenant { Id = _tenantId, Name = "Test", Slug = $"test-{Guid.NewGuid()}", Timezone = "UTC" };
-        _context.Tenants.Add(tenant);
-
+        await CreateTenantAsync();
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var orders = new[]
-        {
-            new Order
-            {
-                Id = $"order-{Guid.NewGuid()}",
-                TenantId = _tenantId,
-                Status = OrderStatus.Confirmed,
-                CreatedAt = DateTime.UtcNow,
-                TotalPrice = 100m,
-                CustomerName = "Customer 1",
-                CustomerPhone = "1234567890",
-                Items = new List<OrderItem>
-                {
-                    new OrderItem
-                    {
-                        ProductId = "prod-1",
-                        ProductName = "Producto 1",
-                        Quantity = 2,
-                        UnitPrice = 50m,
-                        Modifiers = new List<OrderItemModifier>()
-                    }
-                }
-            },
-            new Order
-            {
-                Id = $"order-{Guid.NewGuid()}",
-                TenantId = _tenantId,
-                Status = OrderStatus.Confirmed,
-                CreatedAt = DateTime.UtcNow,
-                TotalPrice = 150m,
-                CustomerName = "Customer 2",
-                CustomerPhone = "9876543210",
-                Items = new List<OrderItem>
-                {
-                    new OrderItem
-                    {
-                        ProductId = "prod-1",
-                        ProductName = "Producto 1",
-                        Quantity = 3,
-                        UnitPrice = 50m,
-                        Modifiers = new List<OrderItemModifier>()
-                    }
-                }
-            }
-        };
 
-        _context.Orders.AddRange(orders);
-        await _context.SaveChangesAsync();
+        Db.Orders.AddRange(
+            new Order { TenantId = TenantId, Status = OrderStatus.Confirmed, CreatedAt = DateTime.UtcNow, TotalPrice = 100m, CustomerName = "C1", CustomerPhone = "1", Items = [new OrderItem { ProductId = "p1", ProductName = "Prod", Quantity = 2, UnitPrice = 50m, Modifiers = [] }] },
+            new Order { TenantId = TenantId, Status = OrderStatus.Confirmed, CreatedAt = DateTime.UtcNow, TotalPrice = 150m, CustomerName = "C2", CustomerPhone = "2", Items = [] }
+        );
+        await Db.SaveChangesAsync();
 
-        var result = await _controller.GetDaily(today);
+        var ctrl   = CreateController();
+        var result = await ctrl.GetDaily(today);
 
-        Assert.NotNull(result);
+        var ok  = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<MetricsDto>(ok.Value);
+        Assert.Equal(2,    dto.TotalOrders);
+        Assert.Equal(250m, dto.TotalRevenue);
     }
 
     [Fact]
     public async Task GetDaily_TenantNotFound_ReturnsUnauthorized()
     {
-        var result = await _controller.GetDaily(null);
+        // No creamos tenant — GetDaily debe retornar Unauthorized
+        var ctrl   = CreateController();
+        var result = await ctrl.GetDaily(null);
 
         Assert.IsType<UnauthorizedResult>(result.Result);
     }
 
     [Fact]
-    public async Task GetDaily_WithInvalidTimezone_FallsBackToUtc()
+    public async Task GetDaily_OnlyCountsConfirmedOrders()
     {
-        var tenant = new Tenant
-        {
-            Id = _tenantId,
-            Name = "Test",
-            Slug = "test",
-            Timezone = "Invalid/Timezone"
-        };
-        _context.Tenants.Add(tenant);
-
+        await CreateTenantAsync();
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var order = new Order
-        {
-            Id = $"order-{Guid.NewGuid()}",
-            TenantId = _tenantId,
-            Status = OrderStatus.Confirmed,
-            CreatedAt = DateTime.UtcNow,
-            TotalPrice = 100m,
-            CustomerName = "Test Customer",
-            CustomerPhone = "1234567890",
-            Items = new List<OrderItem>()
-        };
 
-        _context.Orders.Add(order);
-        await _context.SaveChangesAsync();
+        Db.Orders.AddRange(
+            new Order { TenantId = TenantId, Status = OrderStatus.Confirmed, CreatedAt = DateTime.UtcNow, TotalPrice = 100m, CustomerName = "C1", CustomerPhone = "1", Items = [] },
+            new Order { TenantId = TenantId, Status = OrderStatus.Pending,   CreatedAt = DateTime.UtcNow, TotalPrice = 200m, CustomerName = "C2", CustomerPhone = "2", Items = [] },
+            new Order { TenantId = TenantId, Status = OrderStatus.Cancelled, CreatedAt = DateTime.UtcNow, TotalPrice = 300m, CustomerName = "C3", CustomerPhone = "3", Items = [] }
+        );
+        await Db.SaveChangesAsync();
 
-        var result = await _controller.GetDaily(today);
+        var ctrl   = CreateController();
+        var result = await ctrl.GetDaily(today);
 
-        Assert.NotNull(result);
+        var ok  = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<MetricsDto>(ok.Value);
+        Assert.Equal(1,    dto.TotalOrders);
+        Assert.Equal(100m, dto.TotalRevenue);
+    }
+
+    [Fact]
+    public async Task GetDaily_CountsOrdersInPreparingReadyOrDelivered_ExcludesPendingAndCancelled()
+    {
+        await CreateTenantAsync();
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        Db.Orders.AddRange(
+            new Order { TenantId = TenantId, Status = OrderStatus.Preparing, CreatedAt = DateTime.UtcNow, TotalPrice = 10m, CustomerName = "C1", CustomerPhone = "1", Items = [] },
+            new Order { TenantId = TenantId, Status = OrderStatus.Ready,     CreatedAt = DateTime.UtcNow, TotalPrice = 20m, CustomerName = "C2", CustomerPhone = "2", Items = [] },
+            new Order { TenantId = TenantId, Status = OrderStatus.Delivered, CreatedAt = DateTime.UtcNow, TotalPrice = 30m, CustomerName = "C3", CustomerPhone = "3", Items = [] },
+            new Order { TenantId = TenantId, Status = OrderStatus.Pending,   CreatedAt = DateTime.UtcNow, TotalPrice = 1000m, CustomerName = "C4", CustomerPhone = "4", Items = [] },
+            new Order { TenantId = TenantId, Status = OrderStatus.Cancelled, CreatedAt = DateTime.UtcNow, TotalPrice = 2000m, CustomerName = "C5", CustomerPhone = "5", Items = [] }
+        );
+        await Db.SaveChangesAsync();
+
+        var ctrl   = CreateController();
+        var result = await ctrl.GetDaily(today);
+
+        var ok  = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<MetricsDto>(ok.Value);
+        Assert.Equal(3,   dto.TotalOrders); // Preparing + Ready + Delivered
+        Assert.Equal(60m, dto.TotalRevenue); // Pending y Cancelled quedan afuera
+    }
+
+    [Fact]
+    public async Task GetDaily_NoOrders_ReturnsZeroMetrics()
+    {
+        await CreateTenantAsync();
+        var today  = DateOnly.FromDateTime(DateTime.UtcNow);
+        var ctrl   = CreateController();
+        var result = await ctrl.GetDaily(today);
+
+        var ok  = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<MetricsDto>(ok.Value);
+        Assert.Equal(0,  dto.TotalOrders);
+        Assert.Equal(0m, dto.TotalRevenue);
+        Assert.Equal(0m, dto.AverageOrderValue);
     }
 
     [Fact]
     public async Task GetWeekly_WithConfirmedOrders_ReturnsMetricsDto()
     {
-        var tenant = new Tenant { Id = _tenantId, Name = "Test", Slug = $"test-{Guid.NewGuid()}", Timezone = "UTC" };
-        _context.Tenants.Add(tenant);
-
+        await CreateTenantAsync();
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var order = new Order
+
+        Db.Orders.Add(new Order
         {
-            Id = $"order-{Guid.NewGuid()}",
-            TenantId = _tenantId,
-            Status = OrderStatus.Confirmed,
-            CreatedAt = DateTime.UtcNow.AddDays(-1),
-            TotalPrice = 100m,
-            CustomerName = "Test Customer",
-            CustomerPhone = "1234567890",
-            Items = new List<OrderItem>()
-        };
+            TenantId = TenantId, Status = OrderStatus.Confirmed,
+            CreatedAt = DateTime.UtcNow.AddDays(-1), TotalPrice = 100m,
+            CustomerName = "Test", CustomerPhone = "1", Items = []
+        });
+        await Db.SaveChangesAsync();
 
-        _context.Orders.Add(order);
-        await _context.SaveChangesAsync();
+        var ctrl   = CreateController();
+        var result = await ctrl.GetWeekly(today);
 
-        var result = await _controller.GetWeekly(today);
-
-        Assert.NotNull(result);
+        var ok  = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<MetricsDto>(ok.Value);
+        Assert.Equal(1, dto.TotalOrders);
     }
 
     [Fact]
     public async Task GetMonthly_WithConfirmedOrders_ReturnsMetricsDto()
     {
-        var tenant = new Tenant { Id = _tenantId, Name = "Test", Slug = $"test-{Guid.NewGuid()}", Timezone = "UTC" };
-        _context.Tenants.Add(tenant);
+        await CreateTenantAsync();
 
-        var order = new Order
+        Db.Orders.Add(new Order
         {
-            Id = $"order-{Guid.NewGuid()}",
-            TenantId = _tenantId,
-            Status = OrderStatus.Confirmed,
+            TenantId = TenantId, Status = OrderStatus.Confirmed,
             CreatedAt = new DateTime(2026, 5, 15, 12, 0, 0, DateTimeKind.Utc),
-            TotalPrice = 200m,
-            CustomerName = "Test Customer",
-            CustomerPhone = "1234567890",
-            Items = new List<OrderItem>()
-        };
+            TotalPrice = 200m, CustomerName = "Test", CustomerPhone = "1", Items = []
+        });
+        await Db.SaveChangesAsync();
 
-        _context.Orders.Add(order);
-        await _context.SaveChangesAsync();
+        var ctrl   = CreateController();
+        var result = await ctrl.GetMonthly(5, 2026);
 
-        var result = await _controller.GetMonthly(5, 2026);
-
-        Assert.NotNull(result);
+        var ok  = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<MetricsDto>(ok.Value);
+        Assert.Equal(1,    dto.TotalOrders);
+        Assert.Equal(200m, dto.TotalRevenue);
     }
 
     [Fact]
     public async Task GetMonthly_InvalidMonth_ReturnsBadRequest()
     {
-        var tenant = new Tenant { Id = _tenantId, Name = "Test", Slug = $"test-{Guid.NewGuid()}", Timezone = "UTC" };
-        _context.Tenants.Add(tenant);
-        await _context.SaveChangesAsync();
+        await CreateTenantAsync();
 
-        var result = await _controller.GetMonthly(13, 2026);
+        var ctrl   = CreateController();
+        var result = await ctrl.GetMonthly(13, 2026);
 
-        var badResult = Assert.IsType<BadRequestObjectResult>(result.Result);
-        Assert.NotNull(badResult.Value);
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task GetMonthly_InvalidMonth_Zero_ReturnsBadRequest()
+    {
+        await CreateTenantAsync();
+
+        var ctrl   = CreateController();
+        var result = await ctrl.GetMonthly(0, 2026);
+
+        Assert.IsType<BadRequestObjectResult>(result.Result);
     }
 
     [Fact]
     public async Task GetYearly_WithConfirmedOrders_ReturnsMetricsDto()
     {
-        var tenant = new Tenant { Id = _tenantId, Name = "Test", Slug = $"test-{Guid.NewGuid()}", Timezone = "UTC" };
-        _context.Tenants.Add(tenant);
+        await CreateTenantAsync();
 
-        var orders = new[]
-        {
-            new Order
-            {
-                Id = $"order-{Guid.NewGuid()}",
-                TenantId = _tenantId,
-                Status = OrderStatus.Confirmed,
-                CreatedAt = new DateTime(2026, 6, 15, 12, 0, 0, DateTimeKind.Utc),
-                TotalPrice = 300m,
-                CustomerName = "Customer 1",
-                CustomerPhone = "1234567890",
-                Items = new List<OrderItem>()
-            },
-            new Order
-            {
-                Id = $"order-{Guid.NewGuid()}",
-                TenantId = _tenantId,
-                Status = OrderStatus.Confirmed,
-                CreatedAt = new DateTime(2026, 12, 20, 12, 0, 0, DateTimeKind.Utc),
-                TotalPrice = 400m,
-                CustomerName = "Customer 2",
-                CustomerPhone = "9876543210",
-                Items = new List<OrderItem>()
-            }
-        };
+        Db.Orders.AddRange(
+            new Order { TenantId = TenantId, Status = OrderStatus.Confirmed, CreatedAt = new DateTime(2026, 6,  15, 12, 0, 0, DateTimeKind.Utc), TotalPrice = 300m, CustomerName = "C1", CustomerPhone = "1", Items = [] },
+            new Order { TenantId = TenantId, Status = OrderStatus.Confirmed, CreatedAt = new DateTime(2026, 12, 20, 12, 0, 0, DateTimeKind.Utc), TotalPrice = 400m, CustomerName = "C2", CustomerPhone = "2", Items = [] }
+        );
+        await Db.SaveChangesAsync();
 
-        _context.Orders.AddRange(orders);
-        await _context.SaveChangesAsync();
+        var ctrl   = CreateController();
+        var result = await ctrl.GetYearly(2026);
 
-        var result = await _controller.GetYearly(2026);
+        var ok  = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<MetricsDto>(ok.Value);
+        Assert.Equal(2,    dto.TotalOrders);
+        Assert.Equal(700m, dto.TotalRevenue);
+    }
 
-        Assert.NotNull(result);
+    [Fact]
+    public async Task GetYearly_CountsUniqueCustomers()
+    {
+        await CreateTenantAsync();
+
+        // Mismo teléfono = mismo cliente
+        Db.Orders.AddRange(
+            new Order { TenantId = TenantId, Status = OrderStatus.Confirmed, CreatedAt = new DateTime(2026, 1, 10, 0, 0, 0, DateTimeKind.Utc), TotalPrice = 100m, CustomerName = "A", CustomerPhone = "111", Items = [] },
+            new Order { TenantId = TenantId, Status = OrderStatus.Confirmed, CreatedAt = new DateTime(2026, 2, 10, 0, 0, 0, DateTimeKind.Utc), TotalPrice = 100m, CustomerName = "A", CustomerPhone = "111", Items = [] },
+            new Order { TenantId = TenantId, Status = OrderStatus.Confirmed, CreatedAt = new DateTime(2026, 3, 10, 0, 0, 0, DateTimeKind.Utc), TotalPrice = 100m, CustomerName = "B", CustomerPhone = "222", Items = [] }
+        );
+        await Db.SaveChangesAsync();
+
+        var ctrl   = CreateController();
+        var result = await ctrl.GetYearly(2026);
+
+        var ok  = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<MetricsDto>(ok.Value);
+        Assert.Equal(2, dto.TotalCustomers); // 111 y 222
+    }
+
+    [Fact]
+    public async Task GetYearly_AverageOrderValue_IsCalculatedCorrectly()
+    {
+        await CreateTenantAsync();
+
+        Db.Orders.AddRange(
+            new Order { TenantId = TenantId, Status = OrderStatus.Confirmed, CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc), TotalPrice = 100m, CustomerName = "A", CustomerPhone = "1", Items = [] },
+            new Order { TenantId = TenantId, Status = OrderStatus.Confirmed, CreatedAt = new DateTime(2026, 1, 2, 0, 0, 0, DateTimeKind.Utc), TotalPrice = 300m, CustomerName = "B", CustomerPhone = "2", Items = [] }
+        );
+        await Db.SaveChangesAsync();
+
+        var ctrl   = CreateController();
+        var result = await ctrl.GetYearly(2026);
+
+        var ok  = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<MetricsDto>(ok.Value);
+        Assert.Equal(200m, dto.AverageOrderValue); // (100+300)/2
+    }
+
+    // ── ExportMetrics (A7 — export CSV) ──────────────────────────────────────────────
+
+    private static string DecodeCsv(FileContentResult file) =>
+        Encoding.UTF8.GetString(file.FileContents).TrimStart('﻿');
+
+    [Fact]
+    public async Task ExportMetrics_ReturnsFileContentResult_WithCsvContentType()
+    {
+        await CreateTenantAsync();
+
+        var ctrl   = CreateController();
+        var result = await ctrl.ExportMetrics();
+
+        var file = Assert.IsType<FileContentResult>(result);
+        Assert.Equal("text/csv", file.ContentType);
+    }
+
+    [Fact]
+    public async Task ExportMetrics_OnlyCountsConfirmedOrders()
+    {
+        await CreateTenantAsync();
+        var day = new DateTime(2026, 5, 15, 12, 0, 0, DateTimeKind.Utc);
+
+        Db.Orders.AddRange(
+            new Order { TenantId = TenantId, Status = OrderStatus.Confirmed, CreatedAt = day, TotalPrice = 100m, CustomerName = "C1", CustomerPhone = "1", Items = [] },
+            new Order { TenantId = TenantId, Status = OrderStatus.Pending,   CreatedAt = day, TotalPrice = 200m, CustomerName = "C2", CustomerPhone = "2", Items = [] },
+            new Order { TenantId = TenantId, Status = OrderStatus.Cancelled, CreatedAt = day, TotalPrice = 300m, CustomerName = "C3", CustomerPhone = "3", Items = [] }
+        );
+        await Db.SaveChangesAsync();
+
+        var ctrl   = CreateController();
+        var result = await ctrl.ExportMetrics(
+            from: new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc),
+            to:   new DateTime(2026, 5, 31, 23, 59, 59, DateTimeKind.Utc));
+
+        var file    = Assert.IsType<FileContentResult>(result);
+        var content = DecodeCsv(file);
+
+        Assert.Contains("Fecha;CantidadPedidos;Facturacion;TicketPromedio", content);
+        Assert.Contains("1;100,00;100,00", content); // solo el pedido Confirmed cuenta (Pending y Cancelled quedan afuera)
+
+        var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        Assert.Equal(2, lines.Length); // header + 1 día
+    }
+
+    [Fact]
+    public async Task ExportMetrics_OnlyReturnsTenantData()
+    {
+        await CreateTenantAsync();
+        var day = new DateTime(2026, 5, 15, 12, 0, 0, DateTimeKind.Utc);
+
+        Db.Orders.AddRange(
+            new Order { TenantId = TenantId,      Status = OrderStatus.Confirmed, CreatedAt = day, TotalPrice = 100m, CustomerName = "C1", CustomerPhone = "1", Items = [] },
+            new Order { TenantId = "otro-tenant", Status = OrderStatus.Confirmed, CreatedAt = day, TotalPrice = 500m, CustomerName = "C2", CustomerPhone = "2", Items = [] }
+        );
+        await Db.SaveChangesAsync();
+
+        var ctrl   = CreateController();
+        var result = await ctrl.ExportMetrics(
+            from: new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc),
+            to:   new DateTime(2026, 5, 31, 23, 59, 59, DateTimeKind.Utc));
+
+        var file    = Assert.IsType<FileContentResult>(result);
+        var content = DecodeCsv(file);
+
+        Assert.Contains("100,00", content);
+        Assert.DoesNotContain("500,00", content);
+
+        var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        Assert.Equal(2, lines.Length); // header + 1 día (solo el propio tenant)
     }
 }

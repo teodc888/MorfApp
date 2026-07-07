@@ -12,10 +12,12 @@ type Props = {
 }
 
 export function ProductCard({ product, categoryEmoji, onSelect }: Props) {
+  const outOfStock = product.isOutOfStock
+
   return (
     <button
       onClick={() => onSelect(product)}
-      className="w-full overflow-hidden text-left hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-200 flex flex-col"
+      className="w-full overflow-hidden text-left hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-200 flex flex-col relative"
       style={{ backgroundColor: STITCH.surface, border: `1px solid ${STITCH.border}`, borderRadius: STITCH.radius, boxShadow: STITCH.shadow }}
     >
       {/* Image */}
@@ -30,10 +32,21 @@ export function ProductCard({ product, categoryEmoji, onSelect }: Props) {
         ) : (
           <span className="text-5xl">{categoryEmoji}</span>
         )}
+        {outOfStock && (
+          <>
+            <div className="absolute inset-0" style={{ backgroundColor: 'rgba(255,255,255,0.5)' }} />
+            <span
+              className="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full"
+              style={{ backgroundColor: STITCH.errorBg, color: STITCH.error }}
+            >
+              Sin stock
+            </span>
+          </>
+        )}
       </div>
 
       {/* Body */}
-      <div className="flex flex-col flex-1 p-3">
+      <div className={`flex flex-col flex-1 p-3 ${outOfStock ? 'opacity-60' : ''}`}>
         <h3 className="font-bold text-sm leading-snug line-clamp-2" style={{ color: STITCH.text }}>
           {product.name}
         </h3>
@@ -71,7 +84,14 @@ export function ProductCard({ product, categoryEmoji, onSelect }: Props) {
               </span>
             )}
           </div>
-          <span className="w-7 h-7 rounded-full text-white flex items-center justify-center flex-shrink-0" style={{ backgroundColor: STITCH.primary }}>
+          <span
+            className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{
+              backgroundColor: outOfStock ? '#E5E7EB' : STITCH.primary,
+              color: outOfStock ? '#9CA3AF' : '#FFFFFF',
+              opacity: outOfStock ? 0.7 : 1,
+            }}
+          >
             <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
               <path d="M6.5 1v11M1 6.5h11" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>

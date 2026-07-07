@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import type { Product, ModifierGroup, SelectedOption, CartItem } from '@/types/store'
 import { formatPrice } from '@/lib/utils'
@@ -171,12 +171,28 @@ export function ProductModal({ product, categoryEmoji, onClose }: Props) {
   const [dragY, setDragY] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
   const dragStartY = useRef(0)
+  const dialogRef = useRef<HTMLDivElement>(null)
   const addItem = useCartStore((s) => s.addItem)
 
   const handleClose = () => {
     setIsClosing(true)
     setTimeout(onClose, 300)
   }
+
+  useEffect(() => {
+    dialogRef.current?.focus()
+  }, [])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleClose()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleDragStart = (clientY: number) => {
     dragStartY.current = clientY
@@ -275,7 +291,12 @@ export function ProductModal({ product, categoryEmoji, onClose }: Props) {
       <div className={`absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${isClosing ? 'opacity-0' : 'opacity-100'}`} onClick={handleClose} />
 
       <div
-        className={`relative max-h-[90dvh] flex flex-col max-w-[520px] mx-auto w-full overflow-hidden transition-opacity duration-300 ${isClosing ? 'animate-slide-down opacity-0' : 'animate-slide-up opacity-100'}`}
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={product.name}
+        tabIndex={-1}
+        className={`relative max-h-[90dvh] flex flex-col max-w-[520px] mx-auto w-full overflow-hidden transition-opacity duration-300 outline-none ${isClosing ? 'animate-slide-down opacity-0' : 'animate-slide-up opacity-100'}`}
         style={{
           backgroundColor: STITCH.surface,
           borderTopLeftRadius: STITCH.radiusLg,
@@ -335,6 +356,11 @@ export function ProductModal({ product, categoryEmoji, onClose }: Props) {
                 {formatPrice(product.price)}
               </p>
             )}
+            {product.isOutOfStock && (
+              <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ backgroundColor: STITCH.errorBg, color: STITCH.error }}>
+                Sin stock
+              </span>
+            )}
           </div>
 
           {product.modifierGroups.map((group: ModifierGroup) => (
@@ -366,6 +392,7 @@ export function ProductModal({ product, categoryEmoji, onClose }: Props) {
           <div className="flex items-center gap-2 rounded-full px-2 py-1" style={{ backgroundColor: '#F4F2FD' }}>
             <button
               onClick={() => setQty((q) => Math.max(1, q - 1))}
+              aria-label="Disminuir cantidad"
               className="w-7 h-7 rounded-full shadow-sm font-bold text-lg flex items-center justify-center"
               style={{ backgroundColor: STITCH.surface, color: STITCH.text }}
             >
@@ -374,6 +401,7 @@ export function ProductModal({ product, categoryEmoji, onClose }: Props) {
             <span className="w-5 text-center font-semibold text-sm">{qty}</span>
             <button
               onClick={() => setQty((q) => q + 1)}
+              aria-label="Aumentar cantidad"
               className="w-7 h-7 rounded-full shadow-sm font-bold text-lg flex items-center justify-center"
               style={{ backgroundColor: STITCH.surface, color: STITCH.text }}
             >
@@ -383,13 +411,13 @@ export function ProductModal({ product, categoryEmoji, onClose }: Props) {
 
           <button
             onClick={handleAdd}
-            disabled={!isValid}
+            disabled={!isValid || product.isOutOfStock}
             className={`flex-1 py-3 rounded-full font-bold text-sm text-white transition-opacity ${
-              isValid ? 'opacity-100' : 'opacity-50 cursor-not-allowed'
+              isValid && !product.isOutOfStock ? 'opacity-100' : 'opacity-50 cursor-not-allowed'
             }`}
             style={{ backgroundColor: STITCH.primary }}
           >
-            Agregar · {formatPrice(subtotal)}
+            {product.isOutOfStock ? 'Sin stock' : `Agregar · ${formatPrice(subtotal)}`}
           </button>
         </div>
       </div>
