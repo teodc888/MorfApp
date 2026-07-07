@@ -1,58 +1,52 @@
 import { test, expect } from '@playwright/test'
+import path from 'path'
 
-test.describe('Admin — Autenticación', () => {
-  test('login con credenciales inválidas muestra mensaje de error', async ({ page }) => {
+const AUTH_FILE = path.join(__dirname, '../.auth/admin.json')
+
+test.describe('Admin — Autenticación (sin sesión previa)', () => {
+  // Estos tests corren con un contexto limpio (sin el storageState del setup).
+  test.use({ storageState: { cookies: [], origins: [] } })
+
+  test('login con credenciales inválidas muestra error y no redirige', async ({ page }) => {
     await page.goto('/admin/login')
-
-    await page.fill('input[type="email"]',    'nadie@no.com')
+    await page.fill('input[type="email"]', 'nadie@no.com')
     await page.fill('input[type="password"]', 'wrongpass123')
     await page.click('button[type="submit"]')
 
-    // Debe aparecer algún mensaje de error — toast o texto en pantalla
-    await expect(
-      page.locator('text=/credencial|inválid|error/i').first()
-    ).toBeVisible({ timeout: 5_000 })
-
-    // Debe quedarse en la página de login
+    await expect(page.getByText(/Email o contraseña incorrectos/i)).toBeVisible()
     await expect(page).toHaveURL(/\/admin\/login/)
   })
 
-  test('login con email vacío no submittea', async ({ page }) => {
+  test('el email es obligatorio (validación HTML5 impide submit)', async ({ page }) => {
     await page.goto('/admin/login')
-
     await page.fill('input[type="password"]', 'alguna-pass')
     await page.click('button[type="submit"]')
 
-    // No se redirige
+    // El input required de email bloquea el submit → seguimos en login
     await expect(page).toHaveURL(/\/admin\/login/)
+    const emailInvalid = await page.locator('input[type="email"]').evaluate(
+      (el: HTMLInputElement) => !el.validity.valid,
+    )
+    expect(emailInvalid).toBe(true)
   })
 
-  test('login exitoso redirige al panel admin', async ({ page }) => {
-    const email    = process.env.E2E_ADMIN_EMAIL    ?? 'admin@test.com'
-    const password = process.env.E2E_ADMIN_PASSWORD ?? 'Test1234!'
+  test('una ruta protegida sin sesión redirige al login', async ({ page }) => {
+    await page.goto('/admin/orders')
+    await expect(page).toHaveURL(/\/admin\/login/, { timeout: 10_000 })
+  })
+})
 
-    await page.goto('/admin/login')
-    await page.fill('input[type="email"]',    email)
-    await page.fill('input[type="password"]', password)
-    await page.click('button[type="submit"]')
+test.describe('Admin — Autenticación (con sesión)', () => {
+  test.use({ storageState: AUTH_FILE })
 
-    await page.waitForURL('**/admin**', { timeout: 10_000 })
-    await expect(page).not.toHaveURL(/\/admin\/login/)
+  test('login exitoso deja entrar al panel', async ({ page }) => {
+    await page.goto('/admin/menu')
+    await expect(page).toHaveURL(/\/admin\/menu/)
+    await expect(page.getByText('Administración')).toBeVisible()
   })
 
-  test('usuario autenticado que visita /admin/login es redirigido', async ({ page }) => {
-    // Este test requiere estar ya autenticado (usa el storageState del setup)
-    const email    = process.env.E2E_ADMIN_EMAIL    ?? 'admin@test.com'
-    const password = process.env.E2E_ADMIN_PASSWORD ?? 'Test1234!'
-
+  test('un usuario autenticado que visita /admin/login es llevado al panel', async ({ page }) => {
     await page.goto('/admin/login')
-    await page.fill('input[type="email"]',    email)
-    await page.fill('input[type="password"]', password)
-    await page.click('button[type="submit"]')
-    await page.waitForURL('**/admin**', { timeout: 10_000 })
-
-    // Volver a login — debe redirigir de vuelta al admin
-    await page.goto('/admin/login')
-    await expect(page).not.toHaveURL(/\/admin\/login/, { timeout: 5_000 })
+    await expect(page).toHaveURL(/\/admin\/menu/, { timeout: 10_000 })
   })
 })

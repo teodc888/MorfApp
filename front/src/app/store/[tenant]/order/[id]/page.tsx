@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { getOrderTracking } from '@/lib/api'
 import { useTenant } from '@/components/store/StoreProviders'
-import { formatPrice } from '@/lib/utils'
+import { formatPrice, buildStorePath } from '@/lib/utils'
 import { STITCH } from '@/lib/stitch-theme'
 import type { OrderTracking } from '@/types/store'
 
@@ -134,7 +134,7 @@ export default function OrderTrackingPage() {
           Puede que el link sea incorrecto o el pedido ya no exista.
         </p>
         <Link
-          href={`/store/${tenant.slug}`}
+          href={buildStorePath(tenant.slug, '')}
           className="px-6 py-3 rounded-xl font-semibold text-white"
           style={{ backgroundColor: DS.primary }}
         >
@@ -233,7 +233,7 @@ export default function OrderTrackingPage() {
         </div>
 
         <Link
-          href={`/store/${tenant.slug}`}
+          href={buildStorePath(tenant.slug, '')}
           className="w-full py-3 rounded-xl font-semibold text-white flex justify-center items-center gap-2"
           style={{ backgroundColor: DS.primary, boxShadow: '0px 4px 12px rgba(67,20,7,0.08)' }}
         >

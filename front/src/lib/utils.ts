@@ -85,6 +85,77 @@ export function applyTenantTheme(branding: TenantBranding): void {
   root.style.setProperty('--color-accent-rgb', hexToRgb(branding.colorAccent))
 }
 
+const STORE_ADMIN_SUBDOMAIN = 'admin'
+
+/**
+ * Replica el criterio de `front/src/proxy.ts` para determinar si un hostname
+ * corresponde a un subdominio real de tenant (donde el proxy ya reescribe el
+ * path agregando `/store/{slug}` del lado del servidor) — a diferencia de
+ * localhost/127.0.0.1 (dev, sin rewrite) o del dominio raíz sin subdominio
+ * (acceso directo por path, tampoco hay rewrite).
+ *
+ * Lee `NEXT_PUBLIC_ROOT_DOMAIN` en cada llamada (no la cachea a nivel de
+ * módulo) para que sea consistente con el valor real en runtime y testeable.
+ */
+function isRealTenantSubdomain(hostname: string): boolean {
+  if (hostname === 'localhost' || hostname === '127.0.0.1') return false
+
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'morfapp.teodc.com'
+
+  const subdomain =
+    hostname === rootDomain
+      ? ''
+      : hostname.endsWith(`.${rootDomain}`)
+        ? hostname.slice(0, -(rootDomain.length + 1))
+        : hostname.split('.').length > 2
+          ? hostname.split('.').slice(0, -2).join('.')
+          : ''
+
+  return subdomain !== '' && subdomain !== STORE_ADMIN_SUBDOMAIN
+}
+
+/**
+ * Construye un path de navegación dentro del storefront, adaptado según el
+ * contexto en el que se está ejecutando:
+ * - En un subdominio real de tenant (ej. `pre.morfapp.app`, `burger.morfapp.app`),
+ *   el proxy YA antepuso `/store/{slug}` server-side de forma invisible para el
+ *   browser — hay que devolver el path SIN ese prefijo, o se duplica y rompe (404).
+ * - En localhost/127.0.0.1 (dev) o en acceso directo por path sobre el dominio
+ *   raíz, no hay rewrite — hay que devolver el path CON el prefijo completo.
+ *
+ * @param slug slug del tenant (ej. "burger")
+ * @param path path relativo dentro del store; puede ser `''` (home) o empezar
+ *   con `/` (ej. `/success?orderId=x`, `/order/123`)
+ * @param hostnameOverride opcional — para tests. Por defecto usa
+ *   `window.location.hostname`.
+ */
+export function buildStorePath(slug: string, path: string, hostnameOverride?: string): string {
+  const suffix = path === '' || path.startsWith('/') ? path : `/${path}`
+  const hostname = hostnameOverride ?? (typeof window !== 'undefined' ? window.location.hostname : undefined)
+
+  if (hostname !== undefined && isRealTenantSubdomain(hostname)) {
+    return suffix === '' ? '/' : suffix
+  }
+
+  return `/store/${slug}${suffix}`
+}
+
+/**
+ * Igual que `buildStorePath`, pero devuelve una URL absoluta (con origin) —
+ * pensado para links que se comparten fuera de la app (ej. WhatsApp).
+ *
+ * @param originOverride opcional — para tests. Por defecto usa
+ *   `window.location.origin`.
+ */
+export function buildStoreUrl(slug: string, path: string, hostnameOverride?: string, originOverride?: string): string {
+  const relativePath = buildStorePath(slug, path, hostnameOverride)
+  const origin = originOverride ?? (typeof window !== 'undefined' ? window.location.origin : undefined)
+
+  if (origin === undefined) return relativePath
+
+  return `${origin}${relativePath}`
+}
+
 export function formatPrice(amount: number, locale = 'es-AR'): string {
   return new Intl.NumberFormat(locale, {
     style: 'currency',
@@ -222,7 +293,7 @@ export function buildWhatsAppMessage(
   }
 
   if (orderId) {
-    const trackingUrl = `${window.location.origin}/store/${tenant.slug}/order/${orderId}`
+    const trackingUrl = buildStoreUrl(tenant.slug, `/order/${orderId}`)
     lines.push(`📦 Seguí tu pedido: ${trackingUrl}`)
   }
 

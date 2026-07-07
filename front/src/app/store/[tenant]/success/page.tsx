@@ -2,7 +2,7 @@
 
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { formatPrice, loadPendingWhatsAppOrder, buildOrderFollowUpMessage } from '@/lib/utils'
+import { formatPrice, loadPendingWhatsAppOrder, buildOrderFollowUpMessage, buildStorePath } from '@/lib/utils'
 import { useTenant } from '@/components/store/StoreProviders'
 import { STITCH } from '@/lib/stitch-theme'
 
@@ -154,7 +154,7 @@ export default function SuccessPage() {
 
         {orderId !== '—' && (
           <Link
-            href={`/store/${tenant.slug}/order/${orderId}`}
+            href={buildStorePath(tenant.slug, `/order/${orderId}`)}
             className="w-full py-3 rounded-xl font-semibold flex justify-center items-center gap-2 mb-3"
             style={{
               backgroundColor: 'transparent',

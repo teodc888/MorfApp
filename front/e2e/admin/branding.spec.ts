@@ -3,39 +3,17 @@ import path from 'path'
 
 test.use({ storageState: path.join(__dirname, '../.auth/admin.json') })
 
-test.describe('Admin — Branding', () => {
-  test('página de branding carga correctamente', async ({ page }) => {
+test.describe('Admin — Apariencia (lectura)', () => {
+  test('la página carga con selectores de color y campos editables', async ({ page }) => {
     await page.goto('/admin/branding')
-    await expect(page).toHaveURL(/\/admin\/branding/)
+    await expect(page.getByRole('heading', { name: 'Apariencia', level: 1 })).toBeVisible()
 
-    // Debe mostrar campos de color o logo
-    await expect(
-      page.locator('input[type="color"], input[placeholder*="color"], text=/color/i').first()
-    ).toBeVisible({ timeout: 8_000 })
-  })
+    // El campo de tagline es editable y trae el valor del tenant
+    const tagline = page.getByPlaceholder('Una frase corta que te describa')
+    await expect(tagline).toBeVisible()
+    await expect(tagline).toBeEditable()
 
-  test('campos de branding son editables', async ({ page }) => {
-    await page.goto('/admin/branding')
-
-    // Debe haber algún input de texto (tagline, emoji, etc.)
-    const textInput = page.locator('input[type="text"], textarea').first()
-    await expect(textInput).toBeVisible({ timeout: 8_000 })
-    await expect(textInput).toBeEditable()
-  })
-
-  test('guardar cambios de branding no lanza error', async ({ page }) => {
-    await page.goto('/admin/branding')
-
-    const saveBtn = page
-      .locator('button[type="submit"], button:has-text("Guardar"), button:has-text("Actualizar")')
-      .first()
-
-    await expect(saveBtn).toBeVisible({ timeout: 8_000 })
-    await saveBtn.click()
-
-    // No debe aparecer mensaje de error
-    await page.waitForTimeout(2000)
-    const errorMsg = page.locator('text=/error/i, [role="alert"]')
-    expect(await errorMsg.count()).toBe(0)
+    // Botón de guardar presente (no se hace click para no alterar el branding)
+    await expect(page.getByRole('button', { name: /Guardar/ })).toBeVisible()
   })
 })

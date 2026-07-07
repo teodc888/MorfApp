@@ -7,6 +7,7 @@ import { useCartStore } from '@/store/cart'
 import {
   formatPrice,
   buildWhatsAppMessage,
+  buildStorePath,
   getStoreClosedMessage,
   loadCustomerData,
   saveCustomerData,
@@ -348,7 +349,7 @@ export function CartModal({ tenant, onClose }: Props) {
     })
     saveCustomerData({ name: form.name, phone: form.phone, address: form.address })
     clear()
-    router.push(`/store/${tenant.slug}/success?orderId=${orderId}&total=${grandTotal}`)
+    router.push(buildStorePath(tenant.slug, `/success?orderId=${orderId}&total=${grandTotal}`))
   }
 
   return (

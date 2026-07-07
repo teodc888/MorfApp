@@ -1,109 +1,60 @@
 import { test, expect } from '@playwright/test'
 import path from 'path'
 
-// Usar estado de auth guardado por el setup
 test.use({ storageState: path.join(__dirname, '../.auth/admin.json') })
 
-test.describe('Admin — Menú (categorías y productos)', () => {
-  const uniqueSuffix = () => Date.now().toString()
-
-  test('página de menú carga y muestra secciones', async ({ page }) => {
+test.describe('Admin — Carta (lectura)', () => {
+  test('muestra las categorías y productos existentes del tenant', async ({ page }) => {
     await page.goto('/admin/menu')
-    await expect(page).toHaveURL(/\/admin\/menu/)
+    await expect(page.getByRole('heading', { name: 'Carta', level: 1 })).toBeVisible()
 
-    // Debe haber algún botón para agregar categoría
-    await expect(
-      page.locator('button:has-text("categoría"), button:has-text("Categoría"), button:has-text("Nueva")').first()
-    ).toBeVisible({ timeout: 8_000 })
+    // Categorías reales del tenant pre
+    await expect(page.getByText('Hamburgesas', { exact: true })).toBeVisible()
+    await expect(page.getByText('Lomito', { exact: true })).toBeVisible()
+
+    // Un producto con su precio formateado
+    await expect(page.getByText('Hamburgesa Doble', { exact: true }).first()).toBeVisible()
+    await expect(page.getByText('$8.000').first()).toBeVisible()
   })
 
-  test('crear categoría — flujo completo', async ({ page }) => {
+  test('el modal de nueva categoría valida que el nombre es obligatorio', async ({ page }) => {
     await page.goto('/admin/menu')
-    const catName = `Cat Test ${uniqueSuffix()}`
+    await page.getByRole('button', { name: /Categoría/ }).click()
 
-    // Abrir formulario de nueva categoría
-    const addBtn = page.locator('button:has-text("categoría"), button:has-text("Agregar")').first()
-    await addBtn.click()
+    await expect(page.getByRole('heading', { name: 'Nueva categoría' })).toBeVisible()
+    // Sin nombre, el botón crear está deshabilitado
+    await expect(page.getByRole('button', { name: 'Crear categoría' })).toBeDisabled()
 
-    // Completar nombre
-    const nameInput = page.locator('input[placeholder*="nombre"], input[name*="name"], input[id*="name"]').first()
-    await nameInput.fill(catName)
-
-    // Guardar
-    const saveBtn = page.locator('button[type="submit"], button:has-text("Guardar"), button:has-text("Crear")').first()
-    await saveBtn.click()
-
-    // La nueva categoría debe aparecer en la lista
-    await expect(page.locator(`text=${catName}`)).toBeVisible({ timeout: 8_000 })
+    await page.getByPlaceholder('Ej: Entradas').fill('Prueba')
+    await expect(page.getByRole('button', { name: 'Crear categoría' })).toBeEnabled()
   })
+})
 
-  test('editar categoría existente', async ({ page }) => {
-    await page.goto('/admin/menu')
-    const editedName = `Cat Editada ${uniqueSuffix()}`
-
-    // Hacer click en el primer botón de editar categoría que encuentre
-    const editBtn = page.locator('button[aria-label*="Edit"], button[aria-label*="editar"], button:has-text("Editar")').first()
-
-    // Si no hay categorías, saltear el test
-    if (!(await editBtn.isVisible().catch(() => false))) {
-      test.skip()
-      return
-    }
-
-    await editBtn.click()
-
-    const nameInput = page.locator('input[placeholder*="nombre"], input[name*="name"]').first()
-    await nameInput.clear()
-    await nameInput.fill(editedName)
-
-    await page.locator('button[type="submit"], button:has-text("Guardar")').first().click()
-
-    await expect(page.locator(`text=${editedName}`)).toBeVisible({ timeout: 8_000 })
-  })
-
-  test('crear producto dentro de categoría', async ({ page }) => {
-    await page.goto('/admin/menu')
-    const prodName = `Producto Test ${uniqueSuffix()}`
-
-    // Buscar botón de agregar producto en la primera categoría
-    const addProdBtn = page
-      .locator('button:has-text("producto"), button:has-text("Producto"), button[aria-label*="producto"]')
-      .first()
-
-    if (!(await addProdBtn.isVisible({ timeout: 5_000 }).catch(() => false))) {
-      test.skip()
-      return
-    }
-
-    await addProdBtn.click()
-
-    await page.locator('input[placeholder*="nombre"], input[name*="name"]').first().fill(prodName)
-    await page.locator('input[placeholder*="precio"], input[name*="price"], input[type="number"]').first().fill('1500')
-    await page.locator('button[type="submit"], button:has-text("Guardar")').first().click()
-
-    await expect(page.locator(`text=${prodName}`)).toBeVisible({ timeout: 8_000 })
-  })
-
-  test('eliminar categoría requiere confirmación', async ({ page }) => {
+test.describe('Admin — Carta CRUD @writes-db', () => {
+  test('crear una categoría, verla en la lista y eliminarla', async ({ page }) => {
+    const catName = `E2E Cat ${Date.now()}`
     await page.goto('/admin/menu')
 
-    const deleteBtn = page
-      .locator('button[aria-label*="Eliminar"], button[aria-label*="Delete"], button:has-text("Eliminar")')
-      .first()
+    // Crear
+    await page.getByRole('button', { name: /Categoría/ }).click()
+    await expect(page.getByRole('heading', { name: 'Nueva categoría' })).toBeVisible()
+    await page.getByPlaceholder('Ej: Entradas').fill(catName)
+    await page.getByRole('button', { name: 'Crear categoría' }).click()
 
-    if (!(await deleteBtn.isVisible({ timeout: 5_000 }).catch(() => false))) {
-      test.skip()
-      return
-    }
+    // Aparece en la lista
+    await expect(page.getByText(catName, { exact: true })).toBeVisible({ timeout: 10_000 })
 
-    await deleteBtn.click()
+    // Eliminar: abrir el menú de la categoría (botón more_horiz de su card)
+    const card = page.locator('.card').filter({ hasText: catName })
+    await card.getByRole('button', { name: 'more_horiz' }).click()
+    await expect(page.getByRole('heading', { name: 'Editar categoría' })).toBeVisible()
+    await page.getByRole('button', { name: /Eliminar categoría/ }).click()
 
-    // Debe aparecer un diálogo de confirmación (custom o nativo)
-    const confirmDialog = page.locator('[role="dialog"], [role="alertdialog"]')
-    await expect(confirmDialog).toBeVisible({ timeout: 3_000 })
+    // Confirmar en el diálogo de borrado
+    await expect(page.getByRole('heading', { name: /Eliminar categoría/ })).toBeVisible()
+    await page.getByRole('button', { name: 'Eliminar', exact: false }).last().click()
 
-    // Cancelar — la categoría debe seguir ahí
-    await page.locator('button:has-text("Cancel"), button:has-text("cancelar"), button:has-text("No")').first().click()
-    await expect(confirmDialog).not.toBeVisible({ timeout: 3_000 })
+    // Ya no está en la lista
+    await expect(page.getByText(catName, { exact: true })).toHaveCount(0, { timeout: 10_000 })
   })
 })

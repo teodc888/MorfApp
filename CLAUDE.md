@@ -13,6 +13,18 @@ cd front
 npm run dev        # dev server on :3000
 npm run build      # production build (standalone output)
 npm run lint       # eslint
+
+# Unit tests (Vitest, jsdom) — files in src/__tests__/**/*.test.ts(x)
+npm run test              # run once
+npm run test:watch        # watch mode
+npm run test:coverage     # coverage (only src/lib/** and src/store/** instrumented)
+npx vitest run src/__tests__/lib/utils.test.ts   # single file
+
+# E2E tests (Playwright) — targets https://dev.morfapp.app by default, NOT localhost
+npm run test:e2e          # headless
+npm run test:e2e:ui       # Playwright UI mode
+npm run test:e2e:headed   # headed browser
+E2E_BASE_URL=<url> npm run test:e2e   # override target env
 ```
 
 ### SuperAdmin (`superadmin/`)
