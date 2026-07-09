@@ -33,4 +33,5 @@ public class Tenant
     public ICollection<PageView> PageViews { get; set; } = [];
     public ICollection<Promotion> Promotions { get; set; } = new List<Promotion>();
     public ICollection<Order> Orders { get; set; } = new List<Order>();
+    public ICollection<Employee> Employees { get; set; } = [];
 }

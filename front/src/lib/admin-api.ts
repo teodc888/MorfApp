@@ -1,5 +1,5 @@
 import { getAccessToken, getRefreshToken, saveTokens, clearTokens } from '@/lib/auth'
-import type { TenantAdmin, TenantBranding, PaymentConfig, BusinessHour, Category, Product, SupplierDto, SupplierDebtDetailDto, SupplierPaymentDto, SupplyDto, SupplyPurchaseDto, ProductSupplyDto, InventoryMovementDto } from '@/types/store'
+import type { TenantAdmin, TenantBranding, PaymentConfig, BusinessHour, Category, Product, SupplierDto, SupplierDebtDetailDto, SupplierPaymentDto, SupplyDto, SupplyPurchaseDto, ProductSupplyDto, InventoryMovementDto, EmployeeDto, CreateEmployeeBody, UpdateEmployeeBody, SalaryPaymentDto, RegisterPaymentBody, EmployeeAdvanceDto, RegisterAdvanceBody, EmployeePendingDto } from '@/types/store'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5500'
 
@@ -143,6 +143,18 @@ export async function resetPassword(token: string, newPassword: string): Promise
     body: JSON.stringify({ token, newPassword }),
   })
   return assertOk(res)
+}
+
+export async function logout(): Promise<void> {
+  const refreshToken = getRefreshToken()
+  if (refreshToken) {
+    await fetch(`${API_URL}/api/auth/logout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+    }).catch(() => {})
+  }
+  clearTokens()
 }
 
 export async function getAdminMe(): Promise<TenantAdmin> {
@@ -761,4 +773,61 @@ export async function exportMetrics(params?: { from?: string; to?: string }): Pr
 
   const res = await adminFetch(`/api/admin/metrics/export${query}`)
   return triggerCsvDownload(res, 'metricas.csv')
+}
+
+// ── Employees ──
+
+export async function getEmployees(): Promise<EmployeeDto[]> {
+  const res = await adminFetch('/api/admin/employees')
+  return parseJson<EmployeeDto[]>(res)
+}
+
+export async function createEmployee(data: CreateEmployeeBody): Promise<EmployeeDto> {
+  const res = await adminFetch('/api/admin/employees', { method: 'POST', body: JSON.stringify(data) })
+  return parseJson<EmployeeDto>(res)
+}
+
+export async function updateEmployee(id: string, data: UpdateEmployeeBody): Promise<EmployeeDto> {
+  const res = await adminFetch(`/api/admin/employees/${id}`, { method: 'PUT', body: JSON.stringify(data) })
+  return parseJson<EmployeeDto>(res)
+}
+
+export async function deleteEmployee(id: string): Promise<void> {
+  const res = await adminFetch(`/api/admin/employees/${id}`, { method: 'DELETE' })
+  return assertOk(res)
+}
+
+export async function activateEmployeeLogin(id: string): Promise<{ message: string; setupUrl: string }> {
+  const res = await adminFetch(`/api/admin/employees/${id}/activate-login`, { method: 'POST' })
+  return parseJson(res)
+}
+
+export async function deactivateEmployeeLogin(id: string): Promise<void> {
+  const res = await adminFetch(`/api/admin/employees/${id}/activate-login`, { method: 'DELETE' })
+  return assertOk(res)
+}
+
+export async function getEmployeePayments(id: string): Promise<SalaryPaymentDto[]> {
+  const res = await adminFetch(`/api/admin/employees/${id}/payments`)
+  return parseJson<SalaryPaymentDto[]>(res)
+}
+
+export async function registerPayment(id: string, data: RegisterPaymentBody): Promise<SalaryPaymentDto> {
+  const res = await adminFetch(`/api/admin/employees/${id}/payments`, { method: 'POST', body: JSON.stringify(data) })
+  return parseJson<SalaryPaymentDto>(res)
+}
+
+export async function getEmployeeAdvances(id: string): Promise<EmployeeAdvanceDto[]> {
+  const res = await adminFetch(`/api/admin/employees/${id}/advances`)
+  return parseJson<EmployeeAdvanceDto[]>(res)
+}
+
+export async function registerAdvance(id: string, data: RegisterAdvanceBody): Promise<EmployeeAdvanceDto> {
+  const res = await adminFetch(`/api/admin/employees/${id}/advances`, { method: 'POST', body: JSON.stringify(data) })
+  return parseJson<EmployeeAdvanceDto>(res)
+}
+
+export async function getEmployeesPending(): Promise<EmployeePendingDto[]> {
+  const res = await adminFetch('/api/admin/employees/pending')
+  return parseJson<EmployeePendingDto[]>(res)
 }

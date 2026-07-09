@@ -230,8 +230,46 @@ input, textarea, select { font-size: 16px; }
   white-space: nowrap;
 }
 
-/* Stock bar */
-.bar-track { height: 6px; background: var(--surface-container); border-radius: 4px; overflow: hidden; }
+/* ── Responsive utilities ────────────────────────────────────────── */
+
+/* Color swatches: 6 cols on mobile, 10 on wider screens */
+.color-swatches-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+@media (min-width: 480px) {
+  .color-swatches-grid { grid-template-columns: repeat(10, 1fr); gap: 6px; }
+}
+
+/* Emoji picker: 4 cols on mobile, 5 on wider */
+.emoji-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+@media (min-width: 400px) {
+  .emoji-picker-grid { grid-template-columns: repeat(5, 1fr); }
+}
+
+/* Table with horizontal scroll on mobile */
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* Responsive 2-col grid that collapses on small mobile */
+.grid-2col {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+@media (min-width: 400px) {
+  .grid-2col { grid-template-columns: 1fr 1fr; }
+}
+
+/* Touch target: ensures minimum 44px tap area */
+.touch-target { min-height: 44px; min-width: 44px; }
+
+/* Stock bar — 8px for HiDPI visibility */
+.bar-track { height: 8px; background: var(--surface-container); border-radius: 4px; overflow: hidden; }
 .bar-fill  { height: 100%; border-radius: 4px; transition: width .3s ease; }
 
 /* Sparkline */
@@ -247,6 +285,16 @@ input, textarea, select { font-size: 16px; }
 .serif { font-family: var(--serif); letter-spacing: -.015em; }
 .muted { color: var(--muted); }
 .scrollarea::-webkit-scrollbar { width: 0; height: 0; }
+
+/* ── Focus-visible: keyboard nav indicator ───────────────────────── */
+.input:focus-visible, .select:focus-visible {
+  outline: 2px solid rgba(249,115,22,.28);
+  outline-offset: 0;
+}
+.btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
 
 /* ── Store / tenant utility classes ──────────────────────────────── */
 .bg-primary        { background-color: var(--color-primary); }

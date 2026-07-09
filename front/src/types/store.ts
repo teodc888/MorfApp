@@ -7,12 +7,15 @@ export type TenantBranding = {
   tagline: string | null
 }
 
+export type TenantPlan = 'Basico' | 'Pro' | 'Negocio'
+
 export type TenantAdmin = {
   id: string
   slug: string
   name: string
   whatsappNumber: string
   whatsAppMessageTemplate: string | null
+  plan: TenantPlan
   branding: TenantBranding
   delivery: DeliveryConfig | null
   payment: PaymentConfig | null
@@ -242,4 +245,101 @@ export type OrderTracking = {
   customerPhoneMasked: string
   createdAt: string
   confirmedAt: string | null
+}
+
+// ── Employees ──
+
+export interface EmployeeDto {
+  id: string
+  name: string
+  phone?: string
+  email?: string
+  position?: string
+  remunerationType: 'fixed' | 'hourly' | 'mixed'
+  baseSalary: number
+  hourlyRate: number
+  paymentFrequency: 'monthly' | 'biweekly' | 'weekly'
+  paymentDay: number
+  hireDate: string
+  isActive: boolean
+  hasAdminLogin: boolean
+  pendingAdvances: number
+  createdAt: string
+}
+
+export interface CreateEmployeeBody {
+  name: string
+  phone?: string
+  email?: string
+  position?: string
+  remunerationType: 'fixed' | 'hourly' | 'mixed'
+  baseSalary: number
+  hourlyRate: number
+  paymentFrequency: 'monthly' | 'biweekly' | 'weekly'
+  paymentDay: number
+  hireDate: string
+}
+
+export type UpdateEmployeeBody = CreateEmployeeBody
+
+export interface SalaryPaymentDto {
+  id: string
+  employeeId: string
+  employeeName: string
+  periodStart: string
+  periodEnd: string
+  basePaid: number
+  hoursWorked?: number
+  hoursAmount: number
+  advancesDeducted: number
+  bonus: number
+  totalPaid: number
+  isAguinaldo: boolean
+  notes?: string
+  paidAt: string
+  createdAt: string
+}
+
+export interface RegisterPaymentBody {
+  periodStart: string
+  periodEnd: string
+  basePaid: number
+  hoursWorked?: number
+  hoursAmount: number
+  bonus: number
+  isAguinaldo: boolean
+  notes?: string
+  paidAt: string
+}
+
+export interface EmployeeAdvanceDto {
+  id: string
+  employeeId: string
+  amount: number
+  reason?: string
+  date: string
+  isApplied: boolean
+  salaryPaymentId?: string
+  createdAt: string
+}
+
+export interface RegisterAdvanceBody {
+  amount: number
+  reason?: string
+  date: string
+}
+
+export interface EmployeePendingDto {
+  employeeId: string
+  employeeName: string
+  position?: string
+  remunerationType: 'fixed' | 'hourly' | 'mixed'
+  baseSalary: number
+  hourlyRate: number
+  paymentFrequency: 'monthly' | 'biweekly' | 'weekly'
+  nextPaymentDate: string
+  daysUntilPayment: number
+  pendingAdvances: number
+  aguinaldoDue: boolean
+  aguinaldoEstimate: number
 }

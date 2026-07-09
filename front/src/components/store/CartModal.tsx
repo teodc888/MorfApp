@@ -70,7 +70,7 @@ function CartItemRow({ item }: { item: CartItem }) {
                   <span className="line-through text-xs" style={{ color: '#9CA3AF' }}>
                     {formatPrice(item.product.price)}
                   </span>
-                  <span className="text-xs font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: '#FED7AA', color: '#EA580C' }}>
+                  <span className="text-xs font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: '#EA580C', color: '#FFFFFF' }}>
                     -{item.product.discountPercent}%
                   </span>
                 </>
@@ -105,7 +105,7 @@ function CartItemRow({ item }: { item: CartItem }) {
         <button
           onClick={() => updateQty(item.cartId, item.qty - 1)}
           aria-label="Disminuir cantidad"
-          className="w-7 h-7 rounded-full flex items-center justify-center text-base transition-colors"
+          className="w-9 h-9 rounded-full flex items-center justify-center text-base transition-colors"
           style={{ backgroundColor: '#F3F4F6', color: DS.textMuted }}
         >
           −
@@ -114,7 +114,7 @@ function CartItemRow({ item }: { item: CartItem }) {
         <button
           onClick={() => updateQty(item.cartId, item.qty + 1)}
           aria-label="Aumentar cantidad"
-          className="w-7 h-7 rounded-full flex items-center justify-center text-base transition-colors"
+          className="w-9 h-9 rounded-full flex items-center justify-center text-base transition-colors"
           style={{ backgroundColor: '#F3F4F6', color: DS.textMuted }}
         >
           +
@@ -122,7 +122,7 @@ function CartItemRow({ item }: { item: CartItem }) {
         <button
           onClick={() => removeItem(item.cartId)}
           aria-label="Quitar del carrito"
-          className="ml-1 w-7 h-7 rounded-full flex items-center justify-center text-sm"
+          className="ml-1 w-9 h-9 rounded-full flex items-center justify-center text-sm"
           style={{ backgroundColor: '#FEE2E2', color: '#EF4444' }}
         >
           🗑
@@ -213,6 +213,9 @@ export function CartModal({ tenant, onClose }: Props) {
     e.preventDefault()
     handleDragEnd()
   }
+
+  const [touched, setTouched] = useState<Set<string>>(new Set())
+  const touch = (field: string) => setTouched(prev => new Set([...prev, field]))
 
   const deliveryMode = tenant.deliveryConfig.mode
 
@@ -456,16 +459,18 @@ export function CartModal({ tenant, onClose }: Props) {
                   placeholder="Tu nombre *"
                   value={form.name}
                   onChange={(e) => handleInput('name', e.target.value)}
+                  onBlur={() => touch('name')}
                   className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
-                  style={{ backgroundColor: DS.bg, border: `1px solid ${DS.border}`, color: DS.text }}
+                  style={{ backgroundColor: DS.bg, border: `1px solid ${touched.has('name') && form.name.trim().length < 2 ? '#EF4444' : DS.border}`, color: DS.text }}
                 />
                 <input
                   type="tel"
                   placeholder="Teléfono *"
                   value={form.phone}
                   onChange={(e) => handleInput('phone', e.target.value)}
+                  onBlur={() => touch('phone')}
                   className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
-                  style={{ backgroundColor: DS.bg, border: `1px solid ${DS.border}`, color: DS.text }}
+                  style={{ backgroundColor: DS.bg, border: `1px solid ${touched.has('phone') && !/^\d{8,}$/.test(form.phone.replace(/[\s+\-()]/g, '')) ? '#EF4444' : DS.border}`, color: DS.text }}
                 />
                 {activeDelivery === 'delivery' && (
                   <input
@@ -473,8 +478,9 @@ export function CartModal({ tenant, onClose }: Props) {
                     placeholder="Dirección de entrega *"
                     value={form.address}
                     onChange={(e) => handleInput('address', e.target.value)}
+                    onBlur={() => touch('address')}
                     className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
-                    style={{ backgroundColor: DS.bg, border: `1px solid ${DS.border}`, color: DS.text }}
+                    style={{ backgroundColor: DS.bg, border: `1px solid ${touched.has('address') && form.address.trim().length === 0 ? '#EF4444' : DS.border}`, color: DS.text }}
                   />
                 )}
                 <textarea
@@ -499,10 +505,12 @@ export function CartModal({ tenant, onClose }: Props) {
                           backgroundColor: form.paymentMethod === key ? DS.primary : 'transparent',
                           borderColor: form.paymentMethod === key ? DS.primary : DS.border,
                           color: form.paymentMethod === key ? '#FFFFFF' : DS.textMuted,
+                          minWidth: 0,
+                          overflow: 'hidden',
                         }}
                       >
-                        <span className="text-lg">{icon}</span>
-                        {label}
+                        <span className="text-lg leading-none">{icon}</span>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%', padding: '0 2px' }}>{label}</span>
                       </button>
                     ))}
                   </div>

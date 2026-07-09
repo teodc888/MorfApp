@@ -342,8 +342,8 @@ export default function PromotionsPage() {
                     {promo.description || formatPrice(promo.originalPrice) + ' → ' + formatPrice(finalPrice)}
                   </div>
                   <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
-                    <span className="chip primary">{promo.productIds.length} productos</span>
-                    <span className="chip">{promo.modifierGroupIds.length} opciones</span>
+                    <span className="chip primary" style={{ whiteSpace: 'nowrap' }}>{promo.productIds.length} productos</span>
+                    <span className="chip" style={{ whiteSpace: 'nowrap' }}>{promo.modifierGroupIds.length} opciones</span>
                   </div>
                 </div>
               </button>
@@ -575,7 +575,7 @@ export default function PromotionsPage() {
               {categories.length > 0 && (
                 <div className="field">
                   <label>Filtrar por categoría</label>
-                  <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+                  <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, scrollSnapType: 'x mandatory' }}>
                     <button
                       onClick={() => setSelectedCategoryId(null)}
                       style={{
@@ -589,6 +589,7 @@ export default function PromotionsPage() {
                         cursor: 'pointer',
                         whiteSpace: 'nowrap',
                         flexShrink: 0,
+                        scrollSnapAlign: 'start',
                       }}
                     >
                       Todas
@@ -608,6 +609,7 @@ export default function PromotionsPage() {
                           cursor: 'pointer',
                           whiteSpace: 'nowrap',
                           flexShrink: 0,
+                          scrollSnapAlign: 'start',
                         }}
                       >
                         {cat.name}
@@ -648,20 +650,23 @@ export default function PromotionsPage() {
                             aria-label={`Restar ${prod.name}`}
                             className="tap"
                             style={{
-                              width: 24,
-                              height: 24,
-                              borderRadius: 6,
+                              width: 32,
+                              height: 32,
+                              borderRadius: 8,
                               border: '1px solid var(--outline)',
                               background: 'var(--surface)',
                               color: 'var(--text)',
                               cursor: 'pointer',
-                              fontSize: 12,
+                              fontSize: 16,
                               fontWeight: 600,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
                             }}
                           >
                             −
                           </button>
-                          <span style={{ width: 20, textAlign: 'center', fontWeight: 600 }}>
+                          <span style={{ width: 24, textAlign: 'center', fontWeight: 700, fontSize: 14 }}>
                             {selectedProducts[prod.id] || 0}
                           </span>
                           <button
@@ -672,15 +677,18 @@ export default function PromotionsPage() {
                             aria-label={`Agregar ${prod.name}`}
                             className="tap"
                             style={{
-                              width: 24,
-                              height: 24,
-                              borderRadius: 6,
+                              width: 32,
+                              height: 32,
+                              borderRadius: 8,
                               border: 'none',
                               background: 'var(--primary)',
                               color: 'var(--on-primary)',
                               cursor: 'pointer',
-                              fontSize: 12,
+                              fontSize: 16,
                               fontWeight: 600,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
                             }}
                           >
                             +

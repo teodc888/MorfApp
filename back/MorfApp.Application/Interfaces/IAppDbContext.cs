@@ -29,5 +29,8 @@ public interface IAppDbContext
     DbSet<SupplierPaymentAllocation> SupplierPaymentAllocations { get; }
     DbSet<ProductSupply> ProductSupplies { get; }
     DbSet<InventoryMovement> InventoryMovements { get; }
+    DbSet<Employee> Employees { get; }
+    DbSet<SalaryPayment> SalaryPayments { get; }
+    DbSet<EmployeeAdvance> EmployeeAdvances { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

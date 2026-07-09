@@ -264,6 +264,7 @@ export default function BrandingPage() {
 }
 
 function ColorPicker({ label, desc, value, onChange }: { label: string; desc: string; value: string; onChange: (color: string) => void }) {
+  const isValidHex = /^#[0-9A-Fa-f]{6}$/.test(value)
   return (
     <div>
       <div style={{ marginBottom: 8 }}>
@@ -271,10 +272,18 @@ function ColorPicker({ label, desc, value, onChange }: { label: string; desc: st
         <div className="text-xs muted">{desc}</div>
       </div>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
-        <div style={{ width: 44, height: 44, borderRadius: 10, background: value, border: '2px solid var(--surface)', boxShadow: '0 0 0 1px var(--outline-soft), 0 4px 10px rgba(0,0,0,0.06)', flexShrink: 0 }} />
-        <input className="input" value={value} onChange={(e) => onChange(e.target.value)} style={{ fontFamily: 'ui-monospace, monospace', flex: 1, textTransform: 'uppercase' }} />
+        <div style={{ width: 44, height: 44, borderRadius: 10, background: isValidHex ? value : 'var(--surface-container)', border: '2px solid var(--surface)', boxShadow: '0 0 0 1px var(--outline-soft), 0 4px 10px rgba(0,0,0,0.06)', flexShrink: 0 }} />
+        <input
+          className="input"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          style={{ fontFamily: 'ui-monospace, monospace', flex: 1, textTransform: 'uppercase', borderColor: isValidHex ? 'transparent' : 'var(--error)' }}
+        />
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 6 }}>
+      {!isValidHex && value.length > 0 && (
+        <div style={{ fontSize: 11, color: 'var(--error)', marginBottom: 8 }}>Formato inválido. Usá #RRGGBB (ej: #F97316)</div>
+      )}
+      <div className="color-swatches-grid">
         {COLOR_SWATCHES.map((c) => (
           <button
             key={c}
@@ -287,6 +296,7 @@ function ColorPicker({ label, desc, value, onChange }: { label: string; desc: st
               boxShadow: '0 0 0 1px var(--outline-soft) inset',
               cursor: 'pointer',
               padding: 0,
+              minHeight: 36,
             }}
           />
         ))}

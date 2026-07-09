@@ -64,3 +64,18 @@ export function isPlanPro(): boolean {
   const plan = getPlanFromToken()
   return plan === 'Pro' || plan === 'Negocio'
 }
+
+export function getRole(): 'owner' | 'employee' {
+  const token = getAccessToken()
+  if (!token) return 'employee'
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return payload.role === 'owner' ? 'owner' : 'employee'
+  } catch {
+    return 'employee'
+  }
+}
+
+export function isOwner(): boolean {
+  return getRole() === 'owner'
+}

@@ -210,30 +210,34 @@ export default function WhatsAppPage() {
           <textarea
             ref={textareaRef}
             className="input"
-            rows={9}
+            rows={6}
             value={template || ''}
             onChange={(e) => setTemplate(e.target.value)}
-            style={{ fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace', fontSize: 13, lineHeight: 1.5, resize: 'vertical' }}
+            style={{ fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace', fontSize: 13, lineHeight: 1.5, resize: 'vertical', minHeight: 120 }}
           />
 
           <div>
             <div className="text-xs muted" style={{ fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>Variables · tap para insertar</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
               {VARIABLES.map(({ var: variable, label }) => (
                 <button
                   key={variable}
                   onClick={() => insertVariable(variable)}
                   title={label}
                   style={{
-                    padding: '6px 10px',
-                    borderRadius: 999,
+                    padding: '8px 10px',
+                    borderRadius: 8,
                     background: 'rgba(249,115,22,0.08)',
                     color: 'var(--primary-dark)',
                     fontFamily: 'ui-monospace, monospace',
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: 600,
                     border: '1px solid rgba(249,115,22,0.18)',
                     cursor: 'pointer',
+                    textAlign: 'left',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   {variable}

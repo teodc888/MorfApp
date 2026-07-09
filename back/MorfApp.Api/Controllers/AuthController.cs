@@ -240,6 +240,7 @@ public class AuthController(IAppDbContext db, IConfiguration config, ILogger<Aut
             new(JwtRegisteredClaimNames.Sub, user.Id),
             new(JwtRegisteredClaimNames.Email, user.Email),
             new("is_superadmin", user.IsSuperadmin.ToString().ToLower()),
+            new("role", user.Role),
         };
 
         if (user.TenantId is not null)

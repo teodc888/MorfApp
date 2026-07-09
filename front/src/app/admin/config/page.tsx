@@ -204,22 +204,24 @@ export default function ConfigPage() {
         <Section title="Modo de venta">
           <div className="field">
             <label>Modo</label>
-            <div style={{ display: 'flex', gap: 6 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {(['delivery', 'pickup', 'both'] as const).map((m) => (
                 <button
                   key={m}
                   onClick={() => setDel('mode', m)}
                   style={{
-                    flex: 1,
-                    padding: '7px 13px',
+                    flex: '1 1 auto',
+                    minWidth: 80,
+                    padding: '9px 13px',
                     borderRadius: 999,
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: 600,
                     background: delivery.mode === m ? 'var(--text)' : 'var(--surface-container)',
                     color: delivery.mode === m ? 'white' : 'var(--muted)',
                     border: 'none',
                     cursor: 'pointer',
                     transition: 'all 0.2s ease',
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   {m === 'delivery' ? 'Delivery' : m === 'pickup' ? 'Retiro' : 'Ambos'}
@@ -229,7 +231,7 @@ export default function ConfigPage() {
           </div>
 
           {showDeliveryCosts && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div className="grid-2col">
               <div className="field">
                 <label>Costo de envío</label>
                 <input className="input" type="number" value={delivery.deliveryCost} onChange={(e) => setDel('deliveryCost', e.target.value)} />
@@ -241,7 +243,7 @@ export default function ConfigPage() {
             </div>
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div className="grid-2col">
             <div className="field">
               <label>Pedido mínimo</label>
               <input className="input" type="number" value={delivery.minOrderAmount} onChange={(e) => setDel('minOrderAmount', e.target.value)} />

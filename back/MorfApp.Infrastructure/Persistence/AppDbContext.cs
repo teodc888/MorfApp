@@ -33,6 +33,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<SupplierPaymentAllocation> SupplierPaymentAllocations => Set<SupplierPaymentAllocation>();
     public DbSet<ProductSupply> ProductSupplies => Set<ProductSupply>();
     public DbSet<InventoryMovement> InventoryMovements => Set<InventoryMovement>();
+    public DbSet<Employee> Employees => Set<Employee>();
+    public DbSet<SalaryPayment> SalaryPayments => Set<SalaryPayment>();
+    public DbSet<EmployeeAdvance> EmployeeAdvances => Set<EmployeeAdvance>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -302,6 +305,47 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             e.HasKey(im => im.Id);
             e.Property(im => im.QuantityChange).HasPrecision(18, 4);
+        });
+
+        // Employee
+        modelBuilder.Entity<Employee>(e =>
+        {
+            e.HasKey(em => em.Id);
+            e.Property(em => em.BaseSalary).HasPrecision(18, 2);
+            e.Property(em => em.HourlyRate).HasPrecision(18, 2);
+            e.HasIndex(em => new { em.TenantId, em.IsActive });
+            e.HasOne(em => em.Tenant)
+             .WithMany(t => t.Employees)
+             .HasForeignKey(em => em.TenantId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // SalaryPayment
+        modelBuilder.Entity<SalaryPayment>(e =>
+        {
+            e.HasKey(sp => sp.Id);
+            e.Property(sp => sp.BasePaid).HasPrecision(18, 2);
+            e.Property(sp => sp.HoursAmount).HasPrecision(18, 2);
+            e.Property(sp => sp.AdvancesDeducted).HasPrecision(18, 2);
+            e.Property(sp => sp.Bonus).HasPrecision(18, 2);
+            e.Property(sp => sp.TotalPaid).HasPrecision(18, 2);
+            e.HasIndex(sp => new { sp.TenantId, sp.EmployeeId, sp.PaidAt });
+            e.HasOne(sp => sp.Employee)
+             .WithMany(em => em.SalaryPayments)
+             .HasForeignKey(sp => sp.EmployeeId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // EmployeeAdvance
+        modelBuilder.Entity<EmployeeAdvance>(e =>
+        {
+            e.HasKey(a => a.Id);
+            e.Property(a => a.Amount).HasPrecision(18, 2);
+            e.HasIndex(a => new { a.TenantId, a.EmployeeId, a.IsApplied });
+            e.HasOne(a => a.Employee)
+             .WithMany(em => em.Advances)
+             .HasForeignKey(a => a.EmployeeId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
 
         // Order - Items serialized with PropertyNameCaseInsensitive for compatibility
