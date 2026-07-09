@@ -13,8 +13,18 @@ setup('autenticar admin y guardar estado', async ({ page }) => {
   await page.goto('/admin/login')
   await expect(page.locator('input[type="email"]')).toBeVisible()
 
-  await page.fill('input[type="email"]',    ADMIN_EMAIL)
-  await page.fill('input[type="password"]', ADMIN_PASSWORD)
+  // Los inputs son controlados por React: si se llenan antes de que la página
+  // hidrate, el onChange no dispara y el valor se pierde en el primer render.
+  // Reintentamos hasta que el valor quede fijado (espera implícita a la hidratación).
+  const emailInput    = page.locator('input[type="email"]')
+  const passwordInput = page.locator('input[type="password"]')
+  await expect(async () => {
+    await emailInput.fill(ADMIN_EMAIL)
+    await passwordInput.fill(ADMIN_PASSWORD)
+    await expect(emailInput).toHaveValue(ADMIN_EMAIL)
+    await expect(passwordInput).toHaveValue(ADMIN_PASSWORD)
+  }).toPass({ timeout: 10_000 })
+
   await page.click('button[type="submit"]')
 
   // El login exitoso hace router.replace('/admin/menu') y guarda tokens en localStorage.
