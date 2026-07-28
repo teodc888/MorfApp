@@ -170,11 +170,31 @@ public class OrdersController(
         order.Status = OrderStatus.Confirmed;
         order.ConfirmedAt = DateTime.UtcNow;
 
-        // Descontar inventario según los insumos asociados a cada producto
-        var productIds = order.Items.Select(i => i.ProductId).Distinct().ToList();
+        // Descontar inventario según los insumos asociados a cada producto.
+        // Los items de promo (ProductId = "promo:<id>") no son un Product.Id real, así que
+        // se expanden a los productos que componen el combo (Promotion.ProductIds, donde un
+        // id repetido indica cantidad) para poder descontar sus insumos también.
+        const string promoPrefix = "promo:";
+        var productItems = order.Items.Where(i => !i.ProductId.StartsWith(promoPrefix, StringComparison.Ordinal)).ToList();
+        var promoOrderItems = order.Items.Where(i => i.ProductId.StartsWith(promoPrefix, StringComparison.Ordinal)).ToList();
+
+        var productIds = productItems.Select(i => i.ProductId).Distinct().ToList();
+
+        var promoIds = promoOrderItems.Select(i => i.ProductId.Substring(promoPrefix.Length)).Distinct().ToList();
+        var promotions = promoIds.Count == 0
+            ? new List<Promotion>()
+            : await db.Promotions.Where(p => promoIds.Contains(p.Id) && p.TenantId == TenantId).ToListAsync(ct);
+
+        // promoId -> (productId real -> cantidad por unidad de promo)
+        var promoProductQuantities = promotions.ToDictionary(
+            p => p.Id,
+            p => p.ProductIds.GroupBy(pid => pid).ToDictionary(g => g.Key, g => g.Count()));
+
+        var promoRealProductIds = promoProductQuantities.Values.SelectMany(d => d.Keys).Distinct();
+        var allSupplyProductIds = productIds.Concat(promoRealProductIds).Distinct().ToList();
 
         var allProductSupplies = await db.ProductSupplies
-            .Where(ps => productIds.Contains(ps.ProductId) && ps.TenantId == TenantId && !ps.IsUnknownQuantity)
+            .Where(ps => allSupplyProductIds.Contains(ps.ProductId) && ps.TenantId == TenantId && !ps.IsUnknownQuantity)
             .ToListAsync(ct);
 
         var supplyIds = allProductSupplies.Select(ps => ps.SupplyId).Distinct().ToList();
@@ -182,15 +202,13 @@ public class OrdersController(
             .Where(s => supplyIds.Contains(s.Id))
             .ToDictionaryAsync(s => s.Id, ct);
 
-        foreach (var item in order.Items)
+        void DeductForProduct(string productId, int quantity)
         {
-            var productSupplies = allProductSupplies.Where(ps => ps.ProductId == item.ProductId);
-
-            foreach (var ps in productSupplies)
+            foreach (var ps in allProductSupplies.Where(ps => ps.ProductId == productId))
             {
                 if (!supplies.TryGetValue(ps.SupplyId, out var supply)) continue;
 
-                var delta = ps.QuantityRequired * item.Quantity;
+                var delta = ps.QuantityRequired * quantity;
                 supply.CurrentStock -= delta;
                 supply.UpdatedAt = DateTime.UtcNow;
 
@@ -202,6 +220,22 @@ public class OrdersController(
                     Reason = "OrderDeducted",
                     ReferenceId = order.Id
                 });
+            }
+        }
+
+        foreach (var item in productItems)
+        {
+            DeductForProduct(item.ProductId, item.Quantity);
+        }
+
+        foreach (var item in promoOrderItems)
+        {
+            var promoId = item.ProductId.Substring(promoPrefix.Length);
+            if (!promoProductQuantities.TryGetValue(promoId, out var componentQuantities)) continue;
+
+            foreach (var (realProductId, unitQty) in componentQuantities)
+            {
+                DeductForProduct(realProductId, unitQty * item.Quantity);
             }
         }
 
