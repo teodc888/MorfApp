@@ -144,15 +144,29 @@ public class SupplierController(IAppDbContext db) : ControllerBase
             p.Id == purchaseId && p.SupplierId == id && p.TenantId == TenantId);
         if (purchase is null) return NotFound();
 
+        // Transacción + advisory lock por proveedor: sin esto, dos pagos casi simultáneos
+        // (doble click, dos pestañas) pueden leer el mismo "pendiente" antes de que
+        // cualquiera guarde, y ambos pasar la validación -> se paga de más una compra.
+        await using var tx = await db.BeginTransactionAsync();
+        await db.AcquireAdvisoryLockAsync($"supplier-payment:{TenantId}:{id}");
+
         var pending = await GetPurchasePendingAmount(purchase.Id, purchase.TotalPrice);
-        if (pending <= 0) return BadRequest(new { message = "La compra ya está pagada." });
+        if (pending <= 0)
+        {
+            await tx.RollbackAsync();
+            return BadRequest(new { message = "La compra ya está pagada." });
+        }
         if (req.Amount <= 0 || req.Amount > pending)
+        {
+            await tx.RollbackAsync();
             return BadRequest(new { message = "El monto debe ser mayor a 0 y no superar el pendiente de la compra." });
+        }
 
         AddPayment(supplier, [(purchase.Id, req.Amount)], req.Notes);
         await db.SaveChangesAsync();
         await RecalculateSupplierDebt(supplier);
         await db.SaveChangesAsync();
+        await tx.CommitAsync();
 
         return Ok(await BuildDebtDetail(supplier));
     }
@@ -167,13 +181,21 @@ public class SupplierController(IAppDbContext db) : ControllerBase
             p.Id == purchaseId && p.SupplierId == id && p.TenantId == TenantId);
         if (purchase is null) return NotFound();
 
+        await using var tx = await db.BeginTransactionAsync();
+        await db.AcquireAdvisoryLockAsync($"supplier-payment:{TenantId}:{id}");
+
         var pending = await GetPurchasePendingAmount(purchase.Id, purchase.TotalPrice);
-        if (pending <= 0) return BadRequest(new { message = "La compra ya está pagada." });
+        if (pending <= 0)
+        {
+            await tx.RollbackAsync();
+            return BadRequest(new { message = "La compra ya está pagada." });
+        }
 
         AddPayment(supplier, [(purchase.Id, pending)], "Pago completo de compra");
         await db.SaveChangesAsync();
         await RecalculateSupplierDebt(supplier);
         await db.SaveChangesAsync();
+        await tx.CommitAsync();
 
         return Ok(await BuildDebtDetail(supplier));
     }
@@ -183,6 +205,9 @@ public class SupplierController(IAppDbContext db) : ControllerBase
     {
         var supplier = await db.Suppliers.FirstOrDefaultAsync(s => s.Id == id && s.TenantId == TenantId);
         if (supplier is null) return NotFound();
+
+        await using var tx = await db.BeginTransactionAsync();
+        await db.AcquireAdvisoryLockAsync($"supplier-payment:{TenantId}:{id}");
 
         var purchases = await db.SupplyPurchases
             .Where(p => p.SupplierId == id && p.TenantId == TenantId)
@@ -196,12 +221,17 @@ public class SupplierController(IAppDbContext db) : ControllerBase
             if (pending > 0) allocations.Add((purchase.Id, pending));
         }
 
-        if (allocations.Count == 0) return BadRequest(new { message = "El proveedor no tiene deuda pendiente." });
+        if (allocations.Count == 0)
+        {
+            await tx.RollbackAsync();
+            return BadRequest(new { message = "El proveedor no tiene deuda pendiente." });
+        }
 
         AddPayment(supplier, allocations, "Pago total de deuda del proveedor");
         await db.SaveChangesAsync();
         await RecalculateSupplierDebt(supplier);
         await db.SaveChangesAsync();
+        await tx.CommitAsync();
 
         return Ok(await BuildDebtDetail(supplier));
     }
