@@ -1,6 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 using MorfApp.Api.Controllers;
 using MorfApp.Application.DTOs.Public;
+using MorfApp.Application.Interfaces;
 using MorfApp.Domain.Enums;
 using Xunit;
 
@@ -8,7 +12,28 @@ namespace MorfApp.Tests.Controllers;
 
 public class PublicControllerTests : TestBase
 {
-    private PublicController CreateController() => new(Db);
+    private Mock<IMercadoPagoService> _mockMp = null!;
+
+    private PublicController CreateController(Dictionary<string, string?>? configOverrides = null)
+    {
+        _mockMp = new Mock<IMercadoPagoService>();
+        _mockMp.Setup(m => m.CreateSubscriptionAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+               .ReturnsAsync(new MpPreapprovalResult("preapproval-1", "https://mercadopago.com/checkout/preapproval-1"));
+
+        var settings = new Dictionary<string, string?>
+        {
+            ["MercadoPago:PreapprovalPlanIds:Basico"] = "plan-basico",
+            ["MercadoPago:PreapprovalPlanIds:Pro"] = "plan-pro",
+            ["MercadoPago:PreapprovalPlanIds:Negocio"] = "plan-negocio",
+        };
+        if (configOverrides is not null)
+            foreach (var (key, value) in configOverrides)
+                settings[key] = value;
+
+        var config = new ConfigurationBuilder().AddInMemoryCollection(settings).Build();
+
+        return new PublicController(Db, _mockMp.Object, config, NullLogger<PublicController>.Instance);
+    }
 
     private static RegisterInterestRequest MakeRequest(
         string firstName      = "Juan",
@@ -16,23 +41,39 @@ public class PublicControllerTests : TestBase
         string email          = "juan@burger.com",
         string phone          = "1155667788",
         string restaurantName = "Mi Burger",
-        string plan           = "Basico")
-        => new(firstName, lastName, email, phone, restaurantName, plan);
+        string plan           = "Basico",
+        string? colorPrimary  = null,
+        string? colorAccent   = null)
+        => new(firstName, lastName, email, phone, restaurantName, plan, colorPrimary, colorAccent);
 
-    // ── Register ────────────────────────────────────────────────────────────────
+    // ── GetPlans ──────────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task Register_ValidRequest_Returns200WithTenantId()
+    public void GetPlans_ReturnsAllThreePlansWithPrices()
+    {
+        var ctrl = CreateController();
+        var result = ctrl.GetPlans();
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var plans = Assert.IsType<List<PlanInfo>>(ok.Value);
+        Assert.Equal(3, plans.Count);
+        Assert.Contains(plans, p => p.Plan == "Basico" && p.MonthlyPriceArs == 20000m);
+        Assert.Contains(plans, p => p.Plan == "Pro" && p.MonthlyPriceArs == 45000m);
+        Assert.Contains(plans, p => p.Plan == "Negocio" && p.MonthlyPriceArs == 60000m);
+    }
+
+    // ── Register ──────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task Register_ValidRequest_ReturnsCheckoutUrlAndTenantId()
     {
         var ctrl   = CreateController();
-        var result = await ctrl.Register(MakeRequest()) as OkObjectResult;
+        var result = await ctrl.Register(MakeRequest());
 
-        Assert.NotNull(result);
-        Assert.Equal(200, result!.StatusCode);
-
-        var tenantId = result.Value?.GetType().GetProperty("tenantId")?.GetValue(result.Value) as string;
-        Assert.NotNull(tenantId);
-        Assert.True(Guid.TryParse(tenantId, out _));
+        var ok  = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<RegisterResponse>(ok.Value);
+        Assert.True(Guid.TryParse(dto.TenantId, out _));
+        Assert.Equal("https://mercadopago.com/checkout/preapproval-1", dto.CheckoutUrl);
     }
 
     [Fact]
@@ -75,21 +116,21 @@ public class PublicControllerTests : TestBase
     public async Task Register_InvalidPlan_Returns400()
     {
         var ctrl   = CreateController();
-        var result = await ctrl.Register(MakeRequest(plan: "PlanInvalido")) as BadRequestObjectResult;
+        var result = await ctrl.Register(MakeRequest(plan: "PlanInvalido"));
 
-        Assert.NotNull(result);
-        Assert.Equal(400, result!.StatusCode);
+        Assert.IsType<BadRequestObjectResult>(result.Result);
     }
 
     [Theory]
     [InlineData("Basico")]
     [InlineData("Pro")]
-    public async Task Register_EachValidPlan_Returns200(string plan)
+    [InlineData("Negocio")]
+    public async Task Register_EachValidPlan_ReturnsOk(string plan)
     {
         var ctrl   = CreateController();
         var result = await ctrl.Register(MakeRequest(email: $"test-{plan.ToLower()}@x.com", plan: plan));
 
-        Assert.IsType<OkObjectResult>(result);
+        Assert.IsType<OkObjectResult>(result.Result);
     }
 
     [Fact]
@@ -120,5 +161,71 @@ public class PublicControllerTests : TestBase
 
         var tenant = Db.Tenants.Single(t => t.OwnerEmail == "maria@test.com");
         Assert.Equal("María González", tenant.OwnerName);
+    }
+
+    [Fact]
+    public async Task Register_StoresMercadoPagoPreapprovalId()
+    {
+        var ctrl = CreateController();
+        var result = await ctrl.Register(MakeRequest(email: "mp@test.com"));
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<RegisterResponse>(ok.Value);
+
+        var tenant = await Db.Tenants.FindAsync(dto.TenantId);
+        Assert.Equal("preapproval-1", tenant!.MpPreapprovalId);
+    }
+
+    [Fact]
+    public async Task Register_CreatesTenantBrandingWithChosenColors()
+    {
+        var ctrl = CreateController();
+        var result = await ctrl.Register(MakeRequest(email: "colores@test.com", colorPrimary: "#123456", colorAccent: "#abcdef"));
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<RegisterResponse>(ok.Value);
+
+        var branding = Db.TenantBrandings.Single(b => b.TenantId == dto.TenantId);
+        Assert.Equal("#123456", branding.ColorPrimary);
+        Assert.Equal("#abcdef", branding.ColorAccent);
+    }
+
+    [Fact]
+    public async Task Register_NoColorsProvided_UsesDefaultBranding()
+    {
+        var ctrl = CreateController();
+        var result = await ctrl.Register(MakeRequest(email: "sincolor@test.com"));
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<RegisterResponse>(ok.Value);
+
+        var branding = Db.TenantBrandings.Single(b => b.TenantId == dto.TenantId);
+        Assert.Equal("#e8390e", branding.ColorPrimary);
+        Assert.Equal("#25D366", branding.ColorAccent);
+    }
+
+    [Fact]
+    public async Task Register_NoPreapprovalPlanConfigured_Returns503AndDoesNotCreateTenant()
+    {
+        var ctrl = CreateController(new Dictionary<string, string?> { ["MercadoPago:PreapprovalPlanIds:Basico"] = null });
+        var result = await ctrl.Register(MakeRequest(email: "sinplan@test.com"));
+
+        var status = Assert.IsType<ObjectResult>(result.Result);
+        Assert.Equal(503, status.StatusCode);
+        Assert.False(Db.Tenants.Any(t => t.OwnerEmail == "sinplan@test.com"));
+    }
+
+    [Fact]
+    public async Task Register_MercadoPagoFails_Returns502AndDoesNotPersistTenant()
+    {
+        var ctrl = CreateController();
+        _mockMp.Setup(m => m.CreateSubscriptionAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+               .ThrowsAsync(new HttpRequestException("timeout"));
+
+        var result = await ctrl.Register(MakeRequest(email: "mpfalla@test.com"));
+
+        var status = Assert.IsType<ObjectResult>(result.Result);
+        Assert.Equal(502, status.StatusCode);
+        Assert.False(Db.Tenants.Any(t => t.OwnerEmail == "mpfalla@test.com"));
     }
 }

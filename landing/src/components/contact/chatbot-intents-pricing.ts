@@ -7,7 +7,7 @@ export const pricingIntents: ChatIntent[] = [
     keywords: ['plan pro', 'dominio propio', 'estadisticas', 'estadísticas', 'branding avanzado', 'soporte prioritario'],
     reply: {
       type: 'message',
-      text: 'El plan Pro aparece en la landing como Próximamente. Incluye dominio propio, estadísticas de pedidos, branding avanzado y soporte prioritario.',
+      text: 'El plan Pro cuesta $45.000 al mes. Incluye dominio propio, estadísticas de pedidos, branding avanzado y soporte prioritario.',
     },
   },
   {
@@ -15,7 +15,7 @@ export const pricingIntents: ChatIntent[] = [
     keywords: ['plan negocio', 'negocio', 'cadenas', 'franquicias', 'multiples locales', 'múltiples locales'],
     reply: {
       type: 'message',
-      text: 'El plan Negocio aparece en la landing como Próximamente y está pensado para cadenas y franquicias con múltiples locales.',
+      text: 'El plan Negocio cuesta $60.000 al mes y está pensado para cadenas y franquicias con múltiples locales.',
     },
   },
   {
@@ -23,7 +23,7 @@ export const pricingIntents: ChatIntent[] = [
     keywords: ['plan basico', 'plan básico', 'precio', 'precios', 'cuesta', 'costo', 'vale', 'mensual', '$20.000'],
     reply: {
       type: 'message',
-      text: 'Hoy podés empezar con el plan Básico por $20.000 al mes, con primer mes gratis y sin tarjeta. Incluye 1 local, productos ilimitados, pedidos por WhatsApp, carrito con modificadores, delivery/takeaway y subdominio incluido.',
+      text: 'Hoy podés empezar con el plan Básico por $20.000 al mes, con primer mes gratis. Cargás tu tarjeta al empezar, pero no se cobra nada hasta que termine el mes. Incluye 1 local, productos ilimitados, pedidos por WhatsApp, carrito con modificadores, delivery/takeaway y subdominio incluido.',
     },
   },
   {
@@ -31,7 +31,7 @@ export const pricingIntents: ChatIntent[] = [
     keywords: ['prueba gratis', 'primer mes gratis', 'gratis', 'tarjeta'],
     reply: {
       type: 'message',
-      text: 'Podés empezar con primer mes gratis y sin tarjeta requerida.',
+      text: 'Podés empezar con primer mes gratis. Cargás tu tarjeta al empezar, pero no se te cobra nada hasta que termine el mes.',
     },
   },
   {

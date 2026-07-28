@@ -15,7 +15,12 @@ namespace MorfApp.Api.Controllers;
 [ApiController]
 [Route("api/superadmin")]
 [Authorize]
-public class SuperAdminController(IAppDbContext db, IEmailService emailService, IConfiguration config, ILogger<SuperAdminController> logger) : ControllerBase
+public class SuperAdminController(
+    IAppDbContext db,
+    IEmailService emailService,
+    IConfiguration config,
+    ILogger<SuperAdminController> logger,
+    MorfApp.Api.Services.TenantActivationService tenantActivation) : ControllerBase
 {
     private bool IsSuperAdmin =>
         User.FindFirstValue("is_superadmin") == "true";
@@ -251,40 +256,12 @@ public class SuperAdminController(IAppDbContext db, IEmailService emailService, 
         if (tenant.Status != TenantStatus.Pending) return BadRequest(new { message = "El negocio no está en estado pendiente" });
         if (string.IsNullOrEmpty(tenant.OwnerEmail)) return BadRequest(new { message = "El negocio no tiene email del dueño" });
 
-        var now = DateTime.UtcNow;
-
         var existingUser = tenant.AdminUsers.FirstOrDefault(u => u.Email == tenant.OwnerEmail);
         if (existingUser is not null)
             return BadRequest(new { message = "Ya existe un usuario admin con ese email para este negocio" });
 
-        var adminUser = new AdminUser
-        {
-            TenantId = tenant.Id,
-            Email = tenant.OwnerEmail,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString()),
-            IsSuperadmin = false,
-            CreatedAt = now,
-            UpdatedAt = now,
-        };
-        db.AdminUsers.Add(adminUser);
-
-        var setupToken = new SetupToken
-        {
-            AdminUserId = adminUser.Id,
-            Token = Guid.NewGuid().ToString("N"),
-            ExpiresAt = now.AddHours(48),
-            IsUsed = false,
-            CreatedAt = now,
-        };
-        db.SetupTokens.Add(setupToken);
-
-        tenant.Status = TenantStatus.Active;
-        tenant.SubscriptionEndsAt = now.AddDays(30);
-        tenant.UpdatedAt = now;
-        await db.SaveChangesAsync();
-
         var frontendUrl = config["App:FrontendUrl"] ?? "https://morfapp.app";
-        var setupUrl = $"{frontendUrl}/setup?token={setupToken.Token}";
+        var (_, setupUrl) = await tenantActivation.ActivateAsync(tenant, frontendUrl);
 
         try
         {

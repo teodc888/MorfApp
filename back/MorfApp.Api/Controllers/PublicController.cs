@@ -15,13 +15,24 @@ namespace MorfApp.Api.Controllers;
 [Route("api/public")]
 [AllowAnonymous]
 [EnableRateLimiting("public")]
-public class PublicController(IAppDbContext db) : ControllerBase
+public class PublicController(IAppDbContext db, IMercadoPagoService mercadoPago, IConfiguration config, ILogger<PublicController> logger) : ControllerBase
 {
+    // GET /api/public/plans — catálogo único de precios (ver PlanCatalog).
+    [HttpGet("plans")]
+    public ActionResult<List<PlanInfo>> GetPlans() => Ok(PlanCatalog.Plans);
+
+    // Crea el tenant (Pending) + branding elegido, y arranca la suscripción en Mercado Pago
+    // (1 mes gratis + tarjeta cargada desde el alta). El tenant queda operativo recién cuando
+    // llega el webhook "authorized" — ver MercadoPagoWebhookController.
     [HttpPost("register")]
-    public async Task<IActionResult> Register([FromBody] RegisterInterestRequest req)
+    public async Task<ActionResult<RegisterResponse>> Register([FromBody] RegisterInterestRequest req)
     {
         if (!Enum.TryParse<TenantPlan>(req.Plan, out var plan))
             return BadRequest(new { message = "Plan inválido" });
+
+        var preapprovalPlanId = config[$"MercadoPago:PreapprovalPlanIds:{plan}"];
+        if (string.IsNullOrEmpty(preapprovalPlanId))
+            return StatusCode(503, new { message = "El alta automática no está disponible en este momento. Contactanos por WhatsApp." });
 
         var slug = await GenerateUniqueSlug(req.RestaurantName);
         var now = DateTime.UtcNow;
@@ -38,11 +49,32 @@ public class PublicController(IAppDbContext db) : ControllerBase
             CreatedAt = now,
             UpdatedAt = now,
         };
-
         db.Tenants.Add(tenant);
+
+        var branding = new TenantBranding
+        {
+            TenantId = tenant.Id,
+            ColorPrimary = req.ColorPrimary ?? "#e8390e",
+            ColorAccent = req.ColorAccent ?? "#25D366",
+            UpdatedAt = now,
+        };
+        db.TenantBrandings.Add(branding);
+
+        MpPreapprovalResult subscription;
+        try
+        {
+            subscription = await mercadoPago.CreateSubscriptionAsync(preapprovalPlanId, req.Email, tenant.Id);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "No se pudo crear la suscripción en Mercado Pago para el tenant {TenantId}", tenant.Id);
+            return StatusCode(502, new { message = "No pudimos conectar con Mercado Pago. Probá de nuevo en unos minutos." });
+        }
+
+        tenant.MpPreapprovalId = subscription.PreapprovalId;
         await db.SaveChangesAsync();
 
-        return Ok(new { message = "Registro recibido", tenantId = tenant.Id });
+        return Ok(new RegisterResponse("Registro recibido", tenant.Id, subscription.CheckoutUrl));
     }
 
     private async Task<string> GenerateUniqueSlug(string name)

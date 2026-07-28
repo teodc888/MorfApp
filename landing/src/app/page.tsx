@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Pricing } from '@/components/landing/Pricing';
 
 export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -281,99 +282,7 @@ export default function LandingPage() {
         </section>
 
         {/* ── PRICING ── */}
-        <section className="py-24 px-6 max-w-7xl mx-auto" id="pricing">
-          <div className="text-center max-w-2xl mx-auto mb-4">
-            <h2 className="font-headline text-4xl lg:text-5xl font-bold text-on-surface mb-6">Planes transparentes</h2>
-            <p className="font-body text-lg text-on-surface-variant">Primer mes gratis para que lo pruebes sin compromiso. Sin tarjeta requerida.</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto mt-16">
-
-            {/* BÁSICO */}
-            <div className="reveal stagger-1 plan-card bg-surface-container-lowest p-10 rounded-xl border border-outline-variant shadow-[0_2px_16px_rgba(58,48,42,0.04)] flex flex-col">
-              <div className="flex items-start justify-between mb-2">
-                <h3 className="font-headline text-3xl font-bold text-on-surface">Básico</h3>
-                <span className="inline-flex items-center gap-1 bg-green-100 text-green-800 text-xs font-bold px-3 py-1 rounded-full font-body mt-1">
-                  Primer mes gratis
-                </span>
-              </div>
-              <p className="font-body text-on-surface-variant mb-6 pb-6 border-b border-outline-variant/40 text-sm">Para empezar con el pie derecho.</p>
-              <div className="mb-8">
-                <span className="font-headline text-5xl font-bold text-on-surface">$20.000</span>
-                <span className="font-body text-on-surface-variant text-sm">/mes</span>
-                <p className="font-body text-xs text-on-surface-variant mt-1">después del primer mes</p>
-              </div>
-              <ul className="flex flex-col gap-4 flex-grow mb-8 font-body text-on-surface text-sm">
-                {['1 local', 'Menú y productos ilimitados', 'Pedidos por WhatsApp', 'Carrito con modificadores', 'Delivery y takeaway', 'Subdominio incluido'].map((item) => (
-                  <li key={item} className="flex items-center gap-3">
-                    <span className="material-symbols-outlined text-primary" style={{ fontSize: '20px', fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <a href="#contact" className="w-full py-4 border-2 border-outline-variant text-on-surface font-bold rounded text-center hover:border-primary hover:text-primary transition-colors font-body block">
-                Empezar prueba gratis
-              </a>
-            </div>
-
-            {/* PRO — coming soon */}
-            <div className="coming-soon-wrap reveal stagger-2">
-              <div className="plan-card bg-primary p-10 rounded-xl border border-primary-container shadow-[0_8px_32px_rgba(194,101,42,0.2)] flex flex-col relative overflow-hidden text-on-primary">
-                <div className="absolute top-0 right-0 bg-primary-container text-on-primary-container text-xs font-bold px-4 py-1 rounded-bl-lg uppercase tracking-wider font-body">
-                  Más Popular
-                </div>
-                <h3 className="font-headline text-3xl font-bold mb-2">Pro</h3>
-                <p className="font-body text-on-primary/80 mb-6 pb-6 border-b border-primary-container text-sm">Para locales que buscan destacar.</p>
-                <div className="mb-8">
-                  <span className="font-headline text-5xl font-bold">$45.000</span>
-                  <span className="font-body text-on-primary/80 text-sm">/mes</span>
-                </div>
-                <ul className="flex flex-col gap-4 flex-grow mb-8 font-body text-sm">
-                  {['Todo lo del plan Básico', 'Dominio propio', 'Estadísticas de pedidos', 'Branding avanzado', 'Soporte prioritario'].map((item) => (
-                    <li key={item} className="flex items-center gap-3">
-                      <span className="material-symbols-outlined text-on-primary" style={{ fontSize: '20px', fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-                <button className="w-full py-4 bg-surface-bright text-primary font-bold rounded hover:bg-surface-container-low transition-colors shadow-sm font-body">
-                  Elegir Pro
-                </button>
-              </div>
-              <div className="coming-soon-overlay">
-                <span className="icon">🔒</span>
-                <span className="label">Próximamente</span>
-              </div>
-            </div>
-
-            {/* NEGOCIO — coming soon */}
-            <div className="coming-soon-wrap reveal stagger-3">
-              <div className="plan-card bg-surface-container-lowest p-10 rounded-xl border border-outline-variant shadow-[0_2px_16px_rgba(58,48,42,0.04)] flex flex-col">
-                <h3 className="font-headline text-3xl font-bold text-on-surface mb-2">Negocio</h3>
-                <p className="font-body text-on-surface-variant mb-6 pb-6 border-b border-outline-variant/40 text-sm">Para cadenas y franquicias.</p>
-                <div className="mb-8">
-                  <span className="font-headline text-4xl font-bold text-on-surface">A consultar</span>
-                </div>
-                <ul className="flex flex-col gap-4 flex-grow mb-8 font-body text-on-surface text-sm">
-                  {['Todo lo del plan Pro', 'Múltiples locales', 'Panel centralizado', 'Reportes avanzados', 'Onboarding personalizado'].map((item) => (
-                    <li key={item} className="flex items-center gap-3">
-                      <span className="material-symbols-outlined text-primary" style={{ fontSize: '20px', fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-                <button className="w-full py-4 border-2 border-outline-variant text-on-surface font-bold rounded text-center hover:border-primary hover:text-primary transition-colors font-body">
-                  Contactar
-                </button>
-              </div>
-              <div className="coming-soon-overlay">
-                <span className="icon">🔒</span>
-                <span className="label">Próximamente</span>
-              </div>
-            </div>
-
-          </div>
-        </section>
+        <Pricing />
 
         {/* ── TESTIMONIAL ── */}
         <section className="bg-surface-container py-24 px-6 border-t border-outline-variant/30">

@@ -31,7 +31,7 @@ public class SuperAdminControllerTests : TestBase
             })
             .Build();
 
-        var ctrl = new SuperAdminController(Db, mockEmail.Object, config, NullLogger<SuperAdminController>.Instance);
+        var ctrl = new SuperAdminController(Db, mockEmail.Object, config, NullLogger<SuperAdminController>.Instance, new MorfApp.Api.Services.TenantActivationService(Db));
 
         if (asSuperAdmin)
             SetupSuperAdminClaims(ctrl);

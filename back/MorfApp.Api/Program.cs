@@ -96,9 +96,21 @@ builder.Services.AddRateLimiter(options =>
             Window = TimeSpan.FromMinutes(1),
             QueueLimit = 0,
         }));
+
+    // webhook: notificaciones de Mercado Pago — no son humanos, permitimos ráfagas más generosas.
+    options.AddPolicy("webhook", httpContext => RateLimitPartition.GetFixedWindowLimiter(
+        partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        factory: _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 60,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+        }));
 });
 
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddHttpClient<MorfApp.Application.Interfaces.IMercadoPagoService, MorfApp.Api.Services.MercadoPagoService>();
+builder.Services.AddScoped<MorfApp.Api.Services.TenantActivationService>();
 
 builder.Services.AddHostedService<MorfApp.Api.Services.SubscriptionExpirationService>();
 

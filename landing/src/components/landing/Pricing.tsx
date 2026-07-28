@@ -1,14 +1,37 @@
 'use client';
 
 import type { CSSProperties, ReactNode, WheelEvent } from 'react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { InteractiveProductCard } from '@/components/ui/card-7';
 import { InterestModal } from './InterestModal';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5500';
+
+// Features de respaldo — se muestran mientras se carga el catálogo real de /api/public/plans,
+// o si el fetch falla. Los precios en cambio arrancan directamente desde PlanInfo (ver PriceLabel).
 const basicFeatures = ['Menú y productos ilimitados', 'Pedidos por WhatsApp', 'Carrito con modificadores', 'Delivery y takeaway', 'Promociones y descuentos', 'Branding personalizado (logo, colores)', 'Subdominio incluido'];
 const proFeatures = ['Todo lo del plan Básico', 'Métricas y estadísticas', 'Control de insumos e inventario', 'Gestión de proveedores', 'Soporte prioritario'];
 const businessFeatures = ['Todo lo del plan Pro', 'Módulo de empleados', 'Registro de sueldos y adelantos', 'Roles y permisos por empleado', 'Onboarding personalizado'];
+
+export type PlanInfo = {
+  plan: string;
+  displayName: string;
+  monthlyPriceArs: number;
+  features: string[];
+};
+
+// Precios de respaldo — mismos valores canónicos que el backend (PlanCatalog), por si
+// el fetch a /api/public/plans todavía no resolvió o falla.
+const FALLBACK_PLANS: Record<string, PlanInfo> = {
+  Basico: { plan: 'Basico', displayName: 'Básico', monthlyPriceArs: 20000, features: basicFeatures },
+  Pro: { plan: 'Pro', displayName: 'Pro', monthlyPriceArs: 45000, features: proFeatures },
+  Negocio: { plan: 'Negocio', displayName: 'Negocio', monthlyPriceArs: 60000, features: businessFeatures },
+};
+
+function formatPrice(amount: number) {
+  return `${amount.toLocaleString('es-AR')} / mes`;
+}
 
 const planImages = {
   basic: 'https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=1200&auto=format&fit=crop',
@@ -82,13 +105,13 @@ function PlanAction({
   );
 }
 
-function BasicCard({ onCta }: { onCta: () => void }) {
+function BasicCard({ plan, onCta }: { plan: PlanInfo; onCta: () => void }) {
   return (
     <InteractiveProductCard
       imageUrl={planImages.basic}
       title="Basico"
       description="Para empezar con el pie derecho."
-      price="$25.000 / mes"
+      price={formatPrice(plan.monthlyPriceArs)}
       tone="light"
       className="max-w-none"
     >
@@ -98,19 +121,19 @@ function BasicCard({ onCta }: { onCta: () => void }) {
         </span>
         <p className="font-body text-xs text-[#f8ead9]/78">despues del primer mes</p>
       </div>
-      <FeatureList items={basicFeatures} />
+      <FeatureList items={plan.features} />
       <PlanAction onClick={onCta}>Empezar prueba gratis</PlanAction>
     </InteractiveProductCard>
   );
 }
 
-function ProCard({ onCta }: { onCta: () => void }) {
+function ProCard({ plan, onCta }: { plan: PlanInfo; onCta: () => void }) {
   return (
     <InteractiveProductCard
       imageUrl={planImages.pro}
       title="Pro"
       description="Para locales que buscan destacar."
-      price="$45.000 / mes"
+      price={formatPrice(plan.monthlyPriceArs)}
       featured
       tone="dark"
       className="max-w-none"
@@ -120,19 +143,19 @@ function ProCard({ onCta }: { onCta: () => void }) {
           Mas popular
         </span>
       </div>
-      <FeatureList items={proFeatures} tone="dark" />
+      <FeatureList items={plan.features} tone="dark" />
       <PlanAction featured tone="dark" onClick={onCta}>Empezar ahora</PlanAction>
     </InteractiveProductCard>
   );
 }
 
-function BusinessCard({ onCta }: { onCta: () => void }) {
+function BusinessCard({ plan, onCta }: { plan: PlanInfo; onCta: () => void }) {
   return (
     <InteractiveProductCard
       imageUrl={planImages.business}
       title="Negocio"
       description="Para cadenas y franquicias."
-      price="$60.000 / mes"
+      price={formatPrice(plan.monthlyPriceArs)}
       tone="warm"
       className="max-w-none"
     >
@@ -141,28 +164,40 @@ function BusinessCard({ onCta }: { onCta: () => void }) {
           Proximamente
         </span>
       </div>
-      <FeatureList items={businessFeatures} tone="warm" />
+      <FeatureList items={plan.features} tone="warm" />
       <PlanAction tone="warm" onClick={onCta}>Empezar ahora</PlanAction>
     </InteractiveProductCard>
   );
 }
 
-function PlanCards({ onCta, className }: { onCta: (plan: string) => void; className: string }) {
+function PlanCards({ plans, onCta, className }: { plans: Record<string, PlanInfo>; onCta: (plan: string) => void; className: string }) {
   return (
     <div className={className}>
-      <BasicCard onCta={() => onCta('Basico')} />
-      <ProCard onCta={() => onCta('Pro')} />
-      <BusinessCard onCta={() => onCta('Negocio')} />
+      <BasicCard plan={plans.Basico} onCta={() => onCta('Basico')} />
+      <ProCard plan={plans.Pro} onCta={() => onCta('Pro')} />
+      <BusinessCard plan={plans.Negocio} onCta={() => onCta('Negocio')} />
     </div>
   );
 }
 
 export function Pricing() {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [plans, setPlans] = useState<Record<string, PlanInfo>>(FALLBACK_PLANS);
   const [activePlan, setActivePlan] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const wheelDeltaRef = useRef(0);
   const wheelLockedRef = useRef(false);
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/public/plans`)
+      .then(res => res.ok ? res.json() : Promise.reject())
+      .then((data: PlanInfo[]) => {
+        setPlans(Object.fromEntries(data.map(p => [p.plan, p])));
+      })
+      .catch(() => {
+        // Si falla, quedan los precios de respaldo (mismos valores que el backend hoy).
+      });
+  }, []);
 
   const goToPlan = (index: number) => {
     setActivePlan(Math.max(0, Math.min(2, index)));
@@ -213,29 +248,29 @@ export function Pricing() {
 
   return (
     <>
-      {selectedPlan && <InterestModal plan={selectedPlan} onClose={() => setSelectedPlan(null)} />}
+      {selectedPlan && <InterestModal plan={plans[selectedPlan]} onClose={() => setSelectedPlan(null)} />}
 
       <section id="pricing" className="bg-surface-container-low px-4 py-12 md:hidden">
         <div className="mb-10 text-center">
           <h2 className="mb-3 font-headline text-[2.15rem] font-bold leading-tight text-on-surface">Planes transparentes</h2>
-          <p className="font-body text-on-surface-variant">Primer mes gratis. Sin tarjeta requerida.</p>
+          <p className="font-body text-on-surface-variant">Primer mes gratis. Cargás tu tarjeta una sola vez.</p>
         </div>
-        <PlanCards onCta={(plan) => setSelectedPlan(plan)} className="mx-auto flex max-w-sm flex-col gap-6" />
+        <PlanCards plans={plans} onCta={(plan) => setSelectedPlan(plan)} className="mx-auto flex max-w-sm flex-col gap-6" />
       </section>
 
       <section className="hidden bg-surface-container-low px-6 py-16 md:block lg:hidden" aria-labelledby="pricing-tablet-title">
         <div className="mb-10 text-center">
           <h2 id="pricing-tablet-title" className="mb-3 font-headline text-4xl font-bold text-on-surface">Planes transparentes</h2>
-          <p className="font-body text-on-surface-variant">Primer mes gratis. Sin tarjeta requerida.</p>
+          <p className="font-body text-on-surface-variant">Primer mes gratis. Cargás tu tarjeta una sola vez.</p>
         </div>
-        <PlanCards onCta={(plan) => setSelectedPlan(plan)} className="grid grid-cols-3 gap-4" />
+        <PlanCards plans={plans} onCta={(plan) => setSelectedPlan(plan)} className="grid grid-cols-3 gap-4" />
       </section>
 
       <div id="pricing-scroll" ref={containerRef} onWheel={handlePricingWheel} className="relative hidden h-screen bg-surface-container-low lg:block">
         <div className="flex h-screen flex-col items-center justify-center overflow-hidden bg-surface-container-low border-t border-outline-variant/30">
           <div className="mb-6 px-6 text-center">
             <h2 className="mb-3 font-headline text-5xl font-bold text-on-surface">Planes transparentes</h2>
-            <p className="font-body text-lg text-on-surface-variant">Primer mes gratis. Sin tarjeta requerida.</p>
+            <p className="font-body text-lg text-on-surface-variant">Primer mes gratis. Cargás tu tarjeta una sola vez.</p>
           </div>
 
           <div className="relative w-full" style={{ height: 590 }}>
@@ -272,7 +307,7 @@ export function Pricing() {
               style={{ position: 'absolute', left: '50%', marginLeft: -170, zIndex: activePlan === 0 ? 30 : 10 }}
               className={`w-[340px] outline-none ${activePlan === 0 ? 'cursor-default' : 'cursor-pointer'}`}
             >
-              <BasicCard onCta={() => setSelectedPlan('Basico')} />
+              <BasicCard plan={plans.Basico} onCta={() => setSelectedPlan('Basico')} />
             </motion.div>
 
             <motion.div
@@ -288,7 +323,7 @@ export function Pricing() {
               style={{ position: 'absolute', left: '50%', marginLeft: -170, zIndex: activePlan === 1 ? 30 : 20 }}
               className={`w-[340px] outline-none ${activePlan === 1 ? 'cursor-default' : 'cursor-pointer'}`}
             >
-              <ProCard onCta={() => setSelectedPlan('Pro')} />
+              <ProCard plan={plans.Pro} onCta={() => setSelectedPlan('Pro')} />
             </motion.div>
 
             <motion.div
@@ -304,7 +339,7 @@ export function Pricing() {
               style={{ position: 'absolute', left: '50%', marginLeft: -170, zIndex: activePlan === 2 ? 30 : 10 }}
               className={`w-[340px] outline-none ${activePlan === 2 ? 'cursor-default' : 'cursor-pointer'}`}
             >
-              <BusinessCard onCta={() => setSelectedPlan('Negocio')} />
+              <BusinessCard plan={plans.Negocio} onCta={() => setSelectedPlan('Negocio')} />
             </motion.div>
           </div>
 

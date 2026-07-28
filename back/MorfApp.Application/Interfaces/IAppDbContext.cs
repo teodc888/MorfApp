@@ -33,6 +33,7 @@ public interface IAppDbContext
     DbSet<SalaryPayment> SalaryPayments { get; }
     DbSet<EmployeeAdvance> EmployeeAdvances { get; }
     DbSet<ErrorLog> ErrorLogs { get; }
+    DbSet<SubscriptionCharge> SubscriptionCharges { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 
     // Transacción explícita + advisory lock — usado para cerrar condiciones de carrera

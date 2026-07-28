@@ -37,6 +37,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<SalaryPayment> SalaryPayments => Set<SalaryPayment>();
     public DbSet<EmployeeAdvance> EmployeeAdvances => Set<EmployeeAdvance>();
     public DbSet<ErrorLog> ErrorLogs => Set<ErrorLog>();
+    public DbSet<SubscriptionCharge> SubscriptionCharges => Set<SubscriptionCharge>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -49,6 +50,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasKey(t => t.Id);
             e.HasIndex(t => t.Slug).IsUnique();
             e.HasIndex(t => t.CustomDomain).IsUnique();
+            e.HasIndex(t => t.MpPreapprovalId).IsUnique();
             e.Property(t => t.Status).HasConversion<string>();
             e.Property(t => t.Plan).HasConversion<string>();
         });
@@ -209,6 +211,18 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
              .HasForeignKey(x => x.TenantId)
              .OnDelete(DeleteBehavior.SetNull)
              .IsRequired(false);
+        });
+
+        // SubscriptionCharge
+        modelBuilder.Entity<SubscriptionCharge>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => x.MpPaymentId).IsUnique();
+            e.Property(x => x.Amount).HasPrecision(18, 2);
+            e.HasOne(x => x.Tenant)
+             .WithMany()
+             .HasForeignKey(x => x.TenantId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
 
         // Promotion

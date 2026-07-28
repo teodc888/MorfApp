@@ -19,6 +19,7 @@ public class Tenant
     public DateTime? SubscriptionEndsAt { get; set; }
     public string? CustomDomain { get; set; }
     public string? WhatsAppMessageTemplate { get; set; }
+    public string? MpPreapprovalId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 

@@ -27,7 +27,7 @@ const generalFallback: ResolvedReply = {
 
 export const cannedReplies = {
   planes:
-    'Hoy podés empezar con el plan Básico por $20.000 al mes, con primer mes gratis y sin tarjeta. Incluye 1 local, productos ilimitados, pedidos por WhatsApp, carrito con modificadores, delivery/takeaway y subdominio incluido.',
+    'Hoy podés empezar con el plan Básico por $20.000 al mes, con primer mes gratis. Cargás tu tarjeta al empezar, pero no se cobra nada hasta que termine el mes. Incluye 1 local, productos ilimitados, pedidos por WhatsApp, carrito con modificadores, delivery/takeaway y subdominio incluido.',
   funciones:
     'MorfApp te permite recibir pedidos por WhatsApp, personalizar tu marca, gestionar menú y precios, configurar horarios, activar delivery o retiro y sumar modificadores en los productos.',
   demo: 'Si querés verlo funcionando, podés entrar directo a la demo actual desde acá.',

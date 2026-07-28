@@ -48,7 +48,7 @@ export function CTA() {
             Contactar ahora
           </a>
           <p className="font-body text-xs text-on-surface-variant text-center md:text-right opacity-70">
-            Sin tarjeta. Sin comisiones. Sin complicaciones.
+            Sin comisiones. Sin complicaciones.
           </p>
         </div>
       </div>
