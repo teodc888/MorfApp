@@ -10,7 +10,7 @@ namespace MorfApp.Api.Controllers;
 
 [ApiController]
 [Route("api/admin/supplies")]
-[Authorize]
+[Authorize(Policy = "OwnerOnly")]
 public class SupplyController(IAppDbContext db) : ControllerBase
 {
     private string TenantId => User.FindFirstValue("tenant_id")

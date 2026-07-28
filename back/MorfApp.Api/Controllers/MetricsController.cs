@@ -12,7 +12,7 @@ namespace MorfApp.Api.Controllers;
 
 [ApiController]
 [Route("api/admin/metrics")]
-[Authorize]
+[Authorize(Policy = "OwnerOnly")]
 public class MetricsController(IAppDbContext db) : ControllerBase
 {
     private string TenantId => User.FindFirstValue("tenant_id")

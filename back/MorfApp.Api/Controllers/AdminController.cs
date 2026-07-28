@@ -36,6 +36,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
     }
 
     [HttpPut("me")]
+    [Authorize(Policy = "OwnerOnly")]
     public async Task<IActionResult> UpdateMe([FromBody] UpdateTenantRequest req, CancellationToken ct = default)
     {
         var tenant = await db.Tenants.FindAsync(new object[] { TenantId }, ct);
@@ -49,6 +50,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
     }
 
     [HttpPut("branding")]
+    [Authorize(Policy = "OwnerOnly")]
     public async Task<IActionResult> UpdateBranding([FromBody] UpdateBrandingRequest req)
     {
         var branding = await db.TenantBrandings.FirstOrDefaultAsync(b => b.TenantId == TenantId);
@@ -79,6 +81,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
     }
 
     [HttpPut("delivery")]
+    [Authorize(Policy = "OwnerOnly")]
     public async Task<IActionResult> UpdateDelivery([FromBody] UpdateDeliveryRequest req)
     {
         if (!Enum.TryParse<DeliveryMode>(req.Mode, out var mode))
@@ -112,6 +115,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
     }
 
     [HttpPut("hours")]
+    [Authorize(Policy = "OwnerOnly")]
     public async Task<IActionResult> UpdateHours([FromBody] UpdateHoursRequest req)
     {
         var existing = await db.BusinessHours
@@ -144,6 +148,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
     }
 
     [HttpPut("plan")]
+    [Authorize(Policy = "OwnerOnly")]
     public async Task<IActionResult> UpdatePlan([FromBody] UpdatePlanRequest req)
     {
         var tenant = await db.Tenants.FindAsync(TenantId);
@@ -163,6 +168,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
     // Mientras IsPaused=true, StoreController.IsCurrentlyOpen()/GetTenant fuerzan isOpen=false
     // y CreateOrder rechaza pedidos nuevos con 409 STORE_CLOSED.
     [HttpPut("tenant/pause")]
+    [Authorize(Policy = "OwnerOnly")]
     public async Task<IActionResult> UpdateTenantPause([FromBody] UpdateTenantPauseRequest req)
     {
         var tenant = await db.Tenants
@@ -185,6 +191,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
     }
 
     [HttpPut("whatsapp-template")]
+    [Authorize(Policy = "OwnerOnly")]
     public async Task<IActionResult> UpdateWhatsAppTemplate([FromBody] UpdateWhatsAppTemplateRequest req)
     {
         var tenant = await db.Tenants.FindAsync(TenantId);
@@ -197,6 +204,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
     }
 
     [HttpPut("payment")]
+    [Authorize(Policy = "OwnerOnly")]
     public async Task<IActionResult> UpdatePayment([FromBody] UpdatePaymentRequest req)
     {
         var payment = await db.PaymentConfigs.FirstOrDefaultAsync(p => p.TenantId == TenantId);

@@ -34,7 +34,15 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    // Endpoints que solo el dueño del tenant puede usar (empleados quedan afuera aunque
+    // tengan un JWT válido). El claim "role" siempre está presente en tokens de AdminUser.
+    // JwtSecurityTokenHandler remapea el claim corto "role" a ClaimTypes.Role al validar
+    // el token (igual que "sub" -> ClaimTypes.NameIdentifier, ver AuthController.cs:119),
+    // por eso hay que pedirlo por ClaimTypes.Role y no por el string "role" literal.
+    options.AddPolicy("OwnerOnly", policy => policy.RequireClaim(System.Security.Claims.ClaimTypes.Role, "owner"));
+});
 
 // CORS — permite todos los subdominios del ROOT_DOMAIN
 var allowedOrigins = builder.Configuration.GetSection("App:AllowedOrigins").Get<string[]>() ?? [];
