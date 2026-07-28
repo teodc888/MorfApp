@@ -157,6 +157,44 @@ export async function updateSettings(template: string): Promise<void> {
   if (!res.ok) throw new Error(`API error ${res.status}`)
 }
 
+export type ErrorLog = {
+  id: string
+  tenantId: string | null
+  tenantName: string | null
+  path: string
+  method: string
+  exceptionType: string
+  message: string
+  stackTrace: string | null
+  isResolved: boolean
+  createdAt: string
+}
+
+export type ErrorLogList = {
+  items: ErrorLog[]
+  total: number
+  unresolvedCount: number
+}
+
+export async function getErrors(params: { resolved?: boolean; tenantId?: string; page?: number; pageSize?: number } = {}): Promise<ErrorLogList> {
+  const query = new URLSearchParams()
+  if (params.resolved !== undefined) query.set('resolved', String(params.resolved))
+  if (params.tenantId) query.set('tenantId', params.tenantId)
+  if (params.page) query.set('page', String(params.page))
+  if (params.pageSize) query.set('pageSize', String(params.pageSize))
+
+  const qs = query.toString()
+  return json<ErrorLogList>(await adminFetch(`/api/superadmin/errors${qs ? `?${qs}` : ''}`))
+}
+
+export async function updateErrorResolved(id: string, isResolved: boolean): Promise<void> {
+  const res = await adminFetch(`/api/superadmin/errors/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ isResolved }),
+  })
+  if (!res.ok) throw new Error(`API error ${res.status}`)
+}
+
 export function buildWhatsAppNotificationUrl(phone: string, tenantName: string, plan: string, endsAt: string | null, template?: string): string {
   const fecha = endsAt
     ? new Date(endsAt).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })

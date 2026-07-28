@@ -555,4 +555,147 @@ public class SuperAdminControllerTests : TestBase
         Assert.NotNull(expiration);
         Assert.True(expiration!.DaysRemaining > 0 && expiration.DaysRemaining <= 4);
     }
+
+    // ── GetErrors ─────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetErrors_NotSuperAdmin_ReturnsForbid()
+    {
+        var ctrl   = CreateController(asSuperAdmin: false);
+        var result = await ctrl.GetErrors(null, null);
+
+        Assert.IsType<ForbidResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task GetErrors_ReturnsOrderedByMostRecentFirst()
+    {
+        Db.ErrorLogs.Add(new ErrorLog { Path = "/a", Method = "GET", ExceptionType = "Exception", Message = "vieja", CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) });
+        Db.ErrorLogs.Add(new ErrorLog { Path = "/b", Method = "GET", ExceptionType = "Exception", Message = "nueva", CreatedAt = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc) });
+        await Db.SaveChangesAsync();
+
+        var ctrl   = CreateController(asSuperAdmin: true);
+        var result = await ctrl.GetErrors(null, null);
+
+        var ok  = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<ErrorLogListDto>(ok.Value);
+        Assert.Equal(2, dto.Total);
+        Assert.Equal("nueva", dto.Items[0].Message);
+    }
+
+    [Fact]
+    public async Task GetErrors_FiltersByResolved()
+    {
+        Db.ErrorLogs.Add(new ErrorLog { Path = "/a", Method = "GET", ExceptionType = "Exception", Message = "resuelto", IsResolved = true });
+        Db.ErrorLogs.Add(new ErrorLog { Path = "/b", Method = "GET", ExceptionType = "Exception", Message = "pendiente", IsResolved = false });
+        await Db.SaveChangesAsync();
+
+        var ctrl   = CreateController(asSuperAdmin: true);
+        var result = await ctrl.GetErrors(resolved: false, tenantId: null);
+
+        var ok  = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<ErrorLogListDto>(ok.Value);
+        Assert.Single(dto.Items);
+        Assert.Equal("pendiente", dto.Items[0].Message);
+    }
+
+    [Fact]
+    public async Task GetErrors_FiltersByTenantId()
+    {
+        var tenant = await CreateTenantAsync();
+        Db.ErrorLogs.Add(new ErrorLog { TenantId = tenant.Id, Path = "/a", Method = "GET", ExceptionType = "Exception", Message = "de este tenant" });
+        Db.ErrorLogs.Add(new ErrorLog { TenantId = "otro-tenant", Path = "/b", Method = "GET", ExceptionType = "Exception", Message = "de otro tenant" });
+        await Db.SaveChangesAsync();
+
+        var ctrl   = CreateController(asSuperAdmin: true);
+        var result = await ctrl.GetErrors(resolved: null, tenantId: tenant.Id);
+
+        var ok  = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<ErrorLogListDto>(ok.Value);
+        Assert.Single(dto.Items);
+        Assert.Equal("de este tenant", dto.Items[0].Message);
+        Assert.Equal(tenant.Name, dto.Items[0].TenantName);
+    }
+
+    [Fact]
+    public async Task GetErrors_UnresolvedCountIgnoresFilters()
+    {
+        Db.ErrorLogs.Add(new ErrorLog { Path = "/a", Method = "GET", ExceptionType = "Exception", Message = "1", IsResolved = false });
+        Db.ErrorLogs.Add(new ErrorLog { Path = "/b", Method = "GET", ExceptionType = "Exception", Message = "2", IsResolved = false });
+        Db.ErrorLogs.Add(new ErrorLog { Path = "/c", Method = "GET", ExceptionType = "Exception", Message = "3", IsResolved = true });
+        await Db.SaveChangesAsync();
+
+        var ctrl   = CreateController(asSuperAdmin: true);
+        // Filtro por resuelto=true no debería afectar el conteo total de no-resueltos
+        var result = await ctrl.GetErrors(resolved: true, tenantId: null);
+
+        var ok  = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<ErrorLogListDto>(ok.Value);
+        Assert.Equal(2, dto.UnresolvedCount);
+    }
+
+    [Fact]
+    public async Task GetErrors_Pagination_ReturnsRequestedPage()
+    {
+        for (int i = 0; i < 5; i++)
+            Db.ErrorLogs.Add(new ErrorLog { Path = $"/{i}", Method = "GET", ExceptionType = "Exception", Message = $"msg{i}", CreatedAt = DateTime.UtcNow.AddMinutes(-i) });
+        await Db.SaveChangesAsync();
+
+        var ctrl   = CreateController(asSuperAdmin: true);
+        var result = await ctrl.GetErrors(resolved: null, tenantId: null, page: 2, pageSize: 2);
+
+        var ok  = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<ErrorLogListDto>(ok.Value);
+        Assert.Equal(5, dto.Total);
+        Assert.Equal(2, dto.Items.Count);
+    }
+
+    // ── UpdateErrorLog ────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task UpdateErrorLog_NotSuperAdmin_ReturnsForbid()
+    {
+        var ctrl   = CreateController(asSuperAdmin: false);
+        var result = await ctrl.UpdateErrorLog("no-existe", new UpdateErrorLogRequest(true));
+
+        Assert.IsType<ForbidResult>(result);
+    }
+
+    [Fact]
+    public async Task UpdateErrorLog_NotFound_ReturnsNotFound()
+    {
+        var ctrl   = CreateController(asSuperAdmin: true);
+        var result = await ctrl.UpdateErrorLog("no-existe", new UpdateErrorLogRequest(true));
+
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public async Task UpdateErrorLog_MarksResolved()
+    {
+        var error = new ErrorLog { Path = "/a", Method = "GET", ExceptionType = "Exception", Message = "algo", IsResolved = false };
+        Db.ErrorLogs.Add(error);
+        await Db.SaveChangesAsync();
+
+        var ctrl   = CreateController(asSuperAdmin: true);
+        var result = await ctrl.UpdateErrorLog(error.Id, new UpdateErrorLogRequest(true));
+
+        Assert.IsType<NoContentResult>(result);
+        var updated = await Db.ErrorLogs.FindAsync(error.Id);
+        Assert.True(updated!.IsResolved);
+    }
+
+    [Fact]
+    public async Task UpdateErrorLog_CanReopen()
+    {
+        var error = new ErrorLog { Path = "/a", Method = "GET", ExceptionType = "Exception", Message = "algo", IsResolved = true };
+        Db.ErrorLogs.Add(error);
+        await Db.SaveChangesAsync();
+
+        var ctrl   = CreateController(asSuperAdmin: true);
+        await ctrl.UpdateErrorLog(error.Id, new UpdateErrorLogRequest(false));
+
+        var updated = await Db.ErrorLogs.FindAsync(error.Id);
+        Assert.False(updated!.IsResolved);
+    }
 }

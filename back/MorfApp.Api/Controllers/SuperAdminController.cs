@@ -369,6 +369,66 @@ public class SuperAdminController(IAppDbContext db, IEmailService emailService, 
         return NoContent();
     }
 
+    [HttpGet("errors")]
+    public async Task<ActionResult<ErrorLogListDto>> GetErrors(
+        [FromQuery] bool? resolved,
+        [FromQuery] string? tenantId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50)
+    {
+        if (!IsSuperAdmin) return Forbid();
+
+        page = Math.Max(page, 1);
+        pageSize = Math.Clamp(pageSize, 1, 200);
+
+        var query = db.ErrorLogs.AsQueryable();
+        if (resolved.HasValue) query = query.Where(e => e.IsResolved == resolved.Value);
+        if (!string.IsNullOrEmpty(tenantId)) query = query.Where(e => e.TenantId == tenantId);
+
+        var total = await query.CountAsync();
+        var unresolvedCount = await db.ErrorLogs.CountAsync(e => !e.IsResolved);
+
+        var errors = await query
+            .OrderByDescending(e => e.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        var tenantIds = errors.Where(e => e.TenantId != null).Select(e => e.TenantId!).Distinct().ToList();
+        var tenantNames = await db.Tenants
+            .Where(t => tenantIds.Contains(t.Id))
+            .ToDictionaryAsync(t => t.Id, t => t.Name);
+
+        var items = errors
+            .Select(e => new ErrorLogDto(
+                e.Id,
+                e.TenantId,
+                e.TenantId != null ? tenantNames.GetValueOrDefault(e.TenantId) : null,
+                e.Path,
+                e.Method,
+                e.ExceptionType,
+                e.Message,
+                e.StackTrace,
+                e.IsResolved,
+                e.CreatedAt))
+            .ToList();
+
+        return Ok(new ErrorLogListDto(items, total, unresolvedCount));
+    }
+
+    [HttpPut("errors/{id}")]
+    public async Task<IActionResult> UpdateErrorLog(string id, [FromBody] UpdateErrorLogRequest req)
+    {
+        if (!IsSuperAdmin) return Forbid();
+
+        var error = await db.ErrorLogs.FindAsync(id);
+        if (error is null) return NotFound();
+
+        error.IsResolved = req.IsResolved;
+        await db.SaveChangesAsync();
+        return NoContent();
+    }
+
     private static SuperAdminTenantDto MapToDto(Tenant t) => new(
         t.Id,
         t.Slug,

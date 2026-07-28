@@ -86,6 +86,17 @@ export default function AppShell({ children }: Props) {
             <span className="text-base">⚙️</span>
             Configuración
           </Link>
+          <Link
+            href="/errors"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              isActive('errors')
+                ? 'bg-indigo-50 text-indigo-600'
+                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+            }`}
+          >
+            <span className="text-base">⚠️</span>
+            Errores
+          </Link>
         </nav>
         <div className="p-4 border-t border-gray-100">
           <p className="text-xs text-gray-400">Panel de superadmin</p>

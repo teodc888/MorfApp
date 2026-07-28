@@ -246,6 +246,29 @@ app.Use(async (context, next) =>
         var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
         logger.LogError(ex, "Excepción no manejada en {Path}", context.Request.Path);
 
+        try
+        {
+            // Scope nuevo (no el DbContext de la request que falló) — si la excepción
+            // vino de un problema del propio DbContext/conexión, no queremos arrastrar
+            // ese estado roto al intento de guardar el log.
+            using var scope = context.RequestServices.GetRequiredService<IServiceScopeFactory>().CreateScope();
+            var errorDb = scope.ServiceProvider.GetRequiredService<MorfApp.Application.Interfaces.IAppDbContext>();
+            errorDb.ErrorLogs.Add(new MorfApp.Domain.Entities.ErrorLog
+            {
+                TenantId = context.User?.FindFirst("tenant_id")?.Value,
+                Path = context.Request.Path + context.Request.QueryString,
+                Method = context.Request.Method,
+                ExceptionType = ex.GetType().Name,
+                Message = ex.Message,
+                StackTrace = ex.ToString(),
+            });
+            await errorDb.SaveChangesAsync();
+        }
+        catch
+        {
+            // Nunca dejar que un fallo al persistir el log tape el error original.
+        }
+
         if (!context.Response.HasStarted)
         {
             context.Response.StatusCode = 500;
