@@ -10,7 +10,10 @@ public record RegisterInterestRequest(
     [Required, MinLength(2), MaxLength(200)] string RestaurantName,
     [Required] string Plan,
     [RegularExpression("^#[0-9a-fA-F]{6}$")] string? ColorPrimary = null,
-    [RegularExpression("^#[0-9a-fA-F]{6}$")] string? ColorAccent = null
+    [RegularExpression("^#[0-9a-fA-F]{6}$")] string? ColorAccent = null,
+    [MaxLength(8)] string? EmojiIcon = null
 );
 
 public record RegisterResponse(string Message, string TenantId, string CheckoutUrl);
+
+public record TenantSummaryDto(string Name, string Slug, string EmojiIcon, string ColorPrimary);

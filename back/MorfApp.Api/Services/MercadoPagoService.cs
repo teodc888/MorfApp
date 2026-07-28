@@ -26,7 +26,10 @@ public class MercadoPagoService : IMercadoPagoService
 
     public async Task<MpPreapprovalResult> CreateSubscriptionAsync(string preapprovalPlanId, string payerEmail, string externalReference)
     {
-        var backUrl = _config["MercadoPago:BackUrl"] ?? "https://morfapp.app/alta/pendiente";
+        // Se le agrega el externalReference (el Tenant.Id) como query param para que la página
+        // de retorno pueda mostrar un resumen personalizado (nombre del negocio, subdominio).
+        var baseBackUrl = _config["MercadoPago:BackUrl"] ?? "https://morfapp.app/alta/pendiente";
+        var backUrl = $"{baseBackUrl}?ref={Uri.EscapeDataString(externalReference)}";
 
         var body = new
         {

@@ -56,6 +56,7 @@ public class PublicController(IAppDbContext db, IMercadoPagoService mercadoPago,
             TenantId = tenant.Id,
             ColorPrimary = req.ColorPrimary ?? "#e8390e",
             ColorAccent = req.ColorAccent ?? "#25D366",
+            EmojiIcon = req.EmojiIcon ?? "🍔",
             UpdatedAt = now,
         };
         db.TenantBrandings.Add(branding);
@@ -75,6 +76,23 @@ public class PublicController(IAppDbContext db, IMercadoPagoService mercadoPago,
         await db.SaveChangesAsync();
 
         return Ok(new RegisterResponse("Registro recibido", tenant.Id, subscription.CheckoutUrl));
+    }
+
+    // GET /api/public/tenants/{id}/summary — datos mínimos y no sensibles para personalizar
+    // la pantalla de espera post-Mercado Pago (nombre, subdominio, emoji, color).
+    [HttpGet("tenants/{id}/summary")]
+    public async Task<ActionResult<TenantSummaryDto>> GetTenantSummary(string id)
+    {
+        var tenant = await db.Tenants
+            .Include(t => t.Branding)
+            .FirstOrDefaultAsync(t => t.Id == id);
+        if (tenant is null) return NotFound();
+
+        return Ok(new TenantSummaryDto(
+            tenant.Name,
+            tenant.Slug,
+            tenant.Branding?.EmojiIcon ?? "🍔",
+            tenant.Branding?.ColorPrimary ?? "#e8390e"));
     }
 
     private async Task<string> GenerateUniqueSlug(string name)

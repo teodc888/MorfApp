@@ -43,8 +43,9 @@ public class PublicControllerTests : TestBase
         string restaurantName = "Mi Burger",
         string plan           = "Basico",
         string? colorPrimary  = null,
-        string? colorAccent   = null)
-        => new(firstName, lastName, email, phone, restaurantName, plan, colorPrimary, colorAccent);
+        string? colorAccent   = null,
+        string? emojiIcon     = null)
+        => new(firstName, lastName, email, phone, restaurantName, plan, colorPrimary, colorAccent, emojiIcon);
 
     // ── GetPlans ──────────────────────────────────────────────────────────────────
 
@@ -202,6 +203,60 @@ public class PublicControllerTests : TestBase
         var branding = Db.TenantBrandings.Single(b => b.TenantId == dto.TenantId);
         Assert.Equal("#e8390e", branding.ColorPrimary);
         Assert.Equal("#25D366", branding.ColorAccent);
+    }
+
+    [Fact]
+    public async Task Register_CustomEmoji_IsSavedOnBranding()
+    {
+        var ctrl = CreateController();
+        var req = MakeRequest(email: "pizzeria@test.com", emojiIcon: "🍕");
+        var result = await ctrl.Register(req);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<RegisterResponse>(ok.Value);
+
+        var branding = Db.TenantBrandings.Single(b => b.TenantId == dto.TenantId);
+        Assert.Equal("🍕", branding.EmojiIcon);
+    }
+
+    [Fact]
+    public async Task Register_NoEmojiProvided_DefaultsToHamburger()
+    {
+        var ctrl = CreateController();
+        var result = await ctrl.Register(MakeRequest(email: "sinemoji@test.com"));
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<RegisterResponse>(ok.Value);
+
+        var branding = Db.TenantBrandings.Single(b => b.TenantId == dto.TenantId);
+        Assert.Equal("🍔", branding.EmojiIcon);
+    }
+
+    // ── GetTenantSummary ──────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetTenantSummary_ExistingTenant_ReturnsNameSlugAndBranding()
+    {
+        var ctrl = CreateController();
+        var registerResult = await ctrl.Register(MakeRequest(email: "resumen@test.com", restaurantName: "La Pizzeria del Barrio"));
+        var registerOk = Assert.IsType<OkObjectResult>(registerResult.Result);
+        var registerDto = Assert.IsType<RegisterResponse>(registerOk.Value);
+
+        var result = await ctrl.GetTenantSummary(registerDto.TenantId);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<TenantSummaryDto>(ok.Value);
+        Assert.Equal("La Pizzeria del Barrio", dto.Name);
+        Assert.Equal("la-pizzeria-del-barrio", dto.Slug);
+    }
+
+    [Fact]
+    public async Task GetTenantSummary_NotFound_ReturnsNotFound()
+    {
+        var ctrl = CreateController();
+        var result = await ctrl.GetTenantSummary("no-existe");
+
+        Assert.IsType<NotFoundResult>(result.Result);
     }
 
     [Fact]
