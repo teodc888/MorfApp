@@ -29,9 +29,10 @@ public class MetricsController(IAppDbContext db) : ControllerBase
         if (tenant == null)
             return Unauthorized();
 
-        var day = date ?? DateOnly.FromDateTime(DateTime.UtcNow);
-        var from = day.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-        var to   = day.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
+        var tz = TimeZoneInfo.FindSystemTimeZoneById(tenant.Timezone);
+        var day = date ?? DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz));
+        var from = TimeZoneInfo.ConvertTimeToUtc(day.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified), tz);
+        var to   = TimeZoneInfo.ConvertTimeToUtc(day.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Unspecified), tz);
 
         var orders = await db.Orders
             .Where(o => o.TenantId == TenantId
@@ -39,8 +40,6 @@ public class MetricsController(IAppDbContext db) : ControllerBase
                      && o.CreatedAt >= from
                      && o.CreatedAt <= to)
             .ToListAsync();
-
-        var tz = TimeZoneInfo.FindSystemTimeZoneById(tenant.Timezone);
 
         var topProducts = orders
             .SelectMany(o => o.Items)
@@ -93,14 +92,14 @@ public class MetricsController(IAppDbContext db) : ControllerBase
             return Unauthorized();
 
         var tz = TimeZoneInfo.FindSystemTimeZoneById(tenant.Timezone);
-        var refDay = date ?? DateOnly.FromDateTime(DateTime.UtcNow);
+        var refDay = date ?? DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz));
 
         // Semana que empieza el lunes
         var dow = (int)refDay.DayOfWeek;
         var offsetToMonday = dow == 0 ? -6 : 1 - dow;
         var monday = refDay.AddDays(offsetToMonday);
-        var from = monday.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-        var to   = monday.AddDays(6).ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
+        var from = TimeZoneInfo.ConvertTimeToUtc(monday.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified), tz);
+        var to   = TimeZoneInfo.ConvertTimeToUtc(monday.AddDays(6).ToDateTime(TimeOnly.MaxValue, DateTimeKind.Unspecified), tz);
 
         var orders = await db.Orders
             .Where(o => o.TenantId == TenantId
@@ -156,15 +155,17 @@ public class MetricsController(IAppDbContext db) : ControllerBase
             return Unauthorized();
 
         var tz = TimeZoneInfo.FindSystemTimeZoneById(tenant.Timezone);
-        var now = DateTime.UtcNow;
-        var m = month ?? now.Month;
-        var y = year  ?? now.Year;
+        var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz);
+        var m = month ?? nowLocal.Month;
+        var y = year  ?? nowLocal.Year;
 
         if (m < 1 || m > 12)
             return BadRequest(new { message = "El mes debe estar entre 1 y 12." });
 
-        var from = new DateTime(y, m, 1, 0, 0, 0, DateTimeKind.Utc);
-        var to   = from.AddMonths(1).AddTicks(-1);
+        var fromLocal = new DateTime(y, m, 1, 0, 0, 0, DateTimeKind.Unspecified);
+        var toLocal   = fromLocal.AddMonths(1).AddTicks(-1);
+        var from = TimeZoneInfo.ConvertTimeToUtc(fromLocal, tz);
+        var to   = TimeZoneInfo.ConvertTimeToUtc(toLocal, tz);
 
         var orders = await db.Orders
             .Where(o => o.TenantId == TenantId
@@ -218,9 +219,9 @@ public class MetricsController(IAppDbContext db) : ControllerBase
             return Unauthorized();
 
         var tz = TimeZoneInfo.FindSystemTimeZoneById(tenant.Timezone);
-        var y    = year ?? DateTime.UtcNow.Year;
-        var from = new DateTime(y, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-        var to   = new DateTime(y, 12, 31, 23, 59, 59, 999, DateTimeKind.Utc);
+        var y    = year ?? TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz).Year;
+        var from = TimeZoneInfo.ConvertTimeToUtc(new DateTime(y, 1, 1, 0, 0, 0, DateTimeKind.Unspecified), tz);
+        var to   = TimeZoneInfo.ConvertTimeToUtc(new DateTime(y, 12, 31, 23, 59, 59, 999, DateTimeKind.Unspecified), tz);
 
         var orders = await db.Orders
             .Where(o => o.TenantId == TenantId

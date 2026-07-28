@@ -4,18 +4,30 @@ import type { CartItem } from '@/types/store'
 
 type CartState = {
   items: CartItem[]
+  tenantSlug: string | null
   addItem: (item: CartItem) => void
   removeItem: (cartId: string) => void
   updateQty: (cartId: string, qty: number) => void
   clear: () => void
   total: () => number
   itemCount: () => number
+  // Vacía el carrito si detecta que cambiamos de tenant (localStorage es global al navegador,
+  // no está scopeado por subdominio en dev/acceso directo por ruta).
+  syncTenant: (slug: string) => void
 }
 
 export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
+      tenantSlug: null,
+
+      syncTenant: (slug) => {
+        const { tenantSlug } = get()
+        if (tenantSlug !== slug) {
+          set({ tenantSlug: slug, items: [] })
+        }
+      },
 
       addItem: (item) =>
         set((state) => ({ items: [...state.items, item] })),
@@ -48,7 +60,7 @@ export const useCartStore = create<CartState>()(
     {
       name: 'morfapp-cart',
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ items: state.items }),
+      partialize: (state) => ({ items: state.items, tenantSlug: state.tenantSlug }),
     },
   ),
 )

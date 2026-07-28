@@ -26,7 +26,7 @@ const makeItem = (overrides?: Partial<CartItem>): CartItem => ({
 describe('useCartStore', () => {
   beforeEach(() => {
     // Reiniciar el store antes de cada test
-    useCartStore.setState({ items: [] })
+    useCartStore.setState({ items: [], tenantSlug: null })
   })
 
   // ── addItem ────────────────────────────────────────────────────────────────
@@ -197,5 +197,43 @@ describe('useCartStore', () => {
     useCartStore.getState().addItem(makeItem({ cartId: 'c1', qty: 2 }))
     useCartStore.getState().updateQty('c1', 5)
     expect(useCartStore.getState().itemCount()).toBe(5)
+  })
+
+  // ── syncTenant ─────────────────────────────────────────────────────────────
+
+  it('syncTenant vacía un carrito legacy sin tenant conocido (tenantSlug null -> slug)', () => {
+    // Un carrito guardado antes de este fix no tiene tenantSlug: no podemos asumir
+    // que pertenece al tenant actual, así que se vacía por seguridad.
+    useCartStore.getState().addItem(makeItem({ cartId: 'c1' }))
+    useCartStore.getState().syncTenant('burger')
+
+    expect(useCartStore.getState().items).toHaveLength(0)
+    expect(useCartStore.getState().tenantSlug).toBe('burger')
+  })
+
+  it('no vacía el carrito si se agrega después de fijar el tenant', () => {
+    useCartStore.getState().syncTenant('burger')
+    useCartStore.getState().addItem(makeItem({ cartId: 'c1' }))
+
+    expect(useCartStore.getState().items).toHaveLength(1)
+  })
+
+  it('syncTenant vacía el carrito al detectar un cambio de tenant', () => {
+    useCartStore.getState().addItem(makeItem({ cartId: 'c1' }))
+    useCartStore.getState().syncTenant('burger')
+
+    useCartStore.getState().addItem(makeItem({ cartId: 'c2' }))
+    useCartStore.getState().syncTenant('pizzeria')
+
+    expect(useCartStore.getState().items).toHaveLength(0)
+    expect(useCartStore.getState().tenantSlug).toBe('pizzeria')
+  })
+
+  it('syncTenant no toca el carrito si el tenant no cambió', () => {
+    useCartStore.getState().syncTenant('burger')
+    useCartStore.getState().addItem(makeItem({ cartId: 'c1' }))
+    useCartStore.getState().syncTenant('burger')
+
+    expect(useCartStore.getState().items).toHaveLength(1)
   })
 })

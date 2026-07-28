@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { TenantPublic, Category } from '@/types/store'
 import { MenuHeader } from './MenuHeader'
 import { BottomBar } from './BottomBar'
@@ -10,6 +10,7 @@ import { CategoryTabs } from './CategoryTabs'
 import { DeliveryChips } from './DeliveryChips'
 import { STITCH } from '@/lib/stitch-theme'
 import { useStoreOpenStatus } from '@/hooks/useStoreOpenStatus'
+import { useCartStore } from '@/store/cart'
 
 type Props = {
   tenant: TenantPublic
@@ -21,6 +22,10 @@ export function StoreShell({ tenant, categories, children }: Props) {
   const [cartOpen, setCartOpen] = useState(false)
   const isOpen = useStoreOpenStatus(tenant.slug, tenant.isOpen)
   const liveTenant = isOpen === tenant.isOpen ? tenant : { ...tenant, isOpen }
+
+  useEffect(() => {
+    useCartStore.getState().syncTenant(tenant.slug)
+  }, [tenant.slug])
 
   return (
     <div className="flex flex-col min-h-screen" style={{ backgroundColor: STITCH.bg }}>
