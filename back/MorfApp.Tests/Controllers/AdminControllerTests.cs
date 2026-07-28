@@ -24,7 +24,7 @@ public class AdminControllerTests : TestBase
         var env  = new Mock<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>();
         env.Setup(e => e.ContentRootPath).Returns(Path.GetTempPath());
 
-        var ctrl = new AdminController(Db, config, env.Object);
+        var ctrl = new AdminController(Db, config, env.Object, new MorfApp.Tests.Fakes.FakeWebSocketManager());
         SetupTenantClaims(ctrl, tenantId ?? TenantId);
         return ctrl;
     }

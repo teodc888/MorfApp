@@ -13,7 +13,7 @@ namespace MorfApp.Api.Controllers;
 [ApiController]
 [Route("api/admin")]
 [Authorize]
-public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEnvironment env) : ControllerBase
+public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEnvironment env, MorfApp.Api.WebSocket.WebSocketConnectionManager wsManager) : ControllerBase
 {
     private string TenantId => User.FindFirstValue("tenant_id")
         ?? throw new UnauthorizedAccessException();
@@ -165,12 +165,21 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
     [HttpPut("tenant/pause")]
     public async Task<IActionResult> UpdateTenantPause([FromBody] UpdateTenantPauseRequest req)
     {
-        var tenant = await db.Tenants.FindAsync(TenantId);
+        var tenant = await db.Tenants
+            .Include(t => t.BusinessHours)
+            .FirstOrDefaultAsync(t => t.Id == TenantId);
         if (tenant is null) return NotFound();
 
         tenant.IsPaused = req.IsPaused;
         tenant.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
+
+        var isOpen = !tenant.IsPaused && StoreController.IsCurrentlyOpen(tenant.BusinessHours);
+        await wsManager.BroadcastToPublicAsync(TenantId, new MorfApp.Api.WebSocket.WebSocketEvent
+        {
+            Type = "store_status",
+            Data = new { isOpen }
+        });
 
         return Ok(new { isPaused = tenant.IsPaused });
     }

@@ -542,7 +542,7 @@ public class StoreController(
             ? Math.Round(price * (1 - discountPercent.Value / 100m), 0)
             : price;
 
-    private static bool IsCurrentlyOpen(ICollection<Domain.Entities.BusinessHour> hours)
+    internal static bool IsCurrentlyOpen(ICollection<Domain.Entities.BusinessHour> hours)
     {
         var tz = TimeZoneInfo.FindSystemTimeZoneById("America/Argentina/Buenos_Aires");
         var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz);

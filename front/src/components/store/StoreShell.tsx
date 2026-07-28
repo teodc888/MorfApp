@@ -9,6 +9,7 @@ import { CategorySidebar } from './CategorySidebar'
 import { CategoryTabs } from './CategoryTabs'
 import { DeliveryChips } from './DeliveryChips'
 import { STITCH } from '@/lib/stitch-theme'
+import { useStoreOpenStatus } from '@/hooks/useStoreOpenStatus'
 
 type Props = {
   tenant: TenantPublic
@@ -18,10 +19,12 @@ type Props = {
 
 export function StoreShell({ tenant, categories, children }: Props) {
   const [cartOpen, setCartOpen] = useState(false)
+  const isOpen = useStoreOpenStatus(tenant.slug, tenant.isOpen)
+  const liveTenant = isOpen === tenant.isOpen ? tenant : { ...tenant, isOpen }
 
   return (
     <div className="flex flex-col min-h-screen" style={{ backgroundColor: STITCH.bg }}>
-      <MenuHeader tenant={tenant} onCartOpen={() => setCartOpen(true)} />
+      <MenuHeader tenant={liveTenant} onCartOpen={() => setCartOpen(true)} />
 
       {/* Mobile category pills — sticky within the page, not wrapped in a fixed-height div */}
       {categories.length > 0 && <CategoryTabs categories={categories} />}
@@ -45,7 +48,7 @@ export function StoreShell({ tenant, categories, children }: Props) {
 
       <BottomBar onCartOpen={() => setCartOpen(true)} />
       {cartOpen && (
-        <CartModal tenant={tenant} onClose={() => setCartOpen(false)} />
+        <CartModal tenant={liveTenant} onClose={() => setCartOpen(false)} />
       )}
     </div>
   )

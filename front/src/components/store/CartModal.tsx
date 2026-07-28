@@ -310,6 +310,11 @@ export function CartModal({ tenant, onClose }: Props) {
 
     setOrderError(null)
 
+    // Abrir la pestaña de WhatsApp ya, en el mismo tick del click (gesto de usuario),
+    // para que el navegador no la bloquee. Le seteamos la URL real recién cuando
+    // tengamos el orderId y el mensaje armado, tras guardar el pedido.
+    const waWindow = window.open('', '_blank')
+
     // Guardar pedido en BD antes de abrir WhatsApp
     // El backend valida y registra el límite de redemption de promos (MaxPerUser)
     // de forma atómica dentro de CreateOrder; si se excede, devuelve 409 PROMO_LIMIT_REACHED.
@@ -328,6 +333,7 @@ export function CartModal({ tenant, onClose }: Props) {
       })
       orderId = result.orderId
     } catch (err) {
+      waWindow?.close()
       if (err instanceof ApiError && err.code === 'STORE_CLOSED') {
         setOrderError(closedMessage ?? 'Cerrado ahora')
       } else if (err instanceof ApiError && err.code === 'PROMO_LIMIT_REACHED') {
@@ -340,16 +346,20 @@ export function CartModal({ tenant, onClose }: Props) {
     }
     setIsSaving(false)
 
-    // Armar mensaje de WhatsApp y guardarlo para que el usuario lo envíe desde /success
+    // Armar mensaje de WhatsApp. Se guarda también en sessionStorage como respaldo
+    // por si el navegador bloqueó la ventana (ej. iOS con "abrir en pestaña nueva"
+    // desactivado): /success tiene un botón manual que lo retoma desde ahí.
     const message = buildWhatsAppMessage(tenant, items, {
       ...form,
       deliveryMode: activeDelivery,
     }, orderId)
-    savePendingWhatsAppOrder({
-      orderId,
-      phoneNumber: tenant.whatsappNumber.replace(/\D/g, ''),
-      message,
-    })
+    const phoneNumber = tenant.whatsappNumber.replace(/\D/g, '')
+    savePendingWhatsAppOrder({ orderId, phoneNumber, message })
+
+    if (waWindow) {
+      waWindow.location.href = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`
+    }
+
     saveCustomerData({ name: form.name, phone: form.phone, address: form.address })
     clear()
     router.push(buildStorePath(tenant.slug, `/success?orderId=${orderId}&total=${grandTotal}`))

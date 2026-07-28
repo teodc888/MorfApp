@@ -14,10 +14,17 @@ public class FakeWebSocketManager : WebSocketConnectionManager
     }
 
     public List<(string TenantId, WebSocketEvent Event)> BroadcastedEvents { get; } = [];
+    public List<(string TenantId, WebSocketEvent Event)> PublicBroadcastedEvents { get; } = [];
 
     public override Task BroadcastToTenantAsync(string tenantId, WebSocketEvent @event)
     {
         BroadcastedEvents.Add((tenantId, @event));
+        return Task.CompletedTask;
+    }
+
+    public override Task BroadcastToPublicAsync(string tenantId, WebSocketEvent @event)
+    {
+        PublicBroadcastedEvents.Add((tenantId, @event));
         return Task.CompletedTask;
     }
 }
