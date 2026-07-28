@@ -414,44 +414,6 @@ public class StoreController(
             .GroupBy(i => i.ProductId!.Substring(PromoIdPrefix.Length))
             .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
 
-        foreach (var (promoId, qtyPedida) in promoQuantitiesById)
-        {
-            var promo = promotions.FirstOrDefault(p => p.Id == promoId);
-            if (promo is null)
-                continue;
-
-            if (promo.MaxPerUser.HasValue)
-            {
-                var used = await db.PromoRedemptions
-                    .Where(r => r.PromotionId == promoId && r.PhoneNumber == normalizedPhone)
-                    .SumAsync(r => r.Quantity, ct);
-
-                if (used + qtyPedida > promo.MaxPerUser.Value)
-                {
-                    return StatusCode(409, new
-                    {
-                        message = "Ya alcanzaste el límite de esta promoción.",
-                        code = "PROMO_LIMIT_REACHED",
-                        promoId = promoId,
-                        used = used,
-                        maxPerUser = promo.MaxPerUser.Value
-                    });
-                }
-            }
-
-            var redemption = new PromoRedemption
-            {
-                Id = Guid.NewGuid().ToString(),
-                PromotionId = promoId,
-                TenantId = tenant.Id,
-                PhoneNumber = normalizedPhone,
-                Quantity = qtyPedida,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            db.PromoRedemptions.Add(redemption);
-        }
-
         var subtotal = orderItems.Sum(oi => oi.UnitPrice * oi.Quantity);
 
         // 6. Costo de envío server-side
@@ -484,10 +446,63 @@ public class StoreController(
             CreatedAt     = DateTime.UtcNow
         };
 
+        // 8. Guardar todo (pedido + redemptions de promo) en una transacción, lockeando por
+        // (tenant, promo, teléfono) antes de contar cuánto usó ya el cliente. Sin esto, dos
+        // requests casi simultáneos del mismo teléfono pueden leer el mismo `used` y ambos
+        // pasar la validación de MaxPerUser (condición de carrera, permite exceder el límite).
+        // AcquireAdvisoryLockAsync es no-op fuera de Postgres (ver AppDbContext), así que en
+        // los tests con EF InMemory este bloque se comporta exactamente igual que antes.
+        await using var tx = await db.BeginTransactionAsync(ct);
+
+        // Orden determinístico para no generar deadlocks si dos pedidos piden las mismas
+        // promos en orden distinto.
+        foreach (var promoId in promoQuantitiesById.Keys.OrderBy(id => id, StringComparer.Ordinal))
+        {
+            await db.AcquireAdvisoryLockAsync($"promo-redemption:{tenant.Id}:{promoId}:{normalizedPhone}", ct);
+        }
+
+        foreach (var (promoId, qtyPedida) in promoQuantitiesById)
+        {
+            var promo = promotions.FirstOrDefault(p => p.Id == promoId);
+            if (promo is null)
+                continue;
+
+            if (promo.MaxPerUser.HasValue)
+            {
+                var used = await db.PromoRedemptions
+                    .Where(r => r.PromotionId == promoId && r.PhoneNumber == normalizedPhone)
+                    .SumAsync(r => r.Quantity, ct);
+
+                if (used + qtyPedida > promo.MaxPerUser.Value)
+                {
+                    await tx.RollbackAsync(ct);
+                    return StatusCode(409, new
+                    {
+                        message = "Ya alcanzaste el límite de esta promoción.",
+                        code = "PROMO_LIMIT_REACHED",
+                        promoId = promoId,
+                        used = used,
+                        maxPerUser = promo.MaxPerUser.Value
+                    });
+                }
+            }
+
+            db.PromoRedemptions.Add(new PromoRedemption
+            {
+                Id = Guid.NewGuid().ToString(),
+                PromotionId = promoId,
+                TenantId = tenant.Id,
+                PhoneNumber = normalizedPhone,
+                Quantity = qtyPedida,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
         try
         {
             db.Orders.Add(order);
             await db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
 
             // Emitir evento WebSocket
             await wsManager.BroadcastToTenantAsync(tenant.Id, new MorfApp.Api.WebSocket.WebSocketEvent
@@ -498,6 +513,7 @@ public class StoreController(
         }
         catch (Exception ex)
         {
+            await tx.RollbackAsync(ct);
             logger.LogError(ex, "Error al guardar pedido para tenant {TenantId}", tenant.Id);
             return StatusCode(500, new { message = "Error al guardar el pedido. Intente nuevamente." });
         }

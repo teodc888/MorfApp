@@ -382,4 +382,21 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
              .OnDelete(DeleteBehavior.Cascade);
         });
     }
+
+    public Task<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default) =>
+        Database.BeginTransactionAsync(cancellationToken);
+
+    // Serializa requests concurrentes que comparten `key` hasta que la transacción actual
+    // termine (commit o rollback) — evita condiciones de carrera tipo "leer-antes-de-escribir"
+    // (ej. contar redenciones de una promo) sin necesitar SELECT ... FOR UPDATE explícito.
+    // No-op fuera de Postgres (ej. el provider InMemory que usan los tests), porque
+    // pg_advisory_xact_lock es específico de Postgres y no tiene equivalente ahí.
+    public async Task AcquireAdvisoryLockAsync(string key, CancellationToken cancellationToken = default)
+    {
+        if (Database.ProviderName?.Contains("Npgsql", StringComparison.OrdinalIgnoreCase) != true)
+            return;
+
+        await Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT pg_advisory_xact_lock(hashtext({key}))", cancellationToken);
+    }
 }

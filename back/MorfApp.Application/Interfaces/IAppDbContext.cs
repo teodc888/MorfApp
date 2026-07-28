@@ -33,4 +33,10 @@ public interface IAppDbContext
     DbSet<SalaryPayment> SalaryPayments { get; }
     DbSet<EmployeeAdvance> EmployeeAdvances { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+
+    // Transacción explícita + advisory lock — usado para cerrar condiciones de carrera
+    // puntuales (ej. límite de redenciones por usuario en StoreController.CreateOrder).
+    // AcquireAdvisoryLockAsync es no-op en providers no relacionales (ver AppDbContext).
+    Task<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default);
+    Task AcquireAdvisoryLockAsync(string key, CancellationToken cancellationToken = default);
 }
