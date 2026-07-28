@@ -518,7 +518,7 @@ public class StoreController(
             return StatusCode(500, new { message = "Error al guardar el pedido. Intente nuevamente." });
         }
 
-        return Ok(new CreateOrderResponse(order.Id, true));
+        return Ok(new CreateOrderResponse(order.Id, true, tenant.WhatsappNumber, tenant.WhatsAppMessageTemplate));
     }
 
     // Valida los modificadores pedidos contra las opciones reales del producto/promo y calcula

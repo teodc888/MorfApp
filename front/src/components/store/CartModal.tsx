@@ -320,6 +320,8 @@ export function CartModal({ tenant, onClose }: Props) {
     // de forma atómica dentro de CreateOrder; si se excede, devuelve 409 PROMO_LIMIT_REACHED.
     setIsSaving(true)
     let orderId: string
+    let whatsappNumber: string
+    let whatsAppMessageTemplate: string | null
     try {
       const result = await createOrder(tenant.slug, {
         items: buildOrderItems(items),
@@ -332,6 +334,8 @@ export function CartModal({ tenant, onClose }: Props) {
         paymentMethod: form.paymentMethod,
       })
       orderId = result.orderId
+      whatsappNumber = result.whatsappNumber
+      whatsAppMessageTemplate = result.whatsAppMessageTemplate
     } catch (err) {
       waWindow?.close()
       if (err instanceof ApiError && err.code === 'STORE_CLOSED') {
@@ -346,14 +350,17 @@ export function CartModal({ tenant, onClose }: Props) {
     }
     setIsSaving(false)
 
-    // Armar mensaje de WhatsApp. Se guarda también en sessionStorage como respaldo
-    // por si el navegador bloqueó la ventana (ej. iOS con "abrir en pestaña nueva"
-    // desactivado): /success tiene un botón manual que lo retoma desde ahí.
-    const message = buildWhatsAppMessage(tenant, items, {
-      ...form,
-      deliveryMode: activeDelivery,
-    }, orderId)
-    const phoneNumber = tenant.whatsappNumber.replace(/\D/g, '')
+    // Armar mensaje de WhatsApp con el número/plantilla que acaba de devolver el backend
+    // (no el `tenant` cacheado por SSR/ISR) — si el dueño cambió el número o la plantilla
+    // después de que el cliente cargó la página, el pedido tiene que ir igual al número
+    // vigente, no al que estaba puesto cuando se abrió la tienda.
+    const message = buildWhatsAppMessage(
+      { ...tenant, whatsappNumber, whatsAppMessageTemplate },
+      items,
+      { ...form, deliveryMode: activeDelivery },
+      orderId,
+    )
+    const phoneNumber = whatsappNumber.replace(/\D/g, '')
     savePendingWhatsAppOrder({ orderId, phoneNumber, message })
 
     if (waWindow) {

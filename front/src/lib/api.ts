@@ -88,7 +88,7 @@ export class ApiError extends Error {
 export async function createOrder(
   slug: string,
   payload: CreateOrderPayload
-): Promise<{ orderId: string }> {
+): Promise<{ orderId: string; whatsappNumber: string; whatsAppMessageTemplate: string | null }> {
   const res = await fetch(`${API_URL}/api/store/${slug}/orders`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

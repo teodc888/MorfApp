@@ -450,6 +450,37 @@ public class StoreControllerTests : TestBase
     }
 
     [Fact]
+    public async Task CreateOrder_ReturnsCurrentWhatsappNumberFromTenant()
+    {
+        // El front arma el mensaje de WhatsApp con el número que devuelve esta respuesta,
+        // no con el tenant cacheado por SSR/ISR — evita mandar al número viejo si el dueño
+        // lo cambió después de que el cliente cargó la página.
+        var tenant = await CreateTenantAsync(slug: "wa-number-test");
+        tenant.WhatsappNumber = "5491155551234";
+        tenant.WhatsAppMessageTemplate = "Plantilla actual";
+        await Db.SaveChangesAsync();
+
+        var cat  = await CreateCategoryAsync(tenant.Id);
+        var prod = await CreateProductAsync(tenant.Id, cat.Id, "Sandwich", 500m);
+
+        var ctrl   = CreateController();
+        var result = await ctrl.CreateOrder("wa-number-test", new CreateOrderRequest
+        {
+            CustomerName  = "Cliente Test",
+            CustomerPhone = "1122334455",
+            DeliveryMode  = "pickup",
+            PaymentMethod = "cash",
+            Total         = 500m,
+            Items         = [new CreateOrderItemRequest { ProductId = prod.Id, ProductName = "Sandwich", Quantity = 1 }],
+        });
+
+        var ok  = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<CreateOrderResponse>(ok.Value);
+        Assert.Equal("5491155551234", dto.WhatsappNumber);
+        Assert.Equal("Plantilla actual", dto.WhatsAppMessageTemplate);
+    }
+
+    [Fact]
     public async Task CreateOrder_ValidPickupOrder_ReturnsOrderId()
     {
         var tenant = await CreateTenantAsync(slug: "pickup-test");
