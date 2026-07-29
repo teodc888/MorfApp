@@ -33,7 +33,7 @@ type ProductForm = {
   description: string
   price: string
   emoji: string
-  imageUrl: string
+  imageUrls: string[]
   sortOrder: number
   isActive: boolean
   isOutOfStock: boolean
@@ -59,7 +59,7 @@ const EMOJI_OPTIONS = [
 const EMPTY_CAT: CategoryForm = { name: '', emoji: '🍽️', sortOrder: 0, isActive: true }
 const EMPTY_PROD: ProductForm = {
   categoryId: '', name: '', description: '', price: '',
-  emoji: '🍔', imageUrl: '', sortOrder: 0, isActive: true, isOutOfStock: false,
+  emoji: '🍔', imageUrls: [], sortOrder: 0, isActive: true, isOutOfStock: false,
 }
 
 export default function MenuPage() {
@@ -153,7 +153,7 @@ export default function MenuPage() {
     setProdForm({
       categoryId: prod.categoryId, name: prod.name,
       description: prod.description ?? '', price: String(prod.price),
-      emoji: prod.emoji, imageUrl: prod.imageUrl ?? '',
+      emoji: prod.emoji, imageUrls: prod.imageUrls ?? [],
       sortOrder: prod.sortOrder, isActive: prod.isActive,
       isOutOfStock: prod.isOutOfStock,
     })
@@ -184,7 +184,7 @@ export default function MenuPage() {
       const body = {
         categoryId: prodForm.categoryId, name: prodForm.name,
         description: prodForm.description, price: parseFloat(prodForm.price) || 0,
-        emoji: prodForm.emoji, imageUrl: prodForm.imageUrl || null,
+        emoji: prodForm.emoji, imageUrls: prodForm.imageUrls,
         sortOrder: prodForm.sortOrder, isActive: prodForm.isActive, tags: [],
         isOutOfStock: prodForm.isOutOfStock,
       }
@@ -259,10 +259,11 @@ export default function MenuPage() {
     const file = e.target.files?.[0]
     if (!file) return
     if (file.size > 5 * 1024 * 1024) { toast.error('La imagen no puede superar los 5 MB'); e.target.value = ''; return }
+    if (prodForm.imageUrls.length >= 6) { toast.error('Máximo 6 fotos por producto'); e.target.value = ''; return }
     setUploading(true)
     try {
       const url = await uploadImage(file)
-      setProdForm((f) => ({ ...f, imageUrl: url }))
+      setProdForm((f) => ({ ...f, imageUrls: [...f.imageUrls, url] }))
       toast.success('Imagen subida')
     } catch {
       toast.error('Error al subir la imagen')
@@ -270,6 +271,10 @@ export default function MenuPage() {
       setUploading(false)
       e.target.value = ''
     }
+  }
+
+  function removeProdImage(index: number) {
+    setProdForm((f) => ({ ...f, imageUrls: f.imageUrls.filter((_, i) => i !== index) }))
   }
 
   const [searchQuery, setSearchQuery] = useState('')
@@ -532,22 +537,28 @@ export default function MenuPage() {
                 </div>
               </div>
 
-              {/* Image */}
+              {/* Images */}
               <div className="field">
-                <label>Imagen</label>
-                {prodForm.imageUrl && (
-                  <div style={{ position: 'relative', marginBottom: 8, width: '100%', height: 140, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--outline-soft)' }}>
-                    <Image src={prodForm.imageUrl} alt="Preview" fill style={{ objectFit: 'cover' }} unoptimized />
-                    <button onClick={() => setProdForm(f => ({ ...f, imageUrl: '' }))} style={{ position: 'absolute', top: 8, right: 8, background: 'white', border: 'none', borderRadius: '50%', width: 28, height: 28, display: 'grid', placeItems: 'center', cursor: 'pointer', boxShadow: 'var(--shadow-card)' }}>
-                      <span className="mat xs">close</span>
-                    </button>
+                <label>Fotos ({prodForm.imageUrls.length}/6)</label>
+                {prodForm.imageUrls.length > 0 && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: 8, marginBottom: 8 }}>
+                    {prodForm.imageUrls.map((url, i) => (
+                      <div key={url + i} style={{ position: 'relative', width: '100%', aspectRatio: '1 / 1', borderRadius: 10, overflow: 'hidden', border: '1px solid var(--outline-soft)' }}>
+                        <Image src={url} alt={`Foto ${i + 1}`} fill style={{ objectFit: 'cover' }} unoptimized />
+                        <button onClick={() => removeProdImage(i)} style={{ position: 'absolute', top: 4, right: 4, background: 'white', border: 'none', borderRadius: '50%', width: 24, height: 24, display: 'grid', placeItems: 'center', cursor: 'pointer', boxShadow: 'var(--shadow-card)' }}>
+                          <span className="mat xs">close</span>
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 )}
-                <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px', border: '2px dashed var(--outline)', borderRadius: 10, cursor: 'pointer', color: 'var(--muted)', fontSize: 13, fontWeight: 500 }}>
-                  <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageUpload} disabled={uploading} />
-                  <span className="mat sm">photo_camera</span>
-                  {uploading ? 'Subiendo...' : prodForm.imageUrl ? 'Cambiar imagen' : 'Agregar imagen'}
-                </label>
+                {prodForm.imageUrls.length < 6 && (
+                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px', border: '2px dashed var(--outline)', borderRadius: 10, cursor: 'pointer', color: 'var(--muted)', fontSize: 13, fontWeight: 500 }}>
+                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageUpload} disabled={uploading} />
+                    <span className="mat sm">photo_camera</span>
+                    {uploading ? 'Subiendo...' : 'Agregar imagen'}
+                  </label>
+                )}
               </div>
 
               {/* Modifiers */}

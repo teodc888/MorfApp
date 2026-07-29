@@ -11,7 +11,9 @@ public record TenantPublicDto(
     BrandingDto Branding,
     DeliveryConfigDto DeliveryConfig,
     PaymentConfigDto PaymentConfig,
-    List<BusinessHourDto> BusinessHours
+    List<BusinessHourDto> BusinessHours,
+    string? MetaPixelId,
+    string? GoogleAnalyticsId
 );
 
 public record BrandingDto(

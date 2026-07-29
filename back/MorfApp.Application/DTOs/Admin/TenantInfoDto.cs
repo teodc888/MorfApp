@@ -12,7 +12,22 @@ public record TenantInfoDto(
     BrandingAdminDto? Branding,
     DeliveryAdminDto? Delivery,
     PaymentAdminDto? Payment,
-    List<HourAdminDto> Hours
+    List<HourAdminDto> Hours,
+    MarketingAdminDto Marketing
+);
+
+public record MarketingAdminDto(
+    string? MetaPixelId,
+    bool MetaPixelEnabled,
+    string? GoogleAnalyticsId,
+    bool GoogleAnalyticsEnabled
+);
+
+public record UpdateMarketingRequest(
+    string? MetaPixelId,
+    bool MetaPixelEnabled,
+    string? GoogleAnalyticsId,
+    bool GoogleAnalyticsEnabled
 );
 
 public record BrandingAdminDto(

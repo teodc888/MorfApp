@@ -17,8 +17,14 @@ public class EmployeeDto
     public DateTime HireDate { get; set; }
     public bool IsActive { get; set; }
     public bool HasAdminLogin { get; set; }
+    public List<string> Permissions { get; set; } = [];
     public DateTime CreatedAt { get; set; }
     public decimal PendingAdvances { get; set; }
+}
+
+public class UpdateEmployeePermissionsRequest
+{
+    public List<string> Permissions { get; set; } = [];
 }
 
 public class CreateEmployeeRequest

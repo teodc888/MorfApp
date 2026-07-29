@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getAdminMe, updateAdminMe, updateDelivery, updateHours, changePassword } from '@/lib/admin-api'
-import type { BusinessHour } from '@/types/store'
+import { getAdminMe, updateAdminMe, updateDelivery, updateHours, updateMarketing, changePassword } from '@/lib/admin-api'
+import type { BusinessHour, MarketingConfig } from '@/types/store'
 
 type DeliveryForm = {
   mode: 'delivery' | 'pickup' | 'both'
@@ -31,6 +31,13 @@ const DEFAULT_HOURS: BusinessHour[] = Array.from({ length: 7 }, (_, i) => ({
   closesAt: '22:00',
 }))
 
+const DEFAULT_MARKETING: MarketingConfig = {
+  metaPixelId: '',
+  metaPixelEnabled: false,
+  googleAnalyticsId: '',
+  googleAnalyticsEnabled: false,
+}
+
 export default function ConfigPage() {
   const queryClient = useQueryClient()
 
@@ -40,6 +47,8 @@ export default function ConfigPage() {
   const [delivery, setDelivery] = useState<DeliveryForm>(DEFAULT_DELIVERY)
 
   const [hours, setHours] = useState<BusinessHour[]>(DEFAULT_HOURS)
+
+  const [marketing, setMarketing] = useState<MarketingConfig>(DEFAULT_MARKETING)
 
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -75,6 +84,15 @@ export default function ConfigPage() {
         return found ?? { dayOfWeek: i, isOpen: false, opensAt: '09:00', closesAt: '22:00' }
       })
       setHours(filled)
+    }
+
+    if (tenant.marketing) {
+      setMarketing({
+        metaPixelId: tenant.marketing.metaPixelId ?? '',
+        metaPixelEnabled: tenant.marketing.metaPixelEnabled,
+        googleAnalyticsId: tenant.marketing.googleAnalyticsId ?? '',
+        googleAnalyticsEnabled: tenant.marketing.googleAnalyticsEnabled,
+      })
     }
   }, [tenant])
 
@@ -113,6 +131,21 @@ export default function ConfigPage() {
     onError: () => toast.error('Error al guardar'),
   })
 
+  const marketingMutation = useMutation({
+    mutationFn: () =>
+      updateMarketing({
+        metaPixelId: marketing.metaPixelId?.trim() || null,
+        metaPixelEnabled: marketing.metaPixelEnabled,
+        googleAnalyticsId: marketing.googleAnalyticsId?.trim() || null,
+        googleAnalyticsEnabled: marketing.googleAnalyticsEnabled,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-me'] })
+      toast.success('Guardado correctamente')
+    },
+    onError: () => toast.error('Error al guardar'),
+  })
+
   function saveLocal() {
     localMutation.mutate()
   }
@@ -125,9 +158,22 @@ export default function ConfigPage() {
     hoursMutation.mutate()
   }
 
+  function saveMarketing() {
+    if (marketing.metaPixelEnabled && !marketing.metaPixelId?.trim()) {
+      toast.error('Ingresá el ID de Meta Pixel para poder activarlo')
+      return
+    }
+    if (marketing.googleAnalyticsEnabled && !marketing.googleAnalyticsId?.trim()) {
+      toast.error('Ingresá el ID de Google Analytics para poder activarlo')
+      return
+    }
+    marketingMutation.mutate()
+  }
+
   const localSaving = localMutation.isPending
   const deliverySaving = deliveryMutation.isPending
   const hoursSaving = hoursMutation.isPending
+  const marketingSaving = marketingMutation.isPending
 
   async function savePassword() {
     if (!currentPassword) {
@@ -162,6 +208,10 @@ export default function ConfigPage() {
 
   function setDel<K extends keyof DeliveryForm>(key: K, value: DeliveryForm[K]) {
     setDelivery((f) => ({ ...f, [key]: value }))
+  }
+
+  function setMkt<K extends keyof MarketingConfig>(key: K, value: MarketingConfig[K]) {
+    setMarketing((f) => ({ ...f, [key]: value }))
   }
 
   if (isLoading) {
@@ -317,6 +367,43 @@ export default function ConfigPage() {
           </button>
         </Section>
 
+        {/* Marketing */}
+        <Section title="Marketing">
+          <div className="field">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <label style={{ margin: 0 }}>Meta Pixel (Facebook / Instagram)</label>
+              <ToggleSwitch checked={marketing.metaPixelEnabled} onChange={(v) => setMkt('metaPixelEnabled', v)} />
+            </div>
+            <input
+              className="input"
+              value={marketing.metaPixelId ?? ''}
+              onChange={(e) => setMkt('metaPixelId', e.target.value)}
+              placeholder="123456789012345"
+              style={{ fontFamily: 'ui-monospace, monospace' }}
+            />
+            <div className="text-xs muted">El ID del píxel, disponible en el Administrador de eventos de Meta. Se carga en la tienda solo si está activado.</div>
+          </div>
+
+          <div className="field">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <label style={{ margin: 0 }}>Google Analytics (GA4)</label>
+              <ToggleSwitch checked={marketing.googleAnalyticsEnabled} onChange={(v) => setMkt('googleAnalyticsEnabled', v)} />
+            </div>
+            <input
+              className="input"
+              value={marketing.googleAnalyticsId ?? ''}
+              onChange={(e) => setMkt('googleAnalyticsId', e.target.value)}
+              placeholder="G-XXXXXXXXXX"
+              style={{ fontFamily: 'ui-monospace, monospace' }}
+            />
+            <div className="text-xs muted">El ID de medición de tu propiedad GA4. Se carga en la tienda solo si está activado.</div>
+          </div>
+
+          <button className="btn btn-primary btn-block" disabled={marketingSaving} onClick={saveMarketing}>
+            {marketingSaving ? 'Guardando...' : 'Guardar marketing'}
+          </button>
+        </Section>
+
         {/* Cuenta */}
         <Section title="Cuenta">
           <div className="field">
@@ -341,6 +428,37 @@ export default function ConfigPage() {
 
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
+  )
+}
+
+function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      style={{
+        width: 42,
+        height: 24,
+        borderRadius: 999,
+        border: 'none',
+        cursor: 'pointer',
+        flexShrink: 0,
+        padding: 3,
+        background: checked ? 'var(--primary)' : 'var(--surface-container-high)',
+        transition: 'background 0.2s ease',
+      }}
+    >
+      <div style={{
+        width: 18,
+        height: 18,
+        borderRadius: '50%',
+        background: 'white',
+        transform: checked ? 'translateX(18px)' : 'translateX(0)',
+        transition: 'transform 0.2s ease',
+      }} />
+    </button>
   )
 }
 

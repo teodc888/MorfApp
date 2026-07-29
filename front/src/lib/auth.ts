@@ -79,3 +79,19 @@ export function getRole(): 'owner' | 'employee' {
 export function isOwner(): boolean {
   return getRole() === 'owner'
 }
+
+export function getPermissions(): string[] {
+  const token = getAccessToken()
+  if (!token) return []
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    if (!payload.perm) return []
+    return Array.isArray(payload.perm) ? payload.perm : [payload.perm]
+  } catch {
+    return []
+  }
+}
+
+export function hasPermission(key: string): boolean {
+  return isOwner() || getPermissions().includes(key)
+}

@@ -16,7 +16,7 @@ const makeItem = (overrides?: Partial<CartItem>): CartItem => ({
     finalPrice:  null,
     discountPercent: null,
     emoji:       '🍕',
-    imageUrl:    null,
+    imageUrls:   [],
     tags:        [],
     modifierGroups: [],
     isOutOfStock: false,
@@ -134,7 +134,7 @@ describe('useCartStore', () => {
       product:    {
         id: 'p1', name: 'X', description: null,
         price: 800, finalPrice: 640, discountPercent: 20,
-        emoji: '🍕', imageUrl: null, tags: [], modifierGroups: [],
+        emoji: '🍕', imageUrls: [], tags: [], modifierGroups: [],
         isOutOfStock: false,
       },
     })
@@ -156,7 +156,7 @@ describe('useCartStore', () => {
       product:    {
         id: 'p1', name: 'X', description: null,
         price: 800, finalPrice: 640, discountPercent: 20,
-        emoji: '🍕', imageUrl: null, tags: [], modifierGroups: [],
+        emoji: '🍕', imageUrls: [], tags: [], modifierGroups: [],
         isOutOfStock: false,
       },
     })

@@ -263,7 +263,7 @@ export function PromoModal({ promo, onClose }: Props) {
         description: promo.description,
         price: promo.price,
         emoji: promo.emoji,
-        imageUrl: promo.imageUrl,
+        imageUrls: promo.imageUrl ? [promo.imageUrl] : [],
         tags: [],
         modifierGroups: promo.modifierGroups,
         isOutOfStock: false,

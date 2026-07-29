@@ -120,6 +120,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
              .HasConversion(
                  v => JsonSerializer.Serialize(v, JsonSerializerOptions.Default),
                  v => JsonSerializer.Deserialize<List<string>>(v, JsonSerializerOptions.Default) ?? new List<string>());
+            e.Property(p => p.ImageUrls)
+             .HasColumnType("jsonb")
+             .HasConversion(
+                 v => JsonSerializer.Serialize(v, JsonSerializerOptions.Default),
+                 v => JsonSerializer.Deserialize<List<string>>(v, JsonSerializerOptions.Default) ?? new List<string>());
             e.HasOne(p => p.Tenant)
              .WithMany(t => t.Products)
              .HasForeignKey(p => p.TenantId)
@@ -172,6 +177,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             e.HasKey(u => u.Id);
             e.HasIndex(u => new { u.TenantId, u.Email }).IsUnique();
+            e.Property(u => u.Permissions)
+             .HasColumnType("jsonb")
+             .HasConversion(
+                 v => JsonSerializer.Serialize(v, JsonSerializerOptions.Default),
+                 v => JsonSerializer.Deserialize<List<string>>(v, JsonSerializerOptions.Default) ?? new List<string>());
             e.HasOne(u => u.Tenant)
              .WithMany(t => t.AdminUsers)
              .HasForeignKey(u => u.TenantId)

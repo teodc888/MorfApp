@@ -22,9 +22,9 @@ export function ProductCard({ product, categoryEmoji, onSelect }: Props) {
     >
       {/* Image */}
       <div className="relative w-full aspect-[4/3] flex items-center justify-center overflow-hidden" style={{ backgroundColor: STITCH.bg }}>
-        {product.imageUrl ? (
+        {product.imageUrls.length > 0 ? (
           <Image
-            src={product.imageUrl}
+            src={product.imageUrls[0]}
             alt={product.name}
             fill
             className="object-cover"

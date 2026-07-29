@@ -243,6 +243,12 @@ public class AuthController(IAppDbContext db, IConfiguration config, ILogger<Aut
             new("role", user.Role),
         };
 
+        // Los owners siempre tienen acceso total; los empleados solo a los módulos
+        // que el owner les otorgó (AdminUser.Permissions). Ver PermissionKeys.
+        IEnumerable<string> grantedPermissions = user.Role == "owner" ? MorfApp.Domain.Constants.PermissionKeys.All : user.Permissions;
+        foreach (var perm in grantedPermissions)
+            claims.Add(new("perm", perm));
+
         if (user.TenantId is not null)
             claims.Add(new("tenant_id", user.TenantId));
 

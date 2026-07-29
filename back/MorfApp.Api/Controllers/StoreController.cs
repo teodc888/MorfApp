@@ -72,7 +72,9 @@ public class StoreController(
             BusinessHours: tenant.BusinessHours
                 .OrderBy(h => h.DayOfWeek)
                 .Select(h => new BusinessHourDto(h.DayOfWeek, h.IsOpen, h.OpensAt, h.ClosesAt))
-                .ToList()
+                .ToList(),
+            MetaPixelId: tenant.MetaPixelEnabled ? tenant.MetaPixelId : null,
+            GoogleAnalyticsId: tenant.GoogleAnalyticsEnabled ? tenant.GoogleAnalyticsId : null
         );
 
         return Ok(dto);
@@ -103,7 +105,7 @@ public class StoreController(
                     ? (decimal?)CalculateFinalPrice(p.Price, p.DiscountPercent)
                     : null;
                 return new ProductDto(
-                    p.Id, p.Name, p.Description, p.Price, finalPrice, p.DiscountPercent, p.Emoji, p.ImageUrl, p.Tags, p.IsOutOfStock,
+                    p.Id, p.Name, p.Description, p.Price, finalPrice, p.DiscountPercent, p.Emoji, p.ImageUrls, p.Tags, p.IsOutOfStock,
                     p.ModifierGroups.Select(g => new ModifierGroupDto(
                         g.Id, g.Name, g.Type.ToString().ToLowerInvariant(), g.IsRequired, g.MaxSelect,
                         g.Options.Select(o => new ModifierOptionDto(o.Id, o.Name, o.Emoji, o.ExtraPrice))
@@ -237,7 +239,7 @@ public class StoreController(
                     ? (decimal?)CalculateFinalPrice(prod.Price, prod.DiscountPercent)
                     : null;
                 return new ProductDto(
-                    prod.Id, prod.Name, prod.Description, prod.Price, finalPrice, prod.DiscountPercent, prod.Emoji, prod.ImageUrl, prod.Tags, prod.IsOutOfStock,
+                    prod.Id, prod.Name, prod.Description, prod.Price, finalPrice, prod.DiscountPercent, prod.Emoji, prod.ImageUrls, prod.Tags, prod.IsOutOfStock,
                     prod.ModifierGroups.Select(g => new ModifierGroupDto(
                         g.Id, g.Name, g.Type.ToString().ToLowerInvariant(), g.IsRequired, g.MaxSelect,
                         g.Options.Select(o => new ModifierOptionDto(o.Id, o.Name, o.Emoji, o.ExtraPrice))

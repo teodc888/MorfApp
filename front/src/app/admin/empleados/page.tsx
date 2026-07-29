@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { PlanGate } from '@/components/admin/PlanGate'
+import { PERMISSION_MODULES } from '@/lib/permissions'
 import {
   getEmployees,
   createEmployee,
@@ -9,6 +10,7 @@ import {
   deleteEmployee,
   activateEmployeeLogin,
   deactivateEmployeeLogin,
+  updateEmployeePermissions,
   getEmployeePayments,
   registerPayment,
   getEmployeeAdvances,
@@ -120,6 +122,8 @@ function EmpleadosPageInner() {
   const [advanceModal, setAdvanceModal] = useState<{ open: boolean; employee: EmployeeDto | null }>({ open: false, employee: null })
   const [detailModal, setDetailModal] = useState<{ open: boolean; employee: EmployeeDto | null }>({ open: false, employee: null })
   const [confirmDeactivate, setConfirmDeactivate] = useState<{ open: boolean; employee: EmployeeDto | null }>({ open: false, employee: null })
+  const [permissionsModal, setPermissionsModal] = useState<{ open: boolean; employee: EmployeeDto | null }>({ open: false, employee: null })
+  const [permissionsDraft, setPermissionsDraft] = useState<string[]>([])
 
   // ── Forms ──
   const [employeeForm, setEmployeeForm] = useState<EmployeeForm>(EMPTY_EMPLOYEE_FORM)
@@ -274,6 +278,31 @@ function EmpleadosPageInner() {
       showToast('Acceso desactivado')
     } catch {
       showToast('Error desactivando acceso', 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // ── Permisos ──
+  function openPermissionsModal(emp: EmployeeDto) {
+    setPermissionsDraft(emp.permissions)
+    setPermissionsModal({ open: true, employee: emp })
+  }
+
+  function togglePermission(key: string) {
+    setPermissionsDraft(prev => prev.includes(key) ? prev.filter(p => p !== key) : [...prev, key])
+  }
+
+  async function savePermissions() {
+    if (!permissionsModal.employee || saving) return
+    setSaving(true)
+    try {
+      await updateEmployeePermissions(permissionsModal.employee.id, permissionsDraft)
+      setPermissionsModal({ open: false, employee: null })
+      await loadEmployees()
+      showToast('Permisos actualizados')
+    } catch {
+      showToast('Error guardando permisos', 'error')
     } finally {
       setSaving(false)
     }
@@ -458,6 +487,11 @@ function EmpleadosPageInner() {
                       title={emp.hasAdminLogin ? 'Quitar acceso al panel' : 'Dar acceso al panel'}>
                       <span className="mat sm">{emp.hasAdminLogin ? 'no_accounts' : 'manage_accounts'}</span>
                     </button>
+                    {emp.hasAdminLogin && (
+                      <button className="btn btn-outline btn-sm" style={{ minWidth: 36, padding: '8px 10px' }} onClick={() => openPermissionsModal(emp)} title="Permisos del panel">
+                        <span className="mat sm">key</span>
+                      </button>
+                    )}
                     <button className="btn btn-danger btn-sm" style={{ minWidth: 36, padding: '8px 10px' }} onClick={() => setConfirmDeactivate({ open: true, employee: emp })}>
                       <span className="mat sm">person_off</span>
                     </button>
@@ -885,6 +919,38 @@ function EmpleadosPageInner() {
                 <button className="btn btn-outline btn-sm flex-1" onClick={() => setAdvanceModal({ open: false, employee: null })}>Cancelar</button>
                 <button className="btn btn-primary btn-sm flex-1" disabled={saving || !isAdvanceFormValid} onClick={saveAdvance}>
                   {saving ? 'Guardando...' : 'Registrar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: Permisos ── */}
+      {permissionsModal.open && permissionsModal.employee && (
+        <div className="modal-backdrop modal-center" onClick={() => setPermissionsModal({ open: false, employee: null })}>
+          <div className="modal-sheet" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
+            <div className="p-6">
+              <h2 className="text-lg font-bold mb-1">Permisos del panel</h2>
+              <p className="text-sm mb-4" style={{ color: 'var(--muted)' }}>{permissionsModal.employee.name}</p>
+
+              <div className="space-y-2">
+                {PERMISSION_MODULES.map(mod => (
+                  <label key={mod.key} className="flex items-center gap-2 cursor-pointer p-2 rounded-lg" style={{ backgroundColor: 'var(--surface-container)' }}>
+                    <input
+                      type="checkbox"
+                      checked={permissionsDraft.includes(mod.key)}
+                      onChange={() => togglePermission(mod.key)}
+                    />
+                    <span className="text-sm">{mod.label}</span>
+                  </label>
+                ))}
+              </div>
+
+              <div className="flex gap-3 mt-5">
+                <button className="btn btn-outline btn-sm flex-1" onClick={() => setPermissionsModal({ open: false, employee: null })}>Cancelar</button>
+                <button className="btn btn-primary btn-sm flex-1" disabled={saving} onClick={savePermissions}>
+                  {saving ? 'Guardando...' : 'Guardar'}
                 </button>
               </div>
             </div>

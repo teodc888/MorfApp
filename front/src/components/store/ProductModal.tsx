@@ -170,6 +170,7 @@ export function ProductModal({ product, categoryEmoji, onClose }: Props) {
   const [isClosing, setIsClosing] = useState(false)
   const [dragY, setDragY] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
+  const [photoIndex, setPhotoIndex] = useState(0)
   const dragStartY = useRef(0)
   const dialogRef = useRef<HTMLDivElement>(null)
   const addItem = useCartStore((s) => s.addItem)
@@ -322,17 +323,53 @@ export function ProductModal({ product, categoryEmoji, onClose }: Props) {
         </div>
 
         <div className="overflow-y-auto flex-1 px-4 pb-2 min-h-0">
-          <div className="flex justify-center mb-4">
-            {product.imageUrl ? (
-              <Image
-                src={product.imageUrl}
-                alt={product.name}
-                width={140}
-                height={140}
-                className="rounded-xl object-cover"
-              />
+          <div className="flex flex-col items-center mb-4">
+            {product.imageUrls.length > 0 ? (
+              <div className="relative" style={{ width: 140, height: 140 }}>
+                <Image
+                  src={product.imageUrls[photoIndex]}
+                  alt={product.name}
+                  width={140}
+                  height={140}
+                  className="rounded-xl object-cover"
+                  style={{ width: 140, height: 140 }}
+                />
+                {product.imageUrls.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => setPhotoIndex((i) => (i - 1 + product.imageUrls.length) % product.imageUrls.length)}
+                      aria-label="Foto anterior"
+                      className="absolute left-1 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full shadow-sm flex items-center justify-center"
+                      style={{ backgroundColor: STITCH.surface, color: STITCH.text }}
+                    >
+                      ‹
+                    </button>
+                    <button
+                      onClick={() => setPhotoIndex((i) => (i + 1) % product.imageUrls.length)}
+                      aria-label="Foto siguiente"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full shadow-sm flex items-center justify-center"
+                      style={{ backgroundColor: STITCH.surface, color: STITCH.text }}
+                    >
+                      ›
+                    </button>
+                  </>
+                )}
+              </div>
             ) : (
               <span className="text-7xl">{categoryEmoji}</span>
+            )}
+            {product.imageUrls.length > 1 && (
+              <div className="flex gap-1.5 mt-2">
+                {product.imageUrls.map((url, i) => (
+                  <button
+                    key={url + i}
+                    onClick={() => setPhotoIndex(i)}
+                    aria-label={`Ver foto ${i + 1}`}
+                    className="w-1.5 h-1.5 rounded-full"
+                    style={{ backgroundColor: i === photoIndex ? STITCH.primary : STITCH.border }}
+                  />
+                ))}
+              </div>
             )}
           </div>
 

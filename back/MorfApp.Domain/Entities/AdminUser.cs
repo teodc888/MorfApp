@@ -9,6 +9,9 @@ public class AdminUser
     public bool IsSuperadmin { get; set; }
     // "owner" | "employee"
     public string Role { get; set; } = "owner";
+    // Módulos habilitados cuando Role == "employee" (PermissionKeys). Ignorado para owners,
+    // que siempre tienen acceso total — ver AuthController.GenerateJwt.
+    public List<string> Permissions { get; set; } = [];
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 

@@ -8,7 +8,7 @@ public record ProductDto(
     decimal? FinalPrice,
     int? DiscountPercent,
     string Emoji,
-    string? ImageUrl,
+    List<string> ImageUrls,
     List<string> Tags,
     bool IsOutOfStock,
     List<ModifierGroupDto> ModifierGroups

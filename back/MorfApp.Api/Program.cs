@@ -42,6 +42,13 @@ builder.Services.AddAuthorization(options =>
     // el token (igual que "sub" -> ClaimTypes.NameIdentifier, ver AuthController.cs:119),
     // por eso hay que pedirlo por ClaimTypes.Role y no por el string "role" literal.
     options.AddPolicy("OwnerOnly", policy => policy.RequireClaim(System.Security.Claims.ClaimTypes.Role, "owner"));
+
+    // Módulos delegables a empleados. El claim "perm" no es un tipo estándar, así que no lo
+    // remapea el JwtSecurityTokenHandler (a diferencia de "role") — se pide por su nombre literal.
+    // Los owners reciben todos los claims "perm" al emitir el token (ver AuthController.GenerateJwt),
+    // por eso estas políticas alcanzan para owners y empleados sin necesitar una condición OR.
+    foreach (var key in MorfApp.Domain.Constants.PermissionKeys.All)
+        options.AddPolicy($"Perm:{key}", policy => policy.RequireClaim("perm", key));
 });
 
 // CORS — permite todos los subdominios del ROOT_DOMAIN

@@ -5,21 +5,21 @@ import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Toaster, toast } from 'sonner'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { isAuthenticated, getTenantFromToken, isOwner } from '@/lib/auth'
+import { isAuthenticated, getTenantFromToken, isOwner, hasPermission } from '@/lib/auth'
 import { logout, getAdminMe, updateTenantPause } from '@/lib/admin-api'
 import { PlanProvider, usePlan } from '@/contexts/PlanContext'
 import { FEATURE_PLAN, PLAN_LABEL, planHasAccess } from '@/lib/plan'
 import type { TenantAdmin } from '@/types/store'
 
 const NAV_ADMIN = [
-  { href: 'orders',      label: 'Pedidos',       icon: 'receipt_long',    ownerOnly: false },
-  { href: 'metrics',     label: 'Métricas',      icon: 'bar_chart',       ownerOnly: true  },
-  { href: 'menu',        label: 'Carta',          icon: 'restaurant_menu', ownerOnly: false },
-  { href: 'modifiers',   label: 'Opciones',       icon: 'tune',            ownerOnly: false },
-  { href: 'promotions',  label: 'Promos',         icon: 'redeem',          ownerOnly: false },
-  { href: 'proveedores', label: 'Proveedores',    icon: 'local_shipping',  ownerOnly: true  },
-  { href: 'insumos',     label: 'Insumos',        icon: 'inventory_2',     ownerOnly: true  },
-  { href: 'empleados',   label: 'Empleados',      icon: 'badge',           ownerOnly: true  },
+  { href: 'orders',      label: 'Pedidos',       icon: 'receipt_long',    permission: 'orders'      },
+  { href: 'metrics',     label: 'Métricas',      icon: 'bar_chart',       permission: 'metrics'     },
+  { href: 'menu',        label: 'Carta',          icon: 'restaurant_menu', permission: 'menu'        },
+  { href: 'modifiers',   label: 'Opciones',       icon: 'tune',            permission: 'modifiers'   },
+  { href: 'promotions',  label: 'Promos',         icon: 'redeem',          permission: 'promotions'  },
+  { href: 'proveedores', label: 'Proveedores',    icon: 'local_shipping',  permission: 'proveedores' },
+  { href: 'insumos',     label: 'Insumos',        icon: 'inventory_2',     permission: 'insumos'     },
+  { href: 'empleados',   label: 'Empleados',      icon: 'badge',           permission: null          },
 ]
 
 const NAV_CONFIG = [
@@ -28,7 +28,9 @@ const NAV_CONFIG = [
   { href: 'config',      label: 'Configuración',  icon: 'settings' },
 ]
 
-const OWNER_ONLY_ROUTES = ['metrics', 'proveedores', 'insumos', 'empleados', 'branding', 'whatsapp', 'config']
+// 'empleados' y la sección de Configuración quedan siempre exclusivas del owner (no delegables,
+// ver plan de roles). Los demás items de NAV_ADMIN se gatean por permiso, no por ownerOnly.
+const OWNER_ONLY_ROUTES = ['empleados', 'branding', 'whatsapp', 'config']
 
 const PLAN_BADGE_STYLE: Record<string, { bg: string; color: string }> = {
   Basico:  { bg: 'var(--surface-container-high)', color: 'var(--muted)' },
@@ -149,7 +151,15 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     if (isLoginPage) return
     if (!isAuthenticated()) { router.replace(`${base}/login`); return }
     const isRestricted = OWNER_ONLY_ROUTES.some(r => pathname.includes(`${base}/${r}`))
-    if (isRestricted && !isOwner()) router.replace(`${base}/orders`)
+    if (isRestricted && !isOwner()) { router.replace(`${base}/orders`); return }
+
+    // Módulos delegables: si el empleado no tiene el permiso de la ruta actual,
+    // mandarlo al primer módulo al que sí tenga acceso (si tiene alguno).
+    const currentItem = NAV_ADMIN.find(item => item.permission && pathname.includes(`${base}/${item.href}`))
+    if (currentItem && !hasPermission(currentItem.permission!)) {
+      const fallback = NAV_ADMIN.find(item => item.permission && hasPermission(item.permission))
+      if (fallback) router.replace(`${base}/${fallback.href}`)
+    }
   }, [base, isLoginPage, pathname, router])
 
   useEffect(() => {
@@ -203,8 +213,9 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
 
   const tenant = getTenantFromToken() || 'Mi negocio'
   const owner = isOwner()
-  const visibleAdminNav = NAV_ADMIN.filter(item => !item.ownerOnly || owner)
+  const visibleAdminNav = NAV_ADMIN.filter(item => item.href === 'empleados' ? owner : hasPermission(item.permission!))
   const isActive = (href: string) => pathname.includes(`${base}/${href}`)
+  const noAccess = !owner && visibleAdminNav.length === 0
 
   const planBadge = PLAN_BADGE_STYLE[plan] ?? PLAN_BADGE_STYLE.Basico
 
@@ -362,7 +373,12 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
         {/* Page content */}
         <main style={{ flex: 1, padding: '24px 16px 24px' }} className="md:p-8 md:pt-8 md:pb-8">
           <div style={{ maxWidth: 960, margin: '0 auto', width: '100%' }}>
-            {children}
+            {noAccess ? (
+              <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--muted)' }}>
+                <span className="mat" style={{ fontSize: 40, opacity: 0.5 }}>lock</span>
+                <p style={{ marginTop: 12, fontSize: 14 }}>Todavía no tenés ningún módulo habilitado.<br />Pedile al dueño que te otorgue permisos.</p>
+              </div>
+            ) : children}
           </div>
         </main>
       </div>

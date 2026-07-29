@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MorfApp.Application.DTOs.Admin;
 using MorfApp.Application.Interfaces;
+using MorfApp.Domain.Constants;
 using MorfApp.Domain.Entities;
 using System.Security.Claims;
 
@@ -33,7 +34,16 @@ public class EmployeeController(IAppDbContext db, IEmailService emailService, IC
 
         var advanceMap = pendingAdvances.ToDictionary(x => x.EmployeeId, x => x.Total);
 
-        return Ok(employees.Select(e => MapEmployee(e, advanceMap.GetValueOrDefault(e.Id))).ToList());
+        var adminUserIds = employees.Where(e => e.AdminUserId != null).Select(e => e.AdminUserId!).ToList();
+        var permissionsMap = await db.AdminUsers
+            .Where(u => adminUserIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, u => u.Permissions);
+
+        return Ok(employees.Select(e => MapEmployee(
+            e,
+            advanceMap.GetValueOrDefault(e.Id),
+            e.AdminUserId != null ? permissionsMap.GetValueOrDefault(e.AdminUserId) ?? [] : []
+        )).ToList());
     }
 
     // POST /api/admin/employees
@@ -60,7 +70,7 @@ public class EmployeeController(IAppDbContext db, IEmailService emailService, IC
         };
         db.Employees.Add(employee);
         await db.SaveChangesAsync();
-        return CreatedAtAction(nameof(GetEmployees), MapEmployee(employee, 0));
+        return CreatedAtAction(nameof(GetEmployees), MapEmployee(employee, 0, []));
     }
 
     // PUT /api/admin/employees/{id}
@@ -84,7 +94,11 @@ public class EmployeeController(IAppDbContext db, IEmailService emailService, IC
         employee.UpdatedAt = DateTime.UtcNow;
 
         await db.SaveChangesAsync();
-        return Ok(MapEmployee(employee, 0));
+
+        var permissions = employee.AdminUserId is not null
+            ? await db.AdminUsers.Where(u => u.Id == employee.AdminUserId).Select(u => u.Permissions).FirstOrDefaultAsync() ?? []
+            : [];
+        return Ok(MapEmployee(employee, 0, permissions));
     }
 
     // DELETE /api/admin/employees/{id}
@@ -184,6 +198,31 @@ public class EmployeeController(IAppDbContext db, IEmailService emailService, IC
 
         employee.AdminUserId = null;
         employee.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    // PUT /api/admin/employees/{id}/permissions
+    // Otorga/revoca módulos del admin panel a un empleado con acceso ya activado.
+    // El owner siempre tiene acceso total y no pasa por acá — ver AuthController.GenerateJwt.
+    [HttpPut("{id}/permissions")]
+    public async Task<IActionResult> UpdatePermissions(string id, [FromBody] UpdateEmployeePermissionsRequest req)
+    {
+        var employee = await db.Employees
+            .FirstOrDefaultAsync(e => e.Id == id && e.TenantId == TenantId);
+        if (employee is null) return NotFound();
+        if (employee.AdminUserId is null)
+            return BadRequest(new { message = "Activá el acceso al panel antes de asignar permisos" });
+
+        var invalid = req.Permissions.Except(PermissionKeys.All).ToList();
+        if (invalid.Count > 0)
+            return BadRequest(new { message = $"Permisos inválidos: {string.Join(", ", invalid)}" });
+
+        var adminUser = await db.AdminUsers.FindAsync(employee.AdminUserId);
+        if (adminUser is null) return NotFound();
+
+        adminUser.Permissions = req.Permissions.Distinct().ToList();
+        adminUser.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
         return NoContent();
     }
@@ -374,7 +413,7 @@ public class EmployeeController(IAppDbContext db, IEmailService emailService, IC
         return bestSalary / 2;
     }
 
-    private static EmployeeDto MapEmployee(Employee e, decimal pendingAdvances) => new()
+    private static EmployeeDto MapEmployee(Employee e, decimal pendingAdvances, List<string> permissions) => new()
     {
         Id = e.Id,
         Name = e.Name,
@@ -389,6 +428,7 @@ public class EmployeeController(IAppDbContext db, IEmailService emailService, IC
         HireDate = e.HireDate,
         IsActive = e.IsActive,
         HasAdminLogin = e.AdminUserId is not null,
+        Permissions = permissions,
         PendingAdvances = pendingAdvances,
         CreatedAt = e.CreatedAt,
     };

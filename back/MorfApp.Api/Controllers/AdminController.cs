@@ -49,6 +49,22 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
         return NoContent();
     }
 
+    [HttpPut("marketing")]
+    [Authorize(Policy = "OwnerOnly")]
+    public async Task<IActionResult> UpdateMarketing([FromBody] UpdateMarketingRequest req, CancellationToken ct = default)
+    {
+        var tenant = await db.Tenants.FindAsync(new object[] { TenantId }, ct);
+        if (tenant is null) return NotFound();
+
+        tenant.MetaPixelId = req.MetaPixelId;
+        tenant.MetaPixelEnabled = req.MetaPixelEnabled;
+        tenant.GoogleAnalyticsId = req.GoogleAnalyticsId;
+        tenant.GoogleAnalyticsEnabled = req.GoogleAnalyticsEnabled;
+        tenant.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return NoContent();
+    }
+
     [HttpPut("branding")]
     [Authorize(Policy = "OwnerOnly")]
     public async Task<IActionResult> UpdateBranding([FromBody] UpdateBrandingRequest req)
@@ -250,6 +266,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
     }
 
     [HttpPost("categories")]
+    [Authorize(Policy = "Perm:menu")]
     public async Task<ActionResult<CategoryAdminDto>> CreateCategory([FromBody] CreateCategoryRequest req, CancellationToken ct = default)
     {
         var cat = new Category
@@ -270,6 +287,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
     }
 
     [HttpPut("categories/{id}")]
+    [Authorize(Policy = "Perm:menu")]
     public async Task<IActionResult> UpdateCategory(string id, [FromBody] UpdateCategoryRequest req, CancellationToken ct = default)
     {
         var cat = await db.Categories.FirstOrDefaultAsync(c => c.Id == id && c.TenantId == TenantId, ct);
@@ -284,6 +302,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
     }
 
     [HttpDelete("categories/{id}")]
+    [Authorize(Policy = "Perm:menu")]
     public async Task<IActionResult> DeleteCategory(string id, CancellationToken ct = default)
     {
         var cat = await db.Categories.FirstOrDefaultAsync(c => c.Id == id && c.TenantId == TenantId, ct);
@@ -297,6 +316,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
     // ── Products ─────────────────────────────────────────────────────────────
 
     [HttpPost("products")]
+    [Authorize(Policy = "Perm:menu")]
     public async Task<ActionResult<ProductAdminDto>> CreateProduct([FromBody] CreateProductRequest req, CancellationToken ct = default)
     {
         var catExists = await db.Categories
@@ -311,7 +331,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
             Description = req.Description,
             Price = req.Price,
             Emoji = req.Emoji,
-            ImageUrl = req.ImageUrl,
+            ImageUrls = req.ImageUrls ?? [],
             SortOrder = req.SortOrder,
             IsActive = req.IsActive,
             IsOutOfStock = req.IsOutOfStock,
@@ -323,6 +343,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
     }
 
     [HttpPut("products/{id}")]
+    [Authorize(Policy = "Perm:menu")]
     public async Task<IActionResult> UpdateProduct(string id, [FromBody] UpdateProductRequest req, CancellationToken ct = default)
     {
         var product = await db.Products.FirstOrDefaultAsync(p => p.Id == id && p.TenantId == TenantId, ct);
@@ -333,7 +354,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
         product.Description = req.Description;
         product.Price = req.Price;
         product.Emoji = req.Emoji;
-        product.ImageUrl = req.ImageUrl;
+        product.ImageUrls = req.ImageUrls ?? [];
         product.SortOrder = req.SortOrder;
         product.IsActive = req.IsActive;
         product.IsOutOfStock = req.IsOutOfStock;
@@ -344,6 +365,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
     }
 
     [HttpPut("products/{id}/discount")]
+    [Authorize(Policy = "Perm:menu")]
     public async Task<IActionResult> UpdateProductDiscount(string id, [FromBody] UpdateProductDiscountRequest req, CancellationToken ct = default)
     {
         var product = await db.Products.FirstOrDefaultAsync(p => p.Id == id && p.TenantId == TenantId, ct);
@@ -356,6 +378,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
     }
 
     [HttpPut("products/{id}/modifier-groups")]
+    [Authorize(Policy = "Perm:menu")]
     public async Task<IActionResult> UpdateProductModifierGroups(string id, [FromBody] UpdateProductModifierGroupsRequest req, CancellationToken ct = default)
     {
         var product = await db.Products
@@ -376,6 +399,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
     }
 
     [HttpDelete("products/{id}")]
+    [Authorize(Policy = "Perm:menu")]
     public async Task<IActionResult> DeleteProduct(string id, CancellationToken ct = default)
     {
         var product = await db.Products.FirstOrDefaultAsync(p => p.Id == id && p.TenantId == TenantId, ct);
@@ -401,6 +425,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
     }
 
     [HttpPost("modifier-groups")]
+    [Authorize(Policy = "Perm:modifiers")]
     public async Task<ActionResult<ModifierGroupAdminDto>> CreateModifierGroup([FromBody] CreateModifierGroupRequest req)
     {
         if (!Enum.TryParse<ModifierType>(req.Type, true, out var type))
@@ -438,6 +463,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
     }
 
     [HttpPut("modifier-groups/{id}")]
+    [Authorize(Policy = "Perm:modifiers")]
     public async Task<IActionResult> UpdateModifierGroup(string id, [FromBody] UpdateModifierGroupRequest req)
     {
         if (!Enum.TryParse<ModifierType>(req.Type, true, out var type))
@@ -491,6 +517,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
     }
 
     [HttpDelete("modifier-groups/{id}")]
+    [Authorize(Policy = "Perm:modifiers")]
     public async Task<IActionResult> DeleteModifierGroup(string id)
     {
         var group = await db.ModifierGroups
@@ -555,7 +582,8 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
         ),
         t.BusinessHours.OrderBy(h => h.DayOfWeek)
             .Select(h => new HourAdminDto(h.DayOfWeek, h.IsOpen, h.OpensAt, h.ClosesAt))
-            .ToList()
+            .ToList(),
+        new MarketingAdminDto(t.MetaPixelId, t.MetaPixelEnabled, t.GoogleAnalyticsId, t.GoogleAnalyticsEnabled)
     );
 
     private static CategoryAdminDto MapCategory(Category c) => new(
@@ -565,7 +593,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
 
     private static ProductAdminDto MapProduct(Product p) => new(
         p.Id, p.CategoryId, p.Name, p.Description,
-        p.Price, p.DiscountPercent, p.Emoji, p.ImageUrl, p.SortOrder, p.IsActive, p.IsOutOfStock, p.Tags,
+        p.Price, p.DiscountPercent, p.Emoji, p.ImageUrls, p.SortOrder, p.IsActive, p.IsOutOfStock, p.Tags,
         p.ModifierGroups.Select(g => g.Id).ToList()
     );
 
@@ -607,6 +635,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
     }
 
     [HttpPost("promotions")]
+    [Authorize(Policy = "Perm:promotions")]
     public async Task<IActionResult> CreatePromotion([FromBody] CreatePromotionRequest req)
     {
         // Validar que todos los productos pertenecen al tenant (permitir duplicados)
@@ -658,6 +687,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
     }
 
     [HttpPut("promotions/{id}")]
+    [Authorize(Policy = "Perm:promotions")]
     public async Task<IActionResult> UpdatePromotion(string id, [FromBody] UpdatePromotionRequest req)
     {
         var promo = await db.Promotions
@@ -689,6 +719,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
     }
 
     [HttpPut("promotions/{id}/products")]
+    [Authorize(Policy = "Perm:promotions")]
     public async Task<IActionResult> UpdatePromotionProducts(string id, [FromBody] UpdatePromotionProductsRequest req)
     {
         var promo = await db.Promotions
@@ -714,6 +745,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
     }
 
     [HttpPut("promotions/{id}/modifier-groups")]
+    [Authorize(Policy = "Perm:promotions")]
     public async Task<IActionResult> UpdatePromotionModifierGroups(string id, [FromBody] UpdatePromotionModifierGroupsRequest req)
     {
         var promo = await db.Promotions
@@ -742,6 +774,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
     }
 
     [HttpDelete("promotions/{id}")]
+    [Authorize(Policy = "Perm:promotions")]
     public async Task<IActionResult> DeletePromotion(string id)
     {
         var promo = await db.Promotions.FirstOrDefaultAsync(p => p.Id == id && p.TenantId == TenantId);
@@ -756,6 +789,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
     // ── Product Supplies ─────────────────────────────────────────────────────
 
     [HttpGet("products/{productId}/supplies")]
+    [Authorize(Policy = "Perm:insumos")]
     public async Task<ActionResult<List<ProductSupplyDto>>> GetProductSupplies(string productId)
     {
         var product = await db.Products.FirstOrDefaultAsync(p => p.Id == productId && p.TenantId == TenantId);
@@ -783,6 +817,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
     }
 
     [HttpPut("products/{productId}/supplies")]
+    [Authorize(Policy = "Perm:insumos")]
     public async Task<IActionResult> UpdateProductSupplies(string productId, [FromBody] UpdateProductSuppliesRequest req)
     {
         var product = await db.Products.FirstOrDefaultAsync(p => p.Id == productId && p.TenantId == TenantId);

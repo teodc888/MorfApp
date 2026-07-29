@@ -13,7 +13,7 @@ namespace MorfApp.Api.Controllers;
 
 [ApiController]
 [Route("api/admin/orders")]
-[Authorize]
+[Authorize(Policy = "Perm:orders")]
 public class OrdersController(
     IAppDbContext db,
     MorfApp.Api.WebSocket.WebSocketConnectionManager wsManager) : ControllerBase

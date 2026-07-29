@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MorfApp.Infrastructure.Persistence;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MorfApp.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260728195835_AddProductImageUrls")]
+    partial class AddProductImageUrls
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -45,11 +48,6 @@ namespace MorfApp.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("password_hash");
-
-                    b.Property<string>("Permissions")
-                        .IsRequired()
-                        .HasColumnType("jsonb")
-                        .HasColumnName("permissions");
 
                     b.Property<string>("Role")
                         .IsRequired()
@@ -1408,14 +1406,6 @@ namespace MorfApp.Infrastructure.Migrations
                         .HasColumnType("text")
                         .HasColumnName("custom_domain");
 
-                    b.Property<bool>("GoogleAnalyticsEnabled")
-                        .HasColumnType("boolean")
-                        .HasColumnName("google_analytics_enabled");
-
-                    b.Property<string>("GoogleAnalyticsId")
-                        .HasColumnType("text")
-                        .HasColumnName("google_analytics_id");
-
                     b.Property<bool>("IsPaused")
                         .HasColumnType("boolean")
                         .HasColumnName("is_paused");
@@ -1424,14 +1414,6 @@ namespace MorfApp.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("locale");
-
-                    b.Property<bool>("MetaPixelEnabled")
-                        .HasColumnType("boolean")
-                        .HasColumnName("meta_pixel_enabled");
-
-                    b.Property<string>("MetaPixelId")
-                        .HasColumnType("text")
-                        .HasColumnName("meta_pixel_id");
 
                     b.Property<string>("MpPreapprovalId")
                         .HasColumnType("text")

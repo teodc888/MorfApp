@@ -9,6 +9,13 @@ export type TenantBranding = {
 
 export type TenantPlan = 'Basico' | 'Pro' | 'Negocio'
 
+export type MarketingConfig = {
+  metaPixelId: string | null
+  metaPixelEnabled: boolean
+  googleAnalyticsId: string | null
+  googleAnalyticsEnabled: boolean
+}
+
 export type TenantAdmin = {
   id: string
   slug: string
@@ -21,6 +28,7 @@ export type TenantAdmin = {
   payment: PaymentConfig | null
   hours: BusinessHour[]
   isPaused: boolean
+  marketing: MarketingConfig
 }
 
 export type DeliveryConfig = {
@@ -60,6 +68,8 @@ export type TenantPublic = {
   deliveryConfig: DeliveryConfig
   paymentConfig: PaymentConfig
   businessHours: BusinessHour[]
+  metaPixelId: string | null
+  googleAnalyticsId: string | null
 }
 
 export type ModifierOption = {
@@ -86,7 +96,7 @@ export type Product = {
   finalPrice?: number | null
   discountPercent?: number | null
   emoji: string
-  imageUrl: string | null
+  imageUrls: string[]
   tags: string[]
   modifierGroups: ModifierGroup[]
   isOutOfStock: boolean
@@ -263,6 +273,7 @@ export interface EmployeeDto {
   hireDate: string
   isActive: boolean
   hasAdminLogin: boolean
+  permissions: string[]
   pendingAdvances: number
   createdAt: string
 }

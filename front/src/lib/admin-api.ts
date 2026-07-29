@@ -1,5 +1,5 @@
 import { getAccessToken, getRefreshToken, saveTokens, clearTokens } from '@/lib/auth'
-import type { TenantAdmin, TenantBranding, PaymentConfig, BusinessHour, Category, Product, SupplierDto, SupplierDebtDetailDto, SupplierPaymentDto, SupplyDto, SupplyPurchaseDto, ProductSupplyDto, InventoryMovementDto, EmployeeDto, CreateEmployeeBody, UpdateEmployeeBody, SalaryPaymentDto, RegisterPaymentBody, EmployeeAdvanceDto, RegisterAdvanceBody, EmployeePendingDto } from '@/types/store'
+import type { TenantAdmin, TenantBranding, PaymentConfig, BusinessHour, Category, Product, SupplierDto, SupplierDebtDetailDto, SupplierPaymentDto, SupplyDto, SupplyPurchaseDto, ProductSupplyDto, InventoryMovementDto, EmployeeDto, CreateEmployeeBody, UpdateEmployeeBody, SalaryPaymentDto, RegisterPaymentBody, EmployeeAdvanceDto, RegisterAdvanceBody, EmployeePendingDto, MarketingConfig } from '@/types/store'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5500'
 
@@ -26,7 +26,7 @@ type CreateProductBody = {
   description: string
   price: number
   emoji: string
-  imageUrl: string | null
+  imageUrls: string[]
   sortOrder: number
   isActive: boolean
   tags: string[]
@@ -213,6 +213,14 @@ export async function updateWhatsAppTemplate(template: string | null): Promise<v
 
 export async function updatePayment(body: PaymentConfig): Promise<void> {
   const res = await adminFetch('/api/admin/payment', {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  })
+  return assertOk(res)
+}
+
+export async function updateMarketing(body: MarketingConfig): Promise<void> {
+  const res = await adminFetch('/api/admin/marketing', {
     method: 'PUT',
     body: JSON.stringify(body),
   })
@@ -804,6 +812,11 @@ export async function activateEmployeeLogin(id: string): Promise<{ message: stri
 
 export async function deactivateEmployeeLogin(id: string): Promise<void> {
   const res = await adminFetch(`/api/admin/employees/${id}/activate-login`, { method: 'DELETE' })
+  return assertOk(res)
+}
+
+export async function updateEmployeePermissions(id: string, permissions: string[]): Promise<void> {
+  const res = await adminFetch(`/api/admin/employees/${id}/permissions`, { method: 'PUT', body: JSON.stringify({ permissions }) })
   return assertOk(res)
 }
 
