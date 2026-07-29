@@ -61,6 +61,13 @@ public class MercadoPagoService : IMercadoPagoService
         return new MpPreapprovalInfo(result.Id, result.Status, result.PayerEmail);
     }
 
+    public async Task UpdateSubscriptionAmountAsync(string preapprovalId, decimal newAmount)
+    {
+        var body = new { auto_recurring = new { transaction_amount = newAmount } };
+        var response = await _http.PutAsJsonAsync($"preapproval/{preapprovalId}", body, JsonOptions);
+        response.EnsureSuccessStatusCode();
+    }
+
     public async Task<MpPaymentInfo> GetPaymentAsync(string paymentId)
     {
         var response = await _http.GetAsync($"v1/payments/{paymentId}");

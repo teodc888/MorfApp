@@ -15,4 +15,8 @@ public interface IMercadoPagoService
     Task<MpPreapprovalInfo> GetPreapprovalAsync(string preapprovalId);
 
     Task<MpPaymentInfo> GetPaymentAsync(string paymentId);
+
+    // Cambia el monto recurrente de una suscripción activa (cambio de plan self-service).
+    // MP no prorratea: el nuevo monto se cobra recién en el próximo ciclo.
+    Task UpdateSubscriptionAmountAsync(string preapprovalId, decimal newAmount);
 }

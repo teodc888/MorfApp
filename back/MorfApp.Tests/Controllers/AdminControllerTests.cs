@@ -24,7 +24,10 @@ public class AdminControllerTests : TestBase
         var env  = new Mock<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>();
         env.Setup(e => e.ContentRootPath).Returns(Path.GetTempPath());
 
-        var ctrl = new AdminController(Db, config, env.Object, new MorfApp.Tests.Fakes.FakeWebSocketManager());
+        var ctrl = new AdminController(
+            Db, config, env.Object, new MorfApp.Tests.Fakes.FakeWebSocketManager(),
+            new Mock<MorfApp.Application.Interfaces.IMercadoPagoService>().Object,
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<AdminController>.Instance);
         SetupTenantClaims(ctrl, tenantId ?? TenantId);
         return ctrl;
     }
@@ -342,7 +345,7 @@ public class AdminControllerTests : TestBase
         var cat    = await CreateCategoryAsync(TenantId);
         var ctrl   = CreateController();
         var result = await ctrl.CreateProduct(new CreateProductRequest(
-            cat.Id, "Milanesa", "Con papas fritas", 850m, "🥩", null, 0, true, false, []));
+            cat.Id, "Milanesa", "Con papas fritas", null, 850m, "🥩", null, 0, true, false, []));
 
         var created = Assert.IsType<CreatedResult>(result.Result);
         var dto     = Assert.IsType<ProductAdminDto>(created.Value);
@@ -358,7 +361,7 @@ public class AdminControllerTests : TestBase
 
         var ctrl   = CreateController();
         var result = await ctrl.CreateProduct(new CreateProductRequest(
-            otherCat.Id, "Producto", null, 100m, "🍔", null, 0, true, false, []));
+            otherCat.Id, "Producto", null, null, 100m, "🍔", null, 0, true, false, []));
 
         Assert.IsType<BadRequestObjectResult>(result.Result);
     }
@@ -372,7 +375,7 @@ public class AdminControllerTests : TestBase
         var ctrl    = CreateController();
 
         var result = await ctrl.UpdateProduct(product.Id, new UpdateProductRequest(
-            cat.Id, "Actualizado", null, 200m, "🍕", null, 1, true, false, []));
+            cat.Id, "Actualizado", null, null, 200m, "🍕", null, 1, true, false, []));
 
         Assert.IsType<NoContentResult>(result);
         var updated = await Db.Products.FindAsync(product.Id);
@@ -387,7 +390,7 @@ public class AdminControllerTests : TestBase
         var prod   = await CreateProductAsync("other-tenant-id", cat.Id);
         var ctrl   = CreateController();
         var result = await ctrl.UpdateProduct(prod.Id, new UpdateProductRequest(
-            cat.Id, "Hack", null, 1m, "🍕", null, 0, true, false, []));
+            cat.Id, "Hack", null, null, 1m, "🍕", null, 0, true, false, []));
 
         Assert.IsType<NotFoundResult>(result);
     }
@@ -686,15 +689,30 @@ public class AdminControllerTests : TestBase
     // ── UpdatePlan ────────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task UpdatePlan_ValidPlan_UpdatesPlan()
+    public async Task UpdatePlan_ValidPlanWithSubscription_UpdatesPlan()
+    {
+        var tenant = await CreateTenantAsync();
+        tenant.MpPreapprovalId = "test-preapproval-id";
+        await Db.SaveChangesAsync();
+
+        var ctrl   = CreateController();
+        var result = await ctrl.UpdatePlan(new UpdatePlanRequest("Pro"));
+
+        Assert.IsType<OkObjectResult>(result);
+        var updated = await Db.Tenants.FindAsync(TenantId);
+        Assert.Equal(TenantPlan.Pro, updated!.Plan);
+    }
+
+    [Fact]
+    public async Task UpdatePlan_NoSubscription_ReturnsBadRequest()
     {
         await CreateTenantAsync();
         var ctrl   = CreateController();
         var result = await ctrl.UpdatePlan(new UpdatePlanRequest("Pro"));
 
-        Assert.IsType<NoContentResult>(result);
+        Assert.IsType<BadRequestObjectResult>(result);
         var tenant = await Db.Tenants.FindAsync(TenantId);
-        Assert.Equal(TenantPlan.Pro, tenant!.Plan);
+        Assert.Equal(TenantPlan.Basico, tenant!.Plan);
     }
 
     [Fact]

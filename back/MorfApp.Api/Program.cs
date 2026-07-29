@@ -6,7 +6,9 @@ using Microsoft.IdentityModel.Tokens;
 using MorfApp.Application.Interfaces;
 using MorfApp.Api;
 using MorfApp.Api.Services;
+using MorfApp.Domain.Enums;
 using MorfApp.Infrastructure.Persistence;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.RateLimiting;
 
@@ -49,6 +51,18 @@ builder.Services.AddAuthorization(options =>
     // por eso estas políticas alcanzan para owners y empleados sin necesitar una condición OR.
     foreach (var key in MorfApp.Domain.Constants.PermissionKeys.All)
         options.AddPolicy($"Perm:{key}", policy => policy.RequireClaim("perm", key));
+
+    // Gating real por plan. El claim "tenant_plan" ya lo emite AuthController.GenerateJwt para
+    // owners y empleados por igual, y se refresca en cada login/refresh. TenantPlan está declarado
+    // en orden Basico < Pro < Negocio, así que la comparación de enum alcanza (mismo criterio que
+    // PLAN_LEVEL en front/src/lib/plan.ts).
+    static bool HasPlanLevel(ClaimsPrincipal user, TenantPlan required)
+    {
+        var claim = user.FindFirst("tenant_plan")?.Value;
+        return claim is not null && Enum.TryParse<TenantPlan>(claim, out var plan) && plan >= required;
+    }
+    options.AddPolicy("Plan:Pro", policy => policy.RequireAssertion(ctx => HasPlanLevel(ctx.User, TenantPlan.Pro)));
+    options.AddPolicy("Plan:Negocio", policy => policy.RequireAssertion(ctx => HasPlanLevel(ctx.User, TenantPlan.Negocio)));
 });
 
 // CORS — permite todos los subdominios del ROOT_DOMAIN

@@ -1,5 +1,5 @@
 import { getAccessToken, getRefreshToken, saveTokens, clearTokens } from '@/lib/auth'
-import type { TenantAdmin, TenantBranding, PaymentConfig, BusinessHour, Category, Product, SupplierDto, SupplierDebtDetailDto, SupplierPaymentDto, SupplyDto, SupplyPurchaseDto, ProductSupplyDto, InventoryMovementDto, EmployeeDto, CreateEmployeeBody, UpdateEmployeeBody, SalaryPaymentDto, RegisterPaymentBody, EmployeeAdvanceDto, RegisterAdvanceBody, EmployeePendingDto, MarketingConfig } from '@/types/store'
+import type { TenantAdmin, TenantBranding, PaymentConfig, BusinessHour, Category, Product, SupplierDto, SupplierDebtDetailDto, SupplierPaymentDto, SupplyDto, SupplyPurchaseDto, ProductSupplyDto, InventoryMovementDto, EmployeeDto, CreateEmployeeBody, UpdateEmployeeBody, SalaryPaymentDto, RegisterPaymentBody, EmployeeAdvanceDto, RegisterAdvanceBody, EmployeePendingDto, MarketingConfig, PlanCatalogEntry, TenantPlan } from '@/types/store'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5500'
 
@@ -10,6 +10,7 @@ type ProductAdmin = Product & {
   sortOrder: number
   isActive: boolean
   discountPercent?: number | null
+  sku?: string | null
 }
 
 type CreateCategoryBody = {
@@ -24,6 +25,7 @@ type CreateProductBody = {
   categoryId: string
   name: string
   description: string
+  sku: string | null
   price: number
   emoji: string
   imageUrls: string[]
@@ -170,6 +172,20 @@ export async function updateAdminMe(body: { name: string; whatsappNumber: string
   return assertOk(res)
 }
 
+// Catálogo público de planes/precios — sin auth, misma fuente que usa la landing.
+export async function getPlans(): Promise<PlanCatalogEntry[]> {
+  const res = await fetch(`${API_URL}/api/public/plans`)
+  return parseJson<PlanCatalogEntry[]>(res)
+}
+
+export async function updateTenantPlan(plan: TenantPlan): Promise<{ plan: TenantPlan; monthlyPrice: number }> {
+  const res = await adminFetch('/api/admin/plan', {
+    method: 'PUT',
+    body: JSON.stringify({ plan }),
+  })
+  return parseJson(res)
+}
+
 export async function updateBranding(body: Partial<TenantBranding>): Promise<void> {
   const res = await adminFetch('/api/admin/branding', {
     method: 'PUT',
@@ -278,6 +294,38 @@ export async function deleteProduct(id: string): Promise<void> {
     const text = await res.text().catch(() => '')
     throw new Error(`Delete product failed ${res.status}: ${text}`)
   }
+}
+
+export async function bulkUpdateProductStatus(productIds: string[], isActive: boolean): Promise<void> {
+  const res = await adminFetch('/api/admin/products/bulk/status', {
+    method: 'PUT',
+    body: JSON.stringify({ productIds, isActive }),
+  })
+  return assertOk(res)
+}
+
+export async function bulkMoveProductsCategory(productIds: string[], categoryId: string): Promise<void> {
+  const res = await adminFetch('/api/admin/products/bulk/category', {
+    method: 'PUT',
+    body: JSON.stringify({ productIds, categoryId }),
+  })
+  return assertOk(res)
+}
+
+export async function bulkAdjustProductPrices(productIds: string[], adjustType: 'percent' | 'fixed', value: number): Promise<void> {
+  const res = await adminFetch('/api/admin/products/bulk/price', {
+    method: 'PUT',
+    body: JSON.stringify({ productIds, adjustType, value }),
+  })
+  return assertOk(res)
+}
+
+export async function bulkDeleteProducts(productIds: string[]): Promise<void> {
+  const res = await adminFetch('/api/admin/products/bulk/delete', {
+    method: 'POST',
+    body: JSON.stringify({ productIds }),
+  })
+  return assertOk(res)
 }
 
 export async function updateProductDiscount(id: string, discountPercent: number | null): Promise<void> {

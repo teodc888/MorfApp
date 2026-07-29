@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MorfApp.Application.DTOs.Admin;
+using MorfApp.Application.DTOs.Public;
 using MorfApp.Application.Interfaces;
 using MorfApp.Domain.Entities;
 using MorfApp.Domain.Enums;
@@ -13,7 +14,13 @@ namespace MorfApp.Api.Controllers;
 [ApiController]
 [Route("api/admin")]
 [Authorize]
-public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEnvironment env, MorfApp.Api.WebSocket.WebSocketConnectionManager wsManager) : ControllerBase
+public class AdminController(
+    IAppDbContext db,
+    IConfiguration config,
+    IWebHostEnvironment env,
+    MorfApp.Api.WebSocket.WebSocketConnectionManager wsManager,
+    IMercadoPagoService mercadoPago,
+    ILogger<AdminController> logger) : ControllerBase
 {
     private string TenantId => User.FindFirstValue("tenant_id")
         ?? throw new UnauthorizedAccessException();
@@ -163,6 +170,9 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
         return NoContent();
     }
 
+    // Autoservicio de cambio de plan: el dueño puede subir o bajar su propio plan, pero el cambio
+    // solo se aplica si se logra actualizar el monto recurrente de su suscripción en Mercado Pago
+    // primero — así nunca se desbloquean features sin que la facturación real se haya actualizado.
     [HttpPut("plan")]
     [Authorize(Policy = "OwnerOnly")]
     public async Task<IActionResult> UpdatePlan([FromBody] UpdatePlanRequest req)
@@ -170,13 +180,29 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
         var tenant = await db.Tenants.FindAsync(TenantId);
         if (tenant is null) return NotFound();
 
-        if (!Enum.TryParse<TenantPlan>(req.Plan, out var plan))
+        if (!Enum.TryParse<TenantPlan>(req.Plan, out var newPlan))
             return BadRequest(new { message = "Plan inválido. Opciones: Basico, Pro, Negocio" });
 
-        tenant.Plan = plan;
+        if (newPlan == tenant.Plan) return NoContent();
+
+        if (string.IsNullOrEmpty(tenant.MpPreapprovalId))
+            return BadRequest(new { message = "Tu cuenta no tiene una suscripción de pago automática asociada. Contactanos para cambiar tu plan." });
+
+        var newPrice = PlanCatalog.Plans.First(p => p.Plan == newPlan.ToString()).MonthlyPriceArs;
+        try
+        {
+            await mercadoPago.UpdateSubscriptionAmountAsync(tenant.MpPreapprovalId, newPrice);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "No se pudo actualizar el monto de la suscripción MP del tenant {TenantId}", TenantId);
+            return StatusCode(502, new { message = "No pudimos actualizar tu suscripción en Mercado Pago. Probá de nuevo en unos minutos." });
+        }
+
+        tenant.Plan = newPlan;
         tenant.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
-        return NoContent();
+        return Ok(new { plan = tenant.Plan.ToString(), monthlyPrice = newPrice });
     }
 
     // PUT /api/admin/tenant/pause
@@ -329,6 +355,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
             CategoryId = req.CategoryId,
             Name = req.Name,
             Description = req.Description,
+            Sku = req.Sku?.Trim(),
             Price = req.Price,
             Emoji = req.Emoji,
             ImageUrls = req.ImageUrls ?? [],
@@ -352,6 +379,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
         product.CategoryId = req.CategoryId;
         product.Name = req.Name;
         product.Description = req.Description;
+        product.Sku = req.Sku?.Trim();
         product.Price = req.Price;
         product.Emoji = req.Emoji;
         product.ImageUrls = req.ImageUrls ?? [];
@@ -406,6 +434,78 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
         if (product is null) return NotFound();
 
         db.Products.Remove(product);
+        await db.SaveChangesAsync(ct);
+        return NoContent();
+    }
+
+    // ── Edición masiva ──────────────────────────────────────────────────────
+
+    [HttpPut("products/bulk/status")]
+    [Authorize(Policy = "Perm:menu")]
+    public async Task<IActionResult> BulkUpdateProductStatus([FromBody] BulkUpdateStatusRequest req, CancellationToken ct = default)
+    {
+        var products = await db.Products
+            .Where(p => p.TenantId == TenantId && req.ProductIds.Contains(p.Id))
+            .ToListAsync(ct);
+
+        foreach (var product in products)
+        {
+            product.IsActive = req.IsActive;
+            product.UpdatedAt = DateTime.UtcNow;
+        }
+        await db.SaveChangesAsync(ct);
+        return NoContent();
+    }
+
+    [HttpPut("products/bulk/category")]
+    [Authorize(Policy = "Perm:menu")]
+    public async Task<IActionResult> BulkMoveProductsCategory([FromBody] BulkMoveCategoryRequest req, CancellationToken ct = default)
+    {
+        var catExists = await db.Categories.AnyAsync(c => c.Id == req.CategoryId && c.TenantId == TenantId, ct);
+        if (!catExists) return BadRequest(new { message = "Categoría no encontrada" });
+
+        var products = await db.Products
+            .Where(p => p.TenantId == TenantId && req.ProductIds.Contains(p.Id))
+            .ToListAsync(ct);
+
+        foreach (var product in products)
+        {
+            product.CategoryId = req.CategoryId;
+            product.UpdatedAt = DateTime.UtcNow;
+        }
+        await db.SaveChangesAsync(ct);
+        return NoContent();
+    }
+
+    [HttpPut("products/bulk/price")]
+    [Authorize(Policy = "Perm:menu")]
+    public async Task<IActionResult> BulkAdjustProductPrices([FromBody] BulkAdjustPriceRequest req, CancellationToken ct = default)
+    {
+        var products = await db.Products
+            .Where(p => p.TenantId == TenantId && req.ProductIds.Contains(p.Id))
+            .ToListAsync(ct);
+
+        foreach (var product in products)
+        {
+            var adjusted = req.AdjustType == "percent"
+                ? product.Price * (1 + req.Value / 100M)
+                : product.Price + req.Value;
+            product.Price = Math.Max(1, Math.Round(adjusted, 2));
+            product.UpdatedAt = DateTime.UtcNow;
+        }
+        await db.SaveChangesAsync(ct);
+        return NoContent();
+    }
+
+    [HttpPost("products/bulk/delete")]
+    [Authorize(Policy = "Perm:menu")]
+    public async Task<IActionResult> BulkDeleteProducts([FromBody] BulkProductIdsRequest req, CancellationToken ct = default)
+    {
+        var products = await db.Products
+            .Where(p => p.TenantId == TenantId && req.ProductIds.Contains(p.Id))
+            .ToListAsync(ct);
+
+        db.Products.RemoveRange(products);
         await db.SaveChangesAsync(ct);
         return NoContent();
     }
@@ -592,7 +692,7 @@ public class AdminController(IAppDbContext db, IConfiguration config, IWebHostEn
     );
 
     private static ProductAdminDto MapProduct(Product p) => new(
-        p.Id, p.CategoryId, p.Name, p.Description,
+        p.Id, p.CategoryId, p.Name, p.Description, p.Sku,
         p.Price, p.DiscountPercent, p.Emoji, p.ImageUrls, p.SortOrder, p.IsActive, p.IsOutOfStock, p.Tags,
         p.ModifierGroups.Select(g => g.Id).ToList()
     );

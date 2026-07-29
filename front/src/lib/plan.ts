@@ -12,8 +12,11 @@ export const PLAN_LABEL: Record<TenantPlan, string> = {
   Negocio: 'Negocio',
 }
 
+// Debe coincidir con PlanCatalog.Plans (back/MorfApp.Application/DTOs/Public/PlanInfo.cs) —
+// fuente única de verdad para precios. Se mantiene como fallback estático porque PlanGate
+// no siempre tiene a mano el catálogo vivo (GET /api/public/plans).
 export const PLAN_PRICE: Record<TenantPlan, string> = {
-  Basico: '$25.000 / mes',
+  Basico: '$20.000 / mes',
   Pro: '$45.000 / mes',
   Negocio: '$60.000 / mes',
 }

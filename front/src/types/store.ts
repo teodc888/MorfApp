@@ -9,6 +9,13 @@ export type TenantBranding = {
 
 export type TenantPlan = 'Basico' | 'Pro' | 'Negocio'
 
+export type PlanCatalogEntry = {
+  plan: TenantPlan
+  displayName: string
+  monthlyPriceArs: number
+  features: string[]
+}
+
 export type MarketingConfig = {
   metaPixelId: string | null
   metaPixelEnabled: boolean

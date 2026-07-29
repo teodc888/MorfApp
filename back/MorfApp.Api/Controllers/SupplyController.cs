@@ -11,6 +11,7 @@ namespace MorfApp.Api.Controllers;
 [ApiController]
 [Route("api/admin/supplies")]
 [Authorize(Policy = "Perm:insumos")]
+[Authorize(Policy = "Plan:Pro")]
 public class SupplyController(IAppDbContext db) : ControllerBase
 {
     private string TenantId => User.FindFirstValue("tenant_id")

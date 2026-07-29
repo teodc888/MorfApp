@@ -12,6 +12,7 @@ namespace MorfApp.Api.Controllers;
 [ApiController]
 [Route("api/admin/employees")]
 [Authorize(Policy = "OwnerOnly")]
+[Authorize(Policy = "Plan:Negocio")]
 public class EmployeeController(IAppDbContext db, IEmailService emailService, IConfiguration config) : ControllerBase
 {
     private string TenantId => User.FindFirstValue("tenant_id")

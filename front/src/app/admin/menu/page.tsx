@@ -12,6 +12,10 @@ import {
   createProduct,
   updateProduct,
   deleteProduct,
+  bulkUpdateProductStatus,
+  bulkMoveProductsCategory,
+  bulkAdjustProductPrices,
+  bulkDeleteProducts,
   uploadImage,
   getModifierGroups,
   updateProductModifierGroups,
@@ -24,13 +28,14 @@ import {
 import type { Category, Product, SupplyDto, ProductSupplyDto } from '@/types/store'
 
 type CategoryAdmin = Category & { isActive: boolean }
-type ProductAdmin = Product & { categoryId: string; sortOrder: number; isActive: boolean; discountPercent?: number | null }
+type ProductAdmin = Product & { categoryId: string; sortOrder: number; isActive: boolean; discountPercent?: number | null; sku?: string | null }
 
 type CategoryForm = { name: string; emoji: string; sortOrder: number; isActive?: boolean }
 type ProductForm = {
   categoryId: string
   name: string
   description: string
+  sku: string
   price: string
   emoji: string
   imageUrls: string[]
@@ -58,7 +63,7 @@ const EMOJI_OPTIONS = [
 
 const EMPTY_CAT: CategoryForm = { name: '', emoji: '🍽️', sortOrder: 0, isActive: true }
 const EMPTY_PROD: ProductForm = {
-  categoryId: '', name: '', description: '', price: '',
+  categoryId: '', name: '', description: '', sku: '', price: '',
   emoji: '🍔', imageUrls: [], sortOrder: 0, isActive: true, isOutOfStock: false,
 }
 
@@ -91,6 +96,79 @@ export default function MenuPage() {
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog>({ open: false, type: null, id: '', name: '' })
   const [discountModal, setDiscountModal] = useState<{ prodId: string; prodName: string; current: number | null } | null>(null)
   const [discountInput, setDiscountInput] = useState('')
+
+  // ── Selección / edición masiva ──
+  const [selectMode, setSelectMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkCategoryDialog, setBulkCategoryDialog] = useState<{ open: boolean; categoryId: string }>({ open: false, categoryId: '' })
+  const [bulkPriceDialog, setBulkPriceDialog] = useState<{ open: boolean; type: 'percent' | 'fixed'; value: string }>({ open: false, type: 'percent', value: '' })
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false)
+  const [bulkSaving, setBulkSaving] = useState(false)
+
+  function toggleSelectMode() {
+    setSelectMode((v) => !v)
+    setSelectedIds(new Set())
+  }
+
+  function toggleSelected(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set())
+  }
+
+  async function runBulkAction(action: () => Promise<void>, successMsg: string): Promise<boolean> {
+    setBulkSaving(true)
+    try {
+      await action()
+      await categoriesQuery.refetch()
+      clearSelection()
+      toast.success(successMsg)
+      return true
+    } catch {
+      toast.error('Error al aplicar la acción en lote')
+      return false
+    } finally {
+      setBulkSaving(false)
+    }
+  }
+
+  function bulkActivate(isActive: boolean) {
+    runBulkAction(
+      () => bulkUpdateProductStatus([...selectedIds], isActive),
+      isActive ? 'Productos activados' : 'Productos desactivados'
+    )
+  }
+
+  async function confirmBulkMoveCategory() {
+    if (!bulkCategoryDialog.categoryId) return
+    const ok = await runBulkAction(
+      () => bulkMoveProductsCategory([...selectedIds], bulkCategoryDialog.categoryId),
+      'Productos movidos de categoría'
+    )
+    if (ok) setBulkCategoryDialog({ open: false, categoryId: '' })
+  }
+
+  async function confirmBulkAdjustPrice() {
+    const value = parseFloat(bulkPriceDialog.value)
+    if (isNaN(value) || value === 0) return
+    const ok = await runBulkAction(
+      () => bulkAdjustProductPrices([...selectedIds], bulkPriceDialog.type, value),
+      'Precios actualizados'
+    )
+    if (ok) setBulkPriceDialog({ open: false, type: 'percent', value: '' })
+  }
+
+  async function confirmBulkDelete() {
+    const ok = await runBulkAction(() => bulkDeleteProducts([...selectedIds]), 'Productos eliminados')
+    if (ok) setBulkDeleteConfirm(false)
+  }
 
   const [, setProductSupplies] = useState<ProductSupplyDto[]>([])
   const [selectedSupplyIds, setSelectedSupplyIds] = useState<string[]>([])
@@ -152,7 +230,7 @@ export default function MenuPage() {
   async function openEditProd(prod: ProductAdmin) {
     setProdForm({
       categoryId: prod.categoryId, name: prod.name,
-      description: prod.description ?? '', price: String(prod.price),
+      description: prod.description ?? '', sku: prod.sku ?? '', price: String(prod.price),
       emoji: prod.emoji, imageUrls: prod.imageUrls ?? [],
       sortOrder: prod.sortOrder, isActive: prod.isActive,
       isOutOfStock: prod.isOutOfStock,
@@ -183,7 +261,7 @@ export default function MenuPage() {
     mutationFn: async () => {
       const body = {
         categoryId: prodForm.categoryId, name: prodForm.name,
-        description: prodForm.description, price: parseFloat(prodForm.price) || 0,
+        description: prodForm.description, sku: prodForm.sku.trim() || null, price: parseFloat(prodForm.price) || 0,
         emoji: prodForm.emoji, imageUrls: prodForm.imageUrls,
         sortOrder: prodForm.sortOrder, isActive: prodForm.isActive, tags: [],
         isOutOfStock: prodForm.isOutOfStock,
@@ -319,6 +397,9 @@ export default function MenuPage() {
           <h1 className="serif" style={{ margin: 0, fontSize: 32, lineHeight: 1.05, color: 'var(--text)', flex: 1, fontWeight: 700 }}>
             Carta
           </h1>
+          <button onClick={toggleSelectMode} className={selectMode ? 'btn btn-danger btn-sm' : 'btn btn-outline btn-sm'} style={{ marginTop: 4 }}>
+            {selectMode ? 'Cancelar selección' : 'Seleccionar'}
+          </button>
           <button onClick={openNewCat} className="btn btn-primary btn-sm" style={{ marginTop: 4 }}>
             <span className="mat sm">add</span> Categoría
           </button>
@@ -385,7 +466,7 @@ export default function MenuPage() {
               return (
                 <button
                   key={prod.id}
-                  onClick={() => openEditProd(p)}
+                  onClick={() => selectMode ? toggleSelected(prod.id) : openEditProd(p)}
                   className="tap"
                   style={{
                     width: '100%', textAlign: 'left',
@@ -393,11 +474,22 @@ export default function MenuPage() {
                     borderTop: '1px solid var(--outline-soft)',
                     display: 'flex', alignItems: 'flex-start', gap: 12,
                     opacity: p.isActive ? 1 : 0.55,
+                    background: selectMode && selectedIds.has(prod.id) ? 'rgba(249,115,22,0.08)' : 'transparent',
                   }}
                 >
+                  {selectMode && (
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(prod.id)}
+                      onChange={() => toggleSelected(prod.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ width: 18, height: 18, marginTop: 2, accentColor: 'var(--primary)', flexShrink: 0 }}
+                    />
+                  )}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
                       <span className="serif" style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>{prod.name}</span>
+                      {p.sku && <span className="chip" style={{ fontFamily: 'ui-monospace, monospace', fontSize: 11 }}>{p.sku}</span>}
                       {!p.isActive && <span className="chip">Pausado</span>}
                       {p.isOutOfStock && <span className="chip error">Sin stock</span>}
                       {p.discountPercent && (
@@ -535,6 +627,10 @@ export default function MenuPage() {
                   <label>Precio <span style={{ color: 'var(--error)', fontSize: 12, fontWeight: 600 }}>(Obligatorio)</span></label>
                   <input className="input" type="number" min="0" step="0.01" value={prodForm.price} onChange={e => setProdForm(f => ({ ...f, price: e.target.value }))} placeholder="0" />
                 </div>
+              </div>
+              <div className="field">
+                <label>SKU / código <span className="muted" style={{ fontWeight: 400 }}>(opcional)</span></label>
+                <input className="input" value={prodForm.sku} onChange={e => setProdForm(f => ({ ...f, sku: e.target.value }))} placeholder="Ej: MIL-001" style={{ fontFamily: 'ui-monospace, monospace' }} />
               </div>
 
               {/* Images */}
@@ -703,6 +799,104 @@ export default function MenuPage() {
               <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => setDiscountModal(null)}>Cancelar</button>
               <button className="btn btn-primary" style={{ flex: 1 }} disabled={discountSaving || discountInput.trim() === ''} onClick={saveDiscount}>
                 {discountSaving ? 'Guardando...' : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Barra flotante de acciones en lote ─────────────────────── */}
+      {selectMode && selectedIds.size > 0 && (
+        <div style={{
+          position: 'sticky', bottom: 0, zIndex: 10,
+          padding: '10px 16px', margin: '0 6px 6px',
+          background: 'var(--surface)', borderRadius: 14,
+          boxShadow: '0 -4px 20px rgba(0,0,0,0.12)',
+          display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+        }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginRight: 4 }}>
+            {selectedIds.size} seleccionado{selectedIds.size !== 1 ? 's' : ''}
+          </span>
+          <button className="btn btn-outline btn-sm" disabled={bulkSaving} onClick={() => bulkActivate(true)}>Activar</button>
+          <button className="btn btn-outline btn-sm" disabled={bulkSaving} onClick={() => bulkActivate(false)}>Desactivar</button>
+          <button className="btn btn-outline btn-sm" disabled={bulkSaving} onClick={() => setBulkCategoryDialog({ open: true, categoryId: '' })}>Mover</button>
+          <button className="btn btn-outline btn-sm" disabled={bulkSaving} onClick={() => setBulkPriceDialog({ open: true, type: 'percent', value: '' })}>Ajustar precio</button>
+          <button className="btn btn-danger btn-sm" disabled={bulkSaving} onClick={() => setBulkDeleteConfirm(true)}>Eliminar</button>
+        </div>
+      )}
+
+      {/* ── Modal: mover de categoría en lote ───────────────────────── */}
+      {bulkCategoryDialog.open && (
+        <div className="modal-backdrop modal-center" onClick={() => setBulkCategoryDialog({ open: false, categoryId: '' })}>
+          <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ maxWidth: 380 }}>
+            <h2 className="serif" style={{ margin: '0 0 16px', fontSize: 20 }}>Mover {selectedIds.size} producto{selectedIds.size !== 1 ? 's' : ''}</h2>
+            <div className="field" style={{ marginBottom: 20 }}>
+              <label>Categoría destino</label>
+              <select className="select" value={bulkCategoryDialog.categoryId} onChange={e => setBulkCategoryDialog(d => ({ ...d, categoryId: e.target.value }))}>
+                <option value="">Seleccionar...</option>
+                {categories.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)}
+              </select>
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => setBulkCategoryDialog({ open: false, categoryId: '' })}>Cancelar</button>
+              <button className="btn btn-primary" style={{ flex: 1 }} disabled={bulkSaving || !bulkCategoryDialog.categoryId} onClick={confirmBulkMoveCategory}>
+                {bulkSaving ? 'Moviendo...' : 'Mover'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: ajustar precio en lote ───────────────────────────── */}
+      {bulkPriceDialog.open && (
+        <div className="modal-backdrop modal-center" onClick={() => setBulkPriceDialog({ open: false, type: 'percent', value: '' })}>
+          <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ maxWidth: 380 }}>
+            <h2 className="serif" style={{ margin: '0 0 16px', fontSize: 20 }}>Ajustar precio de {selectedIds.size} producto{selectedIds.size !== 1 ? 's' : ''}</h2>
+            <div className="field" style={{ marginBottom: 12 }}>
+              <label>Tipo de ajuste</label>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  onClick={() => setBulkPriceDialog(d => ({ ...d, type: 'percent' }))}
+                  style={{ flex: 1, padding: '9px 13px', borderRadius: 999, fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', background: bulkPriceDialog.type === 'percent' ? 'var(--text)' : 'var(--surface-container)', color: bulkPriceDialog.type === 'percent' ? 'white' : 'var(--muted)' }}
+                >
+                  Porcentaje (%)
+                </button>
+                <button
+                  onClick={() => setBulkPriceDialog(d => ({ ...d, type: 'fixed' }))}
+                  style={{ flex: 1, padding: '9px 13px', borderRadius: 999, fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', background: bulkPriceDialog.type === 'fixed' ? 'var(--text)' : 'var(--surface-container)', color: bulkPriceDialog.type === 'fixed' ? 'white' : 'var(--muted)' }}
+                >
+                  Monto fijo ($)
+                </button>
+              </div>
+            </div>
+            <div className="field" style={{ marginBottom: 20 }}>
+              <label>Valor <span className="muted" style={{ fontWeight: 400 }}>(negativo para bajar)</span></label>
+              <input className="input" type="number" step="0.01" value={bulkPriceDialog.value} onChange={e => setBulkPriceDialog(d => ({ ...d, value: e.target.value }))} placeholder={bulkPriceDialog.type === 'percent' ? 'Ej: 10 o -10' : 'Ej: 500 o -500'} />
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => setBulkPriceDialog({ open: false, type: 'percent', value: '' })}>Cancelar</button>
+              <button className="btn btn-primary" style={{ flex: 1 }} disabled={bulkSaving || bulkPriceDialog.value.trim() === ''} onClick={confirmBulkAdjustPrice}>
+                {bulkSaving ? 'Aplicando...' : 'Aplicar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: eliminar en lote ──────────────────────────────────── */}
+      {bulkDeleteConfirm && (
+        <div className="modal-backdrop modal-center" onClick={() => setBulkDeleteConfirm(false)}>
+          <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ maxWidth: 380 }}>
+            <h2 className="serif" style={{ margin: '0 0 16px', fontSize: 20, color: 'var(--error)' }}>
+              ⚠️ ¿Eliminar {selectedIds.size} producto{selectedIds.size !== 1 ? 's' : ''}?
+            </h2>
+            <p style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 20, lineHeight: 1.5 }}>
+              Esta acción no se puede deshacer.
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => setBulkDeleteConfirm(false)}>Cancelar</button>
+              <button className="btn btn-danger" style={{ flex: 1.4 }} disabled={bulkSaving} onClick={confirmBulkDelete}>
+                <span className="mat sm">delete</span> {bulkSaving ? 'Eliminando...' : 'Eliminar'}
               </button>
             </div>
           </div>

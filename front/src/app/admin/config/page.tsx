@@ -3,8 +3,14 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getAdminMe, updateAdminMe, updateDelivery, updateHours, updateMarketing, changePassword } from '@/lib/admin-api'
-import type { BusinessHour, MarketingConfig } from '@/types/store'
+import { getAdminMe, updateAdminMe, updateDelivery, updateHours, updateMarketing, changePassword, getPlans, updateTenantPlan } from '@/lib/admin-api'
+import type { BusinessHour, MarketingConfig, TenantPlan } from '@/types/store'
+
+const PLAN_LABEL: Record<TenantPlan, string> = { Basico: 'Básico', Pro: 'Pro', Negocio: 'Negocio' }
+
+function formatMoney(n: number) {
+  return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
+}
 
 type DeliveryForm = {
   mode: 'delivery' | 'pickup' | 'both'
@@ -55,9 +61,26 @@ export default function ConfigPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [passwordSaving, setPasswordSaving] = useState(false)
 
+  const [planConfirm, setPlanConfirm] = useState<{ open: boolean; target: TenantPlan | null }>({ open: false, target: null })
+
   const { data: tenant, isLoading } = useQuery({
     queryKey: ['admin-me'],
     queryFn: getAdminMe,
+  })
+
+  const { data: plans } = useQuery({
+    queryKey: ['plans'],
+    queryFn: getPlans,
+  })
+
+  const planMutation = useMutation({
+    mutationFn: (plan: TenantPlan) => updateTenantPlan(plan),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-me'] })
+      toast.success('Plan actualizado. El desbloqueo de funciones puede tardar hasta 15 minutos o hasta que vuelvas a iniciar sesión.')
+      setPlanConfirm({ open: false, target: null })
+    },
+    onError: () => toast.error('No pudimos cambiar tu plan. Probá de nuevo en unos minutos.'),
   })
 
   useEffect(() => {
@@ -250,6 +273,40 @@ export default function ConfigPage() {
           </button>
         </Section>
 
+        {/* Plan */}
+        <Section title="Plan">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {plans?.map((p) => {
+              const isCurrent = tenant?.plan === p.plan
+              return (
+                <div key={p.plan} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+                  padding: '12px 14px', borderRadius: 10,
+                  border: isCurrent ? '1px solid var(--primary)' : '1px solid var(--outline-soft)',
+                  background: isCurrent ? 'rgba(249,115,22,0.06)' : 'transparent',
+                }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontWeight: 700, fontSize: 14 }}>{p.displayName}</span>
+                      {isCurrent && (
+                        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--primary-dark)', background: 'rgba(249,115,22,0.14)', padding: '2px 8px', borderRadius: 999 }}>
+                          Plan actual
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs muted">{formatMoney(p.monthlyPriceArs)} / mes</div>
+                  </div>
+                  {!isCurrent && (
+                    <button className="btn btn-outline btn-sm" onClick={() => setPlanConfirm({ open: true, target: p.plan })}>
+                      Cambiar
+                    </button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </Section>
+
         {/* Modo de venta */}
         <Section title="Modo de venta">
           <div className="field">
@@ -425,6 +482,27 @@ export default function ConfigPage() {
         </Section>
 
       </div>
+
+      {planConfirm.open && planConfirm.target && (
+        <div className="modal-backdrop modal-center" onClick={() => setPlanConfirm({ open: false, target: null })}>
+          <div className="modal-sheet" style={{ maxWidth: 380 }} onClick={(e) => e.stopPropagation()}>
+            <div className="p-6">
+              <h2 className="text-lg font-bold mb-2">Cambiar de plan</h2>
+              <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>
+                Vas a pasar a <strong>{PLAN_LABEL[planConfirm.target]}</strong> —{' '}
+                {formatMoney(plans?.find((p) => p.plan === planConfirm.target)?.monthlyPriceArs ?? 0)}/mes
+                a partir de tu próximo cobro. ¿Confirmar?
+              </p>
+              <div className="flex gap-3">
+                <button className="btn btn-outline btn-sm flex-1" onClick={() => setPlanConfirm({ open: false, target: null })}>Cancelar</button>
+                <button className="btn btn-primary btn-sm flex-1" disabled={planMutation.isPending} onClick={() => planMutation.mutate(planConfirm.target!)}>
+                  {planMutation.isPending ? 'Cambiando...' : 'Confirmar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
