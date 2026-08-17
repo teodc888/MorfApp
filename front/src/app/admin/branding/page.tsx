@@ -85,12 +85,12 @@ export default function BrandingPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setTenantName(tenant.name)
     setForm({
-      colorPrimary: b.colorPrimary,
-      colorAccent: b.colorAccent,
-      logoUrl: b.logoUrl ?? '',
-      bannerUrl: b.bannerUrl ?? '',
-      tagline: b.tagline ?? '',
-      emojiIcon: b.emojiIcon,
+      colorPrimary: b?.colorPrimary ?? DEFAULTS.colorPrimary,
+      colorAccent: b?.colorAccent ?? DEFAULTS.colorAccent,
+      logoUrl: b?.logoUrl ?? '',
+      bannerUrl: b?.bannerUrl ?? '',
+      tagline: b?.tagline ?? '',
+      emojiIcon: b?.emojiIcon ?? DEFAULTS.emojiIcon,
     })
   }, [tenant])
 

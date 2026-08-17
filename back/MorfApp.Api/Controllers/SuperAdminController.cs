@@ -155,6 +155,17 @@ public class SuperAdminController(
         };
         db.AdminUsers.Add(adminUser);
 
+        // El alta automática (PublicController) crea este registro; acá lo replicamos
+        // para que el tenant no arranque sin branding (rompía /admin/branding).
+        db.TenantBrandings.Add(new TenantBranding
+        {
+            TenantId = tenant.Id,
+            ColorPrimary = "#e8390e",
+            ColorAccent = "#25D366",
+            EmojiIcon = "🍔",
+            UpdatedAt = now,
+        });
+
         await db.SaveChangesAsync();
 
         tenant.AdminUsers = [adminUser];
