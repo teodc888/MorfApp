@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getAdminMe, updateBranding } from '@/lib/admin-api'
+import { getAdminMe, updateBranding, uploadImage } from '@/lib/admin-api'
 
 type FormState = {
   colorPrimary: string
@@ -96,6 +96,43 @@ export default function BrandingPage() {
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }))
+  }
+
+  const [uploadingLogo, setUploadingLogo] = useState(false)
+  const [uploadingBanner, setUploadingBanner] = useState(false)
+
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 5 * 1024 * 1024) { toast.error('La imagen no puede superar los 5 MB'); e.target.value = ''; return }
+    setUploadingLogo(true)
+    try {
+      const url = await uploadImage(file)
+      set('logoUrl', url)
+      toast.success('Logo subido')
+    } catch {
+      toast.error('Error al subir el logo')
+    } finally {
+      setUploadingLogo(false)
+      e.target.value = ''
+    }
+  }
+
+  async function handleBannerUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 5 * 1024 * 1024) { toast.error('La imagen no puede superar los 5 MB'); e.target.value = ''; return }
+    setUploadingBanner(true)
+    try {
+      const url = await uploadImage(file)
+      set('bannerUrl', url)
+      toast.success('Banner subido')
+    } catch {
+      toast.error('Error al subir el banner')
+    } finally {
+      setUploadingBanner(false)
+      e.target.value = ''
+    }
   }
 
   const saveMutation = useMutation({
@@ -240,15 +277,38 @@ export default function BrandingPage() {
         {/* Assets */}
         <div className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div className="serif" style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>Imágenes</div>
+
           <div className="field">
-            <label>URL del logo</label>
+            <label>Logo</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+              {form.logoUrl && (
+                <div style={{ width: 52, height: 52, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--outline-soft)', flexShrink: 0, background: `url(${form.logoUrl}) center/cover` }} />
+              )}
+              <label style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px', border: '2px dashed var(--outline)', borderRadius: 10, cursor: 'pointer', color: 'var(--muted)', fontSize: 13, fontWeight: 500 }}>
+                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleLogoUpload} disabled={uploadingLogo} />
+                <span className="mat sm">photo_camera</span>
+                {uploadingLogo ? 'Subiendo...' : form.logoUrl ? 'Cambiar logo' : 'Subir logo'}
+              </label>
+            </div>
             <input className="input" value={form.logoUrl} onChange={(e) => set('logoUrl', e.target.value)} placeholder="https://..." />
           </div>
+
           <div className="field">
-            <label>URL del banner</label>
+            <label>Banner</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+              {form.bannerUrl && (
+                <div style={{ width: 52, height: 52, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--outline-soft)', flexShrink: 0, background: `url(${form.bannerUrl}) center/cover` }} />
+              )}
+              <label style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px', border: '2px dashed var(--outline)', borderRadius: 10, cursor: 'pointer', color: 'var(--muted)', fontSize: 13, fontWeight: 500 }}>
+                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleBannerUpload} disabled={uploadingBanner} />
+                <span className="mat sm">photo_camera</span>
+                {uploadingBanner ? 'Subiendo...' : form.bannerUrl ? 'Cambiar banner' : 'Subir banner'}
+              </label>
+            </div>
             <input className="input" value={form.bannerUrl} onChange={(e) => set('bannerUrl', e.target.value)} placeholder="https://..." />
           </div>
-          <div className="text-xs muted" style={{ lineHeight: 1.4 }}>ℹ Recomendado: logo 512×512 PNG con fondo transparente. Banner 1600×600.</div>
+
+          <div className="text-xs muted" style={{ lineHeight: 1.4 }}>ℹ Recomendado: logo 512×512 PNG con fondo transparente. Banner 1600×600. Máximo 5 MB.</div>
         </div>
 
         <div style={{ position: 'sticky', bottom: 0, padding: '12px 0 0', background: 'linear-gradient(to top, var(--bg) 60%, transparent)' }}>
