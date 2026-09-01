@@ -289,6 +289,7 @@ public class StoreController(
         var tenant = await db.Tenants
             .Include(t => t.DeliveryConfig)
             .Include(t => t.BusinessHours)
+            .Include(t => t.PaymentConfig)
             .FirstOrDefaultAsync(t => t.Slug == slug && t.Status != TenantStatus.Suspended, ct);
 
         if (tenant is null)
@@ -317,6 +318,22 @@ public class StoreController(
                 code = "STORE_CLOSED",
                 isOpen = false
             });
+        }
+
+        // 2c. Validar que la forma de pago elegida esté habilitada para el modo de entrega.
+        if (!string.IsNullOrWhiteSpace(req.PaymentMethod))
+        {
+            var paymentMethod = req.PaymentMethod.Trim().ToLowerInvariant();
+            var isDelivery = mode == "delivery";
+            var paymentEnabled = paymentMethod switch
+            {
+                "cash" => isDelivery ? (tenant.PaymentConfig?.DeliveryCash ?? true) : (tenant.PaymentConfig?.PickupCash ?? true),
+                "transfer" => isDelivery ? (tenant.PaymentConfig?.DeliveryTransfer ?? true) : (tenant.PaymentConfig?.PickupTransfer ?? true),
+                "card" => isDelivery ? (tenant.PaymentConfig?.DeliveryCard ?? true) : (tenant.PaymentConfig?.PickupCard ?? true),
+                _ => false
+            };
+            if (!paymentEnabled)
+                return BadRequest(new { message = "La forma de pago elegida no está disponible." });
         }
 
         // 3. Normalizar teléfono (solo dígitos)

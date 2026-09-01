@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getAdminMe, updateAdminMe, updateDelivery, updateHours, updateMarketing, changePassword, getPlans, updateTenantPlan } from '@/lib/admin-api'
-import type { BusinessHour, MarketingConfig, TenantPlan } from '@/types/store'
+import { getAdminMe, updateAdminMe, updateDelivery, updateHours, updateMarketing, updatePayment, changePassword, getPlans, updateTenantPlan } from '@/lib/admin-api'
+import type { BusinessHour, MarketingConfig, PaymentConfig, TenantPlan } from '@/types/store'
 
 const PLAN_LABEL: Record<TenantPlan, string> = { Basico: 'Básico', Pro: 'Pro', Negocio: 'Negocio' }
 
@@ -44,6 +44,15 @@ const DEFAULT_MARKETING: MarketingConfig = {
   googleAnalyticsEnabled: false,
 }
 
+const DEFAULT_PAYMENT: PaymentConfig = {
+  deliveryCash: true,
+  deliveryTransfer: true,
+  deliveryCard: true,
+  pickupCash: true,
+  pickupTransfer: true,
+  pickupCard: true,
+}
+
 export default function ConfigPage() {
   const queryClient = useQueryClient()
 
@@ -55,6 +64,8 @@ export default function ConfigPage() {
   const [hours, setHours] = useState<BusinessHour[]>(DEFAULT_HOURS)
 
   const [marketing, setMarketing] = useState<MarketingConfig>(DEFAULT_MARKETING)
+
+  const [payment, setPayment] = useState<PaymentConfig>(DEFAULT_PAYMENT)
 
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -117,6 +128,10 @@ export default function ConfigPage() {
         googleAnalyticsEnabled: tenant.marketing.googleAnalyticsEnabled,
       })
     }
+
+    if (tenant.payment) {
+      setPayment(tenant.payment)
+    }
   }, [tenant])
 
   const localMutation = useMutation({
@@ -169,6 +184,15 @@ export default function ConfigPage() {
     onError: () => toast.error('Error al guardar'),
   })
 
+  const paymentMutation = useMutation({
+    mutationFn: () => updatePayment(payment),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-me'] })
+      toast.success('Guardado correctamente')
+    },
+    onError: () => toast.error('Error al guardar'),
+  })
+
   function saveLocal() {
     localMutation.mutate()
   }
@@ -179,6 +203,18 @@ export default function ConfigPage() {
 
   function saveHours() {
     hoursMutation.mutate()
+  }
+
+  function savePayment() {
+    if (showDeliveryCosts && !payment.deliveryCash && !payment.deliveryTransfer && !payment.deliveryCard) {
+      toast.error('Activá al menos una forma de pago para delivery')
+      return
+    }
+    if (showPickup && !payment.pickupCash && !payment.pickupTransfer && !payment.pickupCard) {
+      toast.error('Activá al menos una forma de pago para retiro')
+      return
+    }
+    paymentMutation.mutate()
   }
 
   function saveMarketing() {
@@ -197,6 +233,7 @@ export default function ConfigPage() {
   const deliverySaving = deliveryMutation.isPending
   const hoursSaving = hoursMutation.isPending
   const marketingSaving = marketingMutation.isPending
+  const paymentSaving = paymentMutation.isPending
 
   async function savePassword() {
     if (!currentPassword) {
@@ -235,6 +272,10 @@ export default function ConfigPage() {
 
   function setMkt<K extends keyof MarketingConfig>(key: K, value: MarketingConfig[K]) {
     setMarketing((f) => ({ ...f, [key]: value }))
+  }
+
+  function setPay<K extends keyof PaymentConfig>(key: K, value: PaymentConfig[K]) {
+    setPayment((f) => ({ ...f, [key]: value }))
   }
 
   if (isLoading) {
@@ -373,6 +414,39 @@ export default function ConfigPage() {
           </button>
         </Section>
 
+        {/* Formas de pago */}
+        <Section title="Formas de pago">
+          <p className="text-xs muted" style={{ margin: '-4px 0 0 0' }}>
+            Elegí qué formas de pago puede elegir el cliente al hacer el pedido. Si desactivás todas para un modo, no va a poder finalizar la compra en ese modo.
+          </p>
+
+          {showDeliveryCosts && (
+            <div className="field">
+              <label>Delivery</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <PaymentToggleRow label="Efectivo" checked={payment.deliveryCash} onChange={(v) => setPay('deliveryCash', v)} />
+                <PaymentToggleRow label="Transferencia" checked={payment.deliveryTransfer} onChange={(v) => setPay('deliveryTransfer', v)} />
+                <PaymentToggleRow label="Tarjeta" checked={payment.deliveryCard} onChange={(v) => setPay('deliveryCard', v)} />
+              </div>
+            </div>
+          )}
+
+          {showPickup && (
+            <div className="field">
+              <label>Retiro en el local</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <PaymentToggleRow label="Efectivo" checked={payment.pickupCash} onChange={(v) => setPay('pickupCash', v)} />
+                <PaymentToggleRow label="Transferencia" checked={payment.pickupTransfer} onChange={(v) => setPay('pickupTransfer', v)} />
+                <PaymentToggleRow label="Tarjeta" checked={payment.pickupCard} onChange={(v) => setPay('pickupCard', v)} />
+              </div>
+            </div>
+          )}
+
+          <button className="btn btn-primary btn-block" disabled={paymentSaving} onClick={savePayment}>
+            {paymentSaving ? 'Guardando...' : 'Guardar formas de pago'}
+          </button>
+        </Section>
+
         {/* Horarios */}
         <Section title="Horarios">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -505,6 +579,20 @@ export default function ConfigPage() {
       )}
 
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+    </div>
+  )
+}
+
+function PaymentToggleRow({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+      padding: '8px 10px', borderRadius: 10,
+      border: '1px solid var(--outline-soft)',
+      background: checked ? 'transparent' : 'var(--surface-container)',
+    }}>
+      <span className="text-sm" style={{ color: checked ? 'var(--text)' : 'var(--muted)' }}>{label}</span>
+      <ToggleSwitch checked={checked} onChange={onChange} />
     </div>
   )
 }
